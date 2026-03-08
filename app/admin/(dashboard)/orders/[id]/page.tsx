@@ -187,9 +187,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               <CardContent>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted">
                   <Image
-                    src={getOptimizedImageUrl(order.paymentProof.imageUrl, {
-                      width: 400,
-                    })}
+                    src={getOptimizedImageUrl(order.paymentProof.imageUrl, 400)}
                     alt="Bukti pembayaran"
                     fill
                     className="object-contain"

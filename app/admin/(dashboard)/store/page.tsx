@@ -224,7 +224,7 @@ export default function AdminStorePage() {
                 {currentQrisUrl ? (
                   <div className="relative h-48 w-48 overflow-hidden rounded-lg border bg-white p-2">
                     <Image
-                      src={getOptimizedImageUrl(currentQrisUrl, { width: 200 })}
+                      src={getOptimizedImageUrl(currentQrisUrl, 200)}
                       alt="QRIS"
                       fill
                       className="object-contain"
