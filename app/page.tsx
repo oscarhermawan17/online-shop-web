@@ -8,15 +8,14 @@ export const metadata: Metadata = {
   description: 'Temukan berbagai produk berkualitas dengan harga terbaik. Belanja online tanpa ribet, langsung dari UMKM terpercaya.',
 };
 
+export const revalidate = 0;
+
 async function getProducts(): Promise<ProductListItem[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
-      next: { revalidate: 60 }, // Revalidate every 60 seconds
-    });
+    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${baseUrl}/products`, { cache: 'no-store' });
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch products');
-    }
+    if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
 
     const data = await res.json();
     return data.data || [];
@@ -38,7 +37,7 @@ export default async function HomePage() {
             Selamat Datang di <span className="text-primary">TokoKu</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground md:text-lg">
-            Temukan berbagai produk berkualitas dengan harga terbaik. 
+            Temukan berbagai produk berkualitas dengan harga terbaik.
             Belanja mudah, aman, dan terpercaya.
           </p>
         </div>
