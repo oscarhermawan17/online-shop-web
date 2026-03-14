@@ -40,6 +40,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV API_URL=http://api:4000/api
 
 COPY --from=builder /app ./
 
