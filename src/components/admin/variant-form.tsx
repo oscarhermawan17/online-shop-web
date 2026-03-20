@@ -64,7 +64,7 @@ export function VariantForm({
   const openEditDialog = (variant: ProductVariant) => {
     setEditingVariant(variant);
     reset({
-      name: variant.name,
+      name: variant.name ?? undefined,
       priceOverride: variant.priceOverride,
       stock: variant.stock,
     });
