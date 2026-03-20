@@ -39,6 +39,8 @@ export function VariantForm({
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const realVariants = variants.filter((v) => !v.isDefault);
+
   const {
     register,
     handleSubmit,
@@ -203,20 +205,20 @@ export function VariantForm({
         </Dialog>
       </CardHeader>
       <CardContent>
-        {variants.length === 0 ? (
+        {realVariants.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-4">
             Belum ada varian. Tambahkan varian jika produk ini memiliki pilihan
             seperti warna, ukuran, dll.
           </p>
         ) : (
           <div className="space-y-2">
-            {variants.map((variant) => (
+            {realVariants.map((variant) => (
               <div
                 key={variant.id}
                 className="flex items-center justify-between rounded-lg border p-3"
               >
                 <div>
-                  <p className="font-medium">{variant.name}</p>
+                  <p className="font-medium">{variant.name ?? '—'}</p>
                   <p className="text-sm text-muted-foreground">
                     {variant.priceOverride
                       ? formatRupiah(variant.priceOverride)

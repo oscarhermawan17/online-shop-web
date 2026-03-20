@@ -8,12 +8,21 @@ interface OrderStatusProps {
   status: OrderStatus;
 }
 
+// Internal statuses used to compute the current position
 const statusSteps: OrderStatus[] = [
   'pending_payment',
   'waiting_confirmation',
   'paid',
   'shipped',
   'done',
+];
+
+// 4 display steps shown to the customer
+const displaySteps = [
+  'Menunggu Pembayaran',
+  'Sedang diproses',
+  'Dikirim',
+  'Selesai',
 ];
 
 export function OrderStatusTracker({ status }: OrderStatusProps) {
@@ -38,12 +47,12 @@ export function OrderStatusTracker({ status }: OrderStatusProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        {statusSteps.map((step, index) => {
+        {displaySteps.map((label, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
 
           return (
-            <div key={step} className="flex flex-1 items-center">
+            <div key={label} className="flex flex-1 items-center">
               {/* Step Circle */}
               <div className="flex flex-col items-center">
                 <div
@@ -70,12 +79,12 @@ export function OrderStatusTracker({ status }: OrderStatusProps) {
                       : 'text-muted-foreground'
                   )}
                 >
-                  {orderStatusLabels[step]}
+                  {label}
                 </p>
               </div>
 
               {/* Connector Line */}
-              {index < statusSteps.length - 1 && (
+              {index < displaySteps.length - 1 && (
                 <div
                   className={cn(
                     'mx-2 h-0.5 flex-1',

@@ -18,6 +18,8 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProps) {
+  const hasRealVariants = product?.variants.some((v) => !v.isDefault) ?? false;
+
   const {
     register,
     handleSubmit,
@@ -94,24 +96,22 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
             )}
           </div>
 
-          {/* Stock */}
-          <div className="space-y-2">
-            <Label htmlFor="stock">Stok *</Label>
-            <Input
-              id="stock"
-              type="number"
-              placeholder="0"
-              {...register('stock', { valueAsNumber: true })}
-              disabled={isSubmitting}
-            />
-            {errors.stock && (
-              <p className="text-sm text-destructive">{errors.stock.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Stok ini adalah stok default. Jika produk memiliki varian, stok
-              per varian akan digunakan.
-            </p>
-          </div>
+          {/* Stock — hidden when real variants exist */}
+          {!hasRealVariants && (
+            <div className="space-y-2">
+              <Label htmlFor="stock">Stok *</Label>
+              <Input
+                id="stock"
+                type="number"
+                placeholder="0"
+                {...register('stock', { valueAsNumber: true })}
+                disabled={isSubmitting}
+              />
+              {errors.stock && (
+                <p className="text-sm text-destructive">{errors.stock.message}</p>
+              )}
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (

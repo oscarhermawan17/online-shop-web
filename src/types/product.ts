@@ -8,11 +8,11 @@ export interface ProductImage {
 
 export interface ProductVariant {
   id: string;
-  name: string;
+  name: string | null;
+  isDefault: boolean;
   priceOverride?: number | null;
   stock: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface Product {

@@ -94,16 +94,16 @@ export default function OrderPage({ params }: OrderPageProps) {
                   >
                     <div>
                       <p className="font-medium">{item.productName}</p>
-                      {item.variantName && (
+                      {item.variantDescription && (
                         <p className="text-sm text-muted-foreground">
-                          Varian: {item.variantName}
+                          Varian: {item.variantDescription}
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground">
-                        {formatRupiah(item.unitPrice)} x {item.quantity}
+                        {formatRupiah(item.price)} x {item.quantity}
                       </p>
                     </div>
-                    <p className="font-semibold">{formatRupiah(item.subtotal)}</p>
+                    <p className="font-semibold">{formatRupiah(item.price * item.quantity)}</p>
                   </div>
                 ))}
 
