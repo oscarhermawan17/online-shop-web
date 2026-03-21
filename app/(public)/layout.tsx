@@ -1,16 +1,18 @@
-import { Header } from '@/components/public';
-import { Footer } from '@/components/public';
+import { Header, Footer } from '@/components/public';
+import { getStoreInfo } from '@/lib/get-store-info';
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { name: storeName } = await getStoreInfo();
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <Header storeName={storeName} />
       <main className="flex-1">{children}</main>
-      <Footer />
+      <Footer storeName={storeName} />
     </div>
   );
 }
