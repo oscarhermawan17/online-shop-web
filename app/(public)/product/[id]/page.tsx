@@ -11,7 +11,8 @@ interface ProductPageProps {
 
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
+    const baseUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${baseUrl}/products/${id}`, {
       next: { revalidate: 60 },
     });
 
