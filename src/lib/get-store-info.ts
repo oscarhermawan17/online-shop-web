@@ -9,9 +9,7 @@ export async function getStoreInfo(): Promise<StoreInfo> {
   if (!baseUrl) return FALLBACK;
 
   try {
-    const res = await fetch(`${baseUrl}/store`, {
-      next: { revalidate: 3600 }, // cache 1 hour, revalidate in background
-    });
+    const res = await fetch(`${baseUrl}/store`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`status ${res.status}`);
     const json = await res.json();
     // handles { data: Store } or bare Store shapes

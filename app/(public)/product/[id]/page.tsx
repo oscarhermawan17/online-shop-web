@@ -13,7 +13,7 @@ async function getProduct(id: string): Promise<Product | null> {
   try {
     const baseUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
     const res = await fetch(`${baseUrl}/products/${id}`, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
 
     if (!res.ok) {

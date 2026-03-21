@@ -3,7 +3,7 @@ import { ProductCard, ProductCardSkeleton, Header, Footer } from '@/components/p
 import { getStoreInfo } from '@/lib/get-store-info';
 import type { ProductListItem } from '@/types';
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 async function getProducts(): Promise<ProductListItem[]> {
   try {

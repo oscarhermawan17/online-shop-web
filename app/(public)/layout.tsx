@@ -1,4 +1,6 @@
 import { Header, Footer } from '@/components/public';
+
+export const dynamic = 'force-dynamic';
 import { getStoreInfo } from '@/lib/get-store-info';
 
 export default async function PublicLayout({
