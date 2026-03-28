@@ -15,18 +15,21 @@ export const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Only run on client side
     if (typeof window !== 'undefined') {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
+      const url = config.url ?? '';
+      // Admin routes use admin token; all others use customer token
+      const isAdminRoute = url.startsWith('/admin') || url.startsWith('/auth');
+
+      if (isAdminRoute) {
         try {
-          const { state } = JSON.parse(authStorage);
-          if (state?.token) {
-            config.headers.Authorization = `Bearer ${state.token}`;
-          }
-        } catch {
-          // Invalid storage, ignore
-        }
+          const { state } = JSON.parse(localStorage.getItem('auth-storage') ?? '{}');
+          if (state?.token) config.headers.Authorization = `Bearer ${state.token}`;
+        } catch { /* ignore */ }
+      } else {
+        try {
+          const { state } = JSON.parse(localStorage.getItem('customer-auth-storage') ?? '{}');
+          if (state?.token) config.headers.Authorization = `Bearer ${state.token}`;
+        } catch { /* ignore */ }
       }
     }
     return config;
@@ -39,13 +42,14 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Clear auth and redirect to login
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth-storage');
-        // Only redirect if on admin pages
-        if (window.location.pathname.startsWith('/admin') && 
-            !window.location.pathname.includes('/admin/login')) {
+        const path = window.location.pathname;
+        if (path.startsWith('/admin') && !path.includes('/admin/login')) {
+          localStorage.removeItem('auth-storage');
           window.location.href = '/admin/login';
+        } else if (path.startsWith('/dashboard')) {
+          localStorage.removeItem('customer-auth-storage');
+          window.location.href = '/login';
         }
       }
     }

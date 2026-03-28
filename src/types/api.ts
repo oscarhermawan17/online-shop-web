@@ -42,3 +42,15 @@ export interface AdminUser {
   role: 'owner' | 'manager' | 'staff';
   storeId: string;
 }
+
+export interface CustomerUser {
+  id: string;
+  name: string | null;
+  phone: string;
+  email: string | null;
+}
+
+export interface CustomerLoginResponse {
+  token: string;
+  customer: CustomerUser;
+}

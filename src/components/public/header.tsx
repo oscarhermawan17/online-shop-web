@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Search } from 'lucide-react';
+import { ShoppingCart, Search, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useCartStore } from '@/stores';
+import { useCartStore, useCustomerAuthStore } from '@/stores';
 
 interface HeaderProps {
   storeName: string;
@@ -12,12 +12,15 @@ interface HeaderProps {
 export function Header({ storeName }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
+  const isCustomerLoggedIn = useCustomerAuthStore((state) => state.isAuthenticated);
+  const customerName = useCustomerAuthStore((state) => state.customer?.name);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const totalItems = mounted ? getTotalItems() : 0;
+  const loggedIn = mounted && isCustomerLoggedIn();
 
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-black/[0.06] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
@@ -75,13 +78,23 @@ export function Header({ storeName }: HeaderProps) {
             )}
           </Link>
 
-          {/* Masuk Button */}
-          <Link
-            href="/admin/login"
-            className="bg-[#006f1d] text-[#eaffe2] font-semibold text-base px-6 py-2 rounded-lg hover:bg-[#005e17] transition-colors leading-6"
-          >
-            Masuk
-          </Link>
+          {/* Masuk / Dashboard Button */}
+          {loggedIn ? (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 bg-[#006f1d] text-[#eaffe2] font-semibold text-base px-6 py-2 rounded-lg hover:bg-[#005e17] transition-colors leading-6"
+            >
+              <User className="h-4 w-4" />
+              {customerName ?? 'Akun Saya'}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="bg-[#006f1d] text-[#eaffe2] font-semibold text-base px-6 py-2 rounded-lg hover:bg-[#005e17] transition-colors leading-6"
+            >
+              Masuk
+            </Link>
+          )}
         </div>
       </div>
     </header>
