@@ -1,4 +1,4 @@
-import { AdminSidebar } from '@/components/admin';
+import { AdminSidebar, AdminBottomNav } from '@/components/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +10,10 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-24 md:pb-0">
         <div className="p-4 md:p-8">{children}</div>
       </main>
+      <AdminBottomNav />
     </div>
   );
 }

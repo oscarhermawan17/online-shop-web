@@ -1,122 +1,70 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Store,
-  LogOut,
-  Menu,
-  X,
-} from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, Package, ShoppingCart, Store, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores';
-import { useRouter } from 'next/navigation';
 
 const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/products', label: 'Produk', icon: Package },
-  { href: '/admin/orders', label: 'Pesanan', icon: ShoppingCart },
-  { href: '/admin/store', label: 'Pengaturan Toko', icon: Store },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { href: '/admin/products', label: 'Produk', icon: Package, exact: false },
+  { href: '/admin/orders', label: 'Pesanan', icon: ShoppingCart, exact: false },
+  { href: '/admin/store', label: 'Pengaturan Toko', icon: Store, exact: false },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
   const logout = useAuthStore((state) => state.logout);
-  const admin = useAuthStore((state) => state.admin);
 
   const handleLogout = () => {
     logout();
     router.push('/admin/login');
   };
 
-  const NavContent = () => (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Link href="/admin" className="flex items-center gap-2">
-          <Store className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">Admin Panel</span>
-        </Link>
+  return (
+    <aside className="hidden md:flex flex-col w-64 shrink-0 min-h-screen bg-[#f8fafc]">
+      {/* Branding */}
+      <div className="px-4 pt-4 pb-8">
+        <div className="px-2 py-4">
+          <p className="text-[#14532d] font-bold text-xl tracking-[-0.5px] leading-7">Admin Grosir</p>
+          <p className="text-[#64748b] font-medium text-xs leading-4">Manajemen Toko</p>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-4">
-        {navItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== '/admin' && pathname.startsWith(item.href));
-          const Icon = item.icon;
-
+      <nav className="flex flex-col gap-1 px-4 flex-1">
+        {navItems.map(({ href, label, icon: Icon, exact }) => {
+          const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsOpen(false)}
+              key={href}
+              href={href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-[#dcfce7] text-[#166534] font-bold'
+                  : 'text-[#475569] font-normal hover:bg-[#f1f5f9] hover:text-[#2d3432]'
               )}
             >
-              <Icon className="h-5 w-5" />
-              {item.label}
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
             </Link>
           );
         })}
       </nav>
 
-      {/* User Info & Logout */}
-      <div className="border-t p-4">
-        {admin && (
-          <div className="mb-4 rounded-lg bg-muted p-3">
-            <p className="text-sm font-medium">{admin.name}</p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {admin.role}
-            </p>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      {/* Logout */}
+      <div className="px-4 pt-4 pb-4">
+        <button
           onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#a73b21] w-full hover:bg-[rgba(253,121,90,0.08)] transition-colors"
         >
-          <LogOut className="h-5 w-5" />
+          <LogOut className="w-4 h-4 shrink-0" />
           Keluar
-        </Button>
+        </button>
       </div>
-    </div>
-  );
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden w-64 flex-shrink-0 border-r bg-card md:block">
-        <NavContent />
-      </aside>
-
-      {/* Mobile Sidebar */}
-      <div className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-card px-4 md:hidden">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
-            <NavContent />
-          </SheetContent>
-        </Sheet>
-        <span className="font-semibold">Admin Panel</span>
-      </div>
-    </>
+    </aside>
   );
 }
