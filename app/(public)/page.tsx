@@ -126,7 +126,7 @@ export default async function HomePage() {
 
           {/* Promo Products Section */}
           <section>
-            <PromoHorizontalList products={promoProducts} title="🔥 Promo Puncak" />
+            <PromoHorizontalList products={promoProducts} title="🔥 Promo" />
           </section>
 
           {/* All Products Grid */}

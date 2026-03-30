@@ -24,6 +24,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useCustomerAuthStore, useCartStore } from '@/stores';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -234,13 +235,28 @@ function DesktopProfile() {
 function MobileDashboard() {
   const customer = useCustomerAuthStore((state) => state.customer);
   const items = useCartStore((state) => state.items);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [mounted, setMounted] = useState(false);
+
+  const { data: orders } = useSWR<Order[]>('/customer/orders', fetcher);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const totalItems = mounted ? items.length : 0;
+
+  const getStatusCount = (statusKeys: string[]) => {
+    if (!orders) return 0;
+    return orders.filter(order => statusKeys.includes(order.status)).length;
+  };
+
+  const statusIcons = [
+    { icon: Wallet, label: 'Belum Bayar', status: ['pending_payment'] },
+    { icon: Package, label: 'Dikemas', status: ['paid', 'waiting_confirmation'] },
+    { icon: Truck, label: 'Dikirim', status: ['shipped'] },
+    { icon: Star, label: 'Diterima', status: ['done'] },
+  ];
 
   return (
     <div className="pb-24 bg-[#f5f5f5] min-h-screen">
@@ -316,27 +332,42 @@ function MobileDashboard() {
             <h3 className="text-sm font-medium text-gray-800">Pesanan Saya</h3>
           </div>
           <div className="grid grid-cols-4 py-4">
-            {[
-              { icon: Wallet, label: 'Belum Bayar' },
-              { icon: Package, label: 'Dikemas' },
-              { icon: Truck, label: 'Dikirim', badge: 2 },
-              { icon: Star, label: 'Beri Penilaian' },
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5 relative cursor-pointer active:opacity-60 transition-opacity">
-                <div className="relative">
-                  <item.icon className="w-6 h-6 text-gray-600 stroke-[1.5]" />
-                  {item.badge && (
-                    <span className="absolute -top-2 -right-2 bg-[#166534] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
-                      {item.badge}
-                    </span>
+            {statusIcons.map((item, i) => {
+              const count = getStatusCount(item.status);
+              const isActive = activeFilter === item.status[0];
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => setActiveFilter(isActive ? 'all' : item.status[0])}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 relative cursor-pointer transition-all active:scale-95",
+                    isActive ? "opacity-100" : "opacity-70 hover:opacity-100"
                   )}
+                >
+                  <div className="relative">
+                    <item.icon className={cn(
+                      "w-6 h-6 stroke-[1.5]",
+                      isActive ? "text-[#166534]" : "text-gray-600"
+                    )} />
+                    {count > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-[#166534] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  <span className={cn(
+                    "text-[10px] whitespace-nowrap transition-colors",
+                    isActive ? "text-[#166534] font-bold" : "text-gray-600"
+                  )}>
+                    {item.label}
+                  </span>
                 </div>
-                <span className="text-[10px] text-gray-600 whitespace-nowrap">{item.label}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="p-3 border-t border-gray-50">
-            <OrderHistoryInline />
+            <OrderHistoryInline activeStatus={activeFilter} />
           </div>
         </div>
 
@@ -346,7 +377,7 @@ function MobileDashboard() {
   );
 }
 
-function OrderHistoryInline() {
+function OrderHistoryInline({ activeStatus = 'all' }: { activeStatus?: string }) {
   const { data: orders, isLoading } = useSWR<Order[]>('/customer/orders', fetcher);
 
   const formatCurrency = (amount: number) =>
@@ -365,17 +396,38 @@ function OrderHistoryInline() {
     );
   }
 
-  if (!orders || orders.length === 0) {
+  // Filter logic
+  const filteredOrders = !orders ? [] : (
+    activeStatus === 'all'
+      ? orders
+      : orders.filter(o => {
+        if (activeStatus === 'paid') return o.status === 'paid' || o.status === 'waiting_confirmation';
+        return o.status === activeStatus;
+      })
+  );
+
+  if (filteredOrders.length === 0) {
+    const emptyMessages: Record<string, string> = {
+      all: 'Belum ada pesanan terbaru',
+      pending_payment: 'Belum ada pesanan yang perlu dibayar',
+      paid: 'Belum ada pesanan yang sedang dikemas',
+      shipped: 'Belum ada pesanan yang dalam pengiriman',
+      done: 'Belum ada pesanan yang selesai',
+    };
+
     return (
-      <div className="text-center py-4">
-        <p className="text-xs text-gray-400">Belum ada pesanan terbaru</p>
+      <div className="text-center py-8 px-4">
+        <Package className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+        <p className="text-xs text-gray-400 font-medium">
+          {emptyMessages[activeStatus] || emptyMessages.all}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="divide-y divide-gray-50 flex flex-col bg-white">
-      {orders.slice(0, 3).map((order: Order) => (
+      {filteredOrders.slice(0, 3).map((order: Order) => (
         <div key={order.id} className="py-4 first:pt-0">
           <div className="flex items-start justify-between mb-2">
             <div className="space-y-1">
