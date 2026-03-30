@@ -6,6 +6,7 @@ export { PromoHorizontalList } from './promo-horizontal-list';
 export { PromoCarousel } from './promo-carousel';
 export { ProductCard, ProductCardSkeleton } from './product-card';
 export { ProductGallery } from './product-gallery';
+export { PriceRangeFilter } from './price-range-filter';
 export { VariantSelector } from './variant-selector';
 export { AddToCartButton } from './add-to-cart-button';
 export { CartItem } from './cart-item';
