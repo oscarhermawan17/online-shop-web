@@ -1,19 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Search, User, MessageCircle, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCartStore, useCustomerAuthStore } from '@/stores';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  LogOut, 
+  User as UserIcon, 
+  Settings, 
+  Heart,
+  ShoppingCart,
+  Search,
+  MessageCircle,
+  Camera
+} from 'lucide-react';
 
 interface HeaderProps {
   storeName: string;
 }
 
 export function Header({ storeName }: HeaderProps) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const isCustomerLoggedIn = useCustomerAuthStore((state) => state.isAuthenticated);
   const customerName = useCustomerAuthStore((state) => state.customer?.name);
+  const logout = useCustomerAuthStore((state) => state.logout);
 
   useEffect(() => {
     setMounted(true);
@@ -21,6 +40,11 @@ export function Header({ storeName }: HeaderProps) {
 
   const totalItems = mounted ? getTotalItems() : 0;
   const loggedIn = mounted && isCustomerLoggedIn();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/90 border-b border-black/6 shadow-sm">
@@ -83,13 +107,40 @@ export function Header({ storeName }: HeaderProps) {
             {/* Login / Profile - Desktop Only or simplified */}
             <div className="hidden md:block">
               {loggedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-2 bg-[#166534] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#115e59] transition-colors"
-                >
-                  <User className="h-4 w-4" />
-                  <span className="truncate max-w-25">{customerName ?? 'Akun'}</span>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 bg-[#166534] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#115e59] transition-colors outline-none">
+                      <UserIcon className="h-4 w-4" />
+                      <span className="truncate max-w-25">{customerName ?? 'Akun'}</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href="/dashboard" className="flex items-center w-full">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Profil Saya</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href="/dashboard/orders" className="flex items-center w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Pesanan Saya</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Heart className="mr-2 h-4 w-4" />
+                      <span>Voucher Saya</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="md:hidden lg:block" />
+                    <DropdownMenuItem 
+                      onClick={handleLogout} 
+                      className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Keluar</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Link
                   href="/login"

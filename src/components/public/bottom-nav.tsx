@@ -7,7 +7,7 @@ import { Home, Tag, PlayCircle, Bell, User } from 'lucide-react';
 const navItems = [
   { href: '/', label: 'Beranda', icon: Home, exact: true },
   { href: '/deals', label: 'Deals', icon: Tag, exact: false },
-  { href: '/live', label: 'Live & Video', icon: PlayCircle, exact: false },
+  // { href: '/live', label: 'Live & Video', icon: PlayCircle, exact: false },
   { href: '/notifications', label: 'Notifikasi', icon: Bell, exact: false },
   { href: '/dashboard', label: 'Saya', icon: User, exact: false },
 ];

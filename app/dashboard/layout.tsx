@@ -55,7 +55,7 @@ export default function DashboardLayout({
         <div className="hidden md:block">
           <DashboardSidebar />
         </div>
-        <main className="flex-1 min-w-0 bg-white rounded-sm shadow-sm p-6 min-h-[600px]">
+        <main className="flex-1 min-w-0 bg-white rounded-sm shadow-sm p-6">
           {children}
         </main>
       </div>
