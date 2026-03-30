@@ -3,6 +3,7 @@ export { Footer } from './footer';
 export { BottomNav } from './bottom-nav';
 export { CategoryHorizontalList } from './category-horizontal-list';
 export { PromoHorizontalList } from './promo-horizontal-list';
+export { PromoCarousel } from './promo-carousel';
 export { ProductCard, ProductCardSkeleton } from './product-card';
 export { ProductGallery } from './product-gallery';
 export { VariantSelector } from './variant-selector';

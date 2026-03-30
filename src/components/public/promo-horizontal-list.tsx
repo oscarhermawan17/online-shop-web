@@ -28,7 +28,7 @@ export function PromoHorizontalList({ products, title }: PromoHorizontalListProp
       <div className="w-full overflow-x-auto no-scrollbar">
         <div className="flex gap-4 px-2 min-w-max pb-4">
           {products.map((product) => (
-            <div key={product.id} className="w-[160px] md:w-[200px] shrink-0 transform transition-transform hover:scale-[1.02]">
+            <div key={product.id} className="w-40 md:w-50 shrink-0 transform transition-transform hover:scale-[1.02]">
               <ProductCard product={product} />
             </div>
           ))}

@@ -16,22 +16,30 @@ const categories = [
 
 export function CategoryHorizontalList() {
   return (
-    <div className="w-full overflow-x-auto no-scrollbar py-4">
-      <div className="flex items-start gap-6 px-2 min-w-max">
-        {categories.map((cat) => (
-          <Link
-            key={cat.id}
-            href={`/#products?category=${cat.label}`}
-            className="flex flex-col items-center gap-2 group cursor-pointer"
-          >
-            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${cat.color}`}>
-              <cat.icon className="w-6 h-6 md:w-7 md:h-7" />
-            </div>
-            <span className="text-[11px] md:text-xs font-medium text-[#2d3432] text-center max-w-[64px] leading-tight">
-              {cat.label}
-            </span>
-          </Link>
-        ))}
+    <div className="flex flex-col gap-4 py-4">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="text-[#2d3432] font-bold text-base md:text-lg flex items-center gap-1 uppercase tracking-tight">
+          <span className="w-1.5 h-6 bg-[#166534] rounded-full mr-2" />
+          Kategori Pilihan
+        </h3>
+      </div>
+      <div className="w-full overflow-x-auto no-scrollbar">
+        <div className="flex items-start gap-6 px-2 min-w-max">
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/#products?category=${cat.label}`}
+              className="flex flex-col items-center gap-2 group cursor-pointer"
+            >
+              <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${cat.color}`}>
+                <cat.icon className="w-6 h-6 md:w-7 md:h-7" />
+              </div>
+              <span className="text-[11px] md:text-xs font-medium text-[#2d3432] text-center max-w-16 leading-tight text-wrap">
+                {cat.label}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
