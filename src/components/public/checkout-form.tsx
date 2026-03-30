@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -9,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
+import { useCustomerAuthStore } from '@/stores';
 
 interface CheckoutFormProps {
   onSubmit: (data: CheckoutFormData) => Promise<void>;
@@ -16,13 +18,32 @@ interface CheckoutFormProps {
 }
 
 export function CheckoutForm({ onSubmit, isSubmitting }: CheckoutFormProps) {
+  const customer = useCustomerAuthStore((state) => state.customer);
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      customerName: customer?.name || '',
+      customerPhone: customer?.phone || '',
+      customerAddress: '',
+    },
   });
+
+  // Auto-fill when customer data is available/hydrated
+  useEffect(() => {
+    if (customer) {
+      reset({
+        customerName: customer.name || '',
+        customerPhone: customer.phone || '',
+        customerAddress: (customer as any).address || '', // Fill if it exists in the object
+      });
+    }
+  }, [customer, reset]);
 
   return (
     <Card>
