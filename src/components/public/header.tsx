@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Search, User } from 'lucide-react';
+import { ShoppingCart, Search, User, MessageCircle, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCartStore, useCustomerAuthStore } from '@/stores';
 
@@ -23,78 +23,83 @@ export function Header({ storeName }: HeaderProps) {
   const loggedIn = mounted && isCustomerLoggedIn();
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-black/[0.06] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
-      <div className="flex items-center justify-between max-w-[1280px] mx-auto px-6 py-3">
-        {/* Logo + Nav */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="text-[#166534] font-bold text-xl leading-7 shrink-0">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/90 border-b border-black/[0.06] shadow-sm">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-2 md:py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo - Hidden on mobile search view */}
+          <Link href="/" className="hidden md:block text-[#166534] font-bold text-xl leading-7 shrink-0">
             {storeName}
           </Link>
-          <nav className="hidden md:flex items-center gap-6 h-[26px]">
+
+          {/* Search Bar - Always visible now */}
+          <div className="flex-1 flex items-center bg-[#f1f5f9] rounded-lg px-3 py-1.5 md:py-2 group focus-within:ring-2 focus-within:ring-[#166534]/20 transition-all">
+            <Search className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#64748b]" />
+            <input
+              type="text"
+              placeholder="Cari di Toko ini..."
+              className="bg-transparent border-none outline-none flex-1 px-2 text-sm md:text-base text-[#1e293b] placeholder-[#94a3b8]"
+            />
+            <button className="p-1 hover:bg-black/5 rounded-full transition-colors">
+              <Camera className="w-4 h-4 md:w-[18px] md:h-[18px] text-[#64748b]" />
+            </button>
+          </div>
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-6 h-[26px]">
             <Link
               href="/#products"
-              className="text-[#166534] font-semibold text-base border-b-2 border-[#166534] pb-0.5 leading-6"
+              className="text-[#166534] font-semibold text-base border-b-2 border-[#166534] pb-0.5"
             >
               Produk
             </Link>
             <Link
               href="#"
-              className="text-[#475569] font-normal text-base leading-6 hover:text-[#166534] transition-colors"
+              className="text-[#64748b] font-normal text-base hover:text-[#166534] transition-colors"
             >
-              Tentang Kami
-            </Link>
-            <Link
-              href="#"
-              className="text-[#475569] font-normal text-base leading-6 hover:text-[#166534] transition-colors"
-            >
-              Kontak
+              Tentang
             </Link>
           </nav>
-        </div>
 
-        {/* Search Bar */}
-        <div className="hidden md:flex flex-1 max-w-[576px] px-8">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="Cari kebutuhan harian..."
-              className="bg-[#dde4e1] rounded-lg pl-4 pr-10 py-[9px] w-full text-sm text-[#2d3432] placeholder-[#6b7280] outline-none focus:ring-2 focus:ring-[#006f1d]/30"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Search className="w-[18px] h-[18px] text-[#59615f]" />
+          {/* Actions */}
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            {/* Cart */}
+            <Link href="/cart" className="relative p-2 rounded-full hover:bg-black/5 transition-colors">
+              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-[#166534]" />
+              {totalItems > 0 && (
+                <span className="absolute top-1 right-1 bg-[#dc2626] text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
+            </Link>
+
+            {/* Chat - New */}
+            <Link href="/chat" className="relative p-2 rounded-full hover:bg-black/5 transition-colors">
+              <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-[#166534]" />
+              <span className="absolute top-1 right-1 bg-[#dc2626] text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white">
+                4
+              </span>
+            </Link>
+
+            {/* Login / Profile - Desktop Only or simplified */}
+            <div className="hidden md:block">
+              {loggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 bg-[#166534] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#115e59] transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="truncate max-w-[100px]">{customerName ?? 'Akun'}</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="bg-[#166534] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#115e59] transition-colors"
+                >
+                  Masuk
+                </Link>
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-5">
-          {/* Cart */}
-          <Link href="/cart" className="relative p-2 rounded-full hover:bg-[#f1f4f2] transition-colors">
-            <ShoppingCart className="w-[19px] h-[19px] text-[#2d3432]" />
-            {totalItems > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-[#a73b21] text-white text-[10px] font-normal rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 leading-none">
-                {totalItems > 99 ? '99+' : totalItems}
-              </span>
-            )}
-          </Link>
-
-          {/* Masuk / Dashboard Button */}
-          {loggedIn ? (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 bg-[#006f1d] text-[#eaffe2] font-semibold text-base px-6 py-2 rounded-lg hover:bg-[#005e17] transition-colors leading-6"
-            >
-              <User className="h-4 w-4" />
-              {customerName ?? 'Akun Saya'}
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="bg-[#006f1d] text-[#eaffe2] font-semibold text-base px-6 py-2 rounded-lg hover:bg-[#005e17] transition-colors leading-6"
-            >
-              Masuk
-            </Link>
-          )}
         </div>
       </div>
     </header>

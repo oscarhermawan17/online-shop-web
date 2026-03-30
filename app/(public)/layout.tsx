@@ -1,4 +1,4 @@
-import { Header, Footer } from '@/components/public';
+import { Header, Footer, BottomNav } from '@/components/public';
 
 export const dynamic = 'force-dynamic';
 import { getStoreInfo } from '@/lib/get-store-info';
@@ -13,8 +13,9 @@ export default async function PublicLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <Header storeName={storeName} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 md:pb-0">{children}</main>
       <Footer storeName={storeName} />
+      <BottomNav />
     </div>
   );
 }

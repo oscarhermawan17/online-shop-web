@@ -1,5 +1,6 @@
 export { Header } from './header';
 export { Footer } from './footer';
+export { BottomNav } from './bottom-nav';
 export { ProductCard, ProductCardSkeleton } from './product-card';
 export { ProductGallery } from './product-gallery';
 export { VariantSelector } from './variant-selector';
