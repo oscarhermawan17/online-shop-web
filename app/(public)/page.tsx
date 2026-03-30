@@ -79,23 +79,26 @@ export default async function HomePage() {
                 Rentang Harga (IDR)
               </p>
               <div className="flex flex-col gap-3">
-                <div className="relative">
+                <div className="relative group">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[10px] font-bold pointer-events-none group-focus-within:text-[#166534] transition-colors">Rp</span>
                   <input
                     type="number"
                     placeholder="Min"
-                    className="bg-[#f1f4f2] border border-[#acb4b1] border-b-2 pl-9 pr-3 py-2.5 text-sm w-full outline-none focus:border-b-[#166534]"
+                    className="bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-2 py-2 text-[13px] w-full outline-none focus:ring-2 focus:ring-[#166534]/10 focus:border-[#166534] transition-all placeholder:text-[#cbd5e1] shadow-sm"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#757c7a] text-xs pointer-events-none">Rp</span>
                 </div>
-                <div className="relative">
+                <div className="relative group">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[10px] font-bold pointer-events-none group-focus-within:text-[#166534] transition-colors">Rp</span>
                   <input
                     type="number"
                     placeholder="Max"
-                    className="bg-[#f1f4f2] border border-[#acb4b1] border-b-2 pl-9 pr-3 py-2.5 text-sm w-full outline-none focus:border-b-[#166534]"
+                    className="bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-2 py-2 text-[13px] w-full outline-none focus:ring-2 focus:ring-[#166534]/10 focus:border-[#166534] transition-all placeholder:text-[#cbd5e1] shadow-sm"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#757c7a] text-xs pointer-events-none">Rp</span>
                 </div>
               </div>
+              <button className="mt-1 w-full border border-[#166534] text-[#166534] hover:bg-[#166534] hover:text-white py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
+                Terapkan Harga
+              </button>
             </div>
           </div>
 
