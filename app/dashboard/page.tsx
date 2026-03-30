@@ -227,11 +227,6 @@ function DesktopProfile() {
         </div>
       </div>
 
-      {/* Inline Order History for Desktop */}
-      <div className="bg-white rounded-sm shadow-sm p-6 mt-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Riwayat Pesanan Terbaru</h2>
-        <OrderHistoryInline />
-      </div>
     </div>
   );
 }
