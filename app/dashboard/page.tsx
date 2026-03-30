@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -23,7 +23,7 @@ import {
   UtensilsCrossed,
   Smartphone
 } from 'lucide-react';
-import { useCustomerAuthStore } from '@/stores';
+import { useCustomerAuthStore, useCartStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -233,6 +233,14 @@ function DesktopProfile() {
 
 function MobileDashboard() {
   const customer = useCustomerAuthStore((state) => state.customer);
+  const items = useCartStore((state) => state.items);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const totalItems = mounted ? items.length : 0;
 
   return (
     <div className="pb-24 bg-[#f5f5f5] min-h-screen">
@@ -258,8 +266,13 @@ function MobileDashboard() {
             <Link href="/dashboard" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
               <Settings className="w-5 h-5 text-white" />
             </Link>
-            <Link href="/cart" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+            <Link href="/cart" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90 relative">
               <ShoppingCart className="w-5 h-5 text-white" />
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-[#dc2626] text-white text-[9px] font-bold rounded-full min-w-4 h-4 flex items-center justify-center border-2 border-[#166534]">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
             </Link>
             <Link href="/chat" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
               <MessageCircle className="w-5 h-5 text-white" />

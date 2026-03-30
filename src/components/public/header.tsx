@@ -29,7 +29,7 @@ interface HeaderProps {
 export function Header({ storeName }: HeaderProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
+  const items = useCartStore((state) => state.items);
   const isCustomerLoggedIn = useCustomerAuthStore((state) => state.isAuthenticated);
   const customerName = useCustomerAuthStore((state) => state.customer?.name);
   const logout = useCustomerAuthStore((state) => state.logout);
@@ -38,7 +38,7 @@ export function Header({ storeName }: HeaderProps) {
     setMounted(true);
   }, []);
 
-  const totalItems = mounted ? getTotalItems() : 0;
+  const totalItems = mounted ? items.length : 0;
   const loggedIn = mounted && isCustomerLoggedIn();
 
   const handleLogout = () => {
