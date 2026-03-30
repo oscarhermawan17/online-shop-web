@@ -255,9 +255,15 @@ function MobileDashboard() {
             <ChevronRight className="w-3.5 h-3.5" />
           </button> */}
           <div className="flex items-center gap-4">
-            <Settings className="w-5 h-5" />
-            <ShoppingCart className="w-5 h-5" />
-            <MessageCircle className="w-5 h-5" />
+            <Link href="/dashboard" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+              <Settings className="w-5 h-5 text-white" />
+            </Link>
+            <Link href="/cart" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+              <ShoppingCart className="w-5 h-5 text-white" />
+            </Link>
+            <Link href="/chat" className="p-1 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </Link>
           </div>
         </div>
 
