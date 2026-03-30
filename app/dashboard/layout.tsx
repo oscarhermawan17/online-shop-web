@@ -17,11 +17,18 @@ export default function DashboardLayout({
   const isAuthenticated = useCustomerAuthStore((state) => state.isAuthenticated);
   const token = useCustomerAuthStore((state) => state.token);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [storeName, setStoreName] = useState('Urban Outfit');
 
   const isLoginPage = pathname === '/login';
 
   useEffect(() => {
     setIsHydrated(true);
+    const fetchStore = async () => {
+      const { getStoreInfo } = await import('@/lib/get-store-info');
+      const info = await getStoreInfo();
+      setStoreName(info.name);
+    };
+    fetchStore();
   }, []);
 
   useEffect(() => {
@@ -51,7 +58,7 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f5f5]">
       <div className="hidden md:block">
-        <Header storeName="Urban Outfit Local" />
+        <Header storeName={storeName} />
       </div>
       {/* Main Content Area: Full width on mobile, max-width on desktop */}
       <div className="flex-1 w-full max-w-7xl mx-auto md:px-4 md:py-8 flex items-start gap-8">
@@ -63,7 +70,7 @@ export default function DashboardLayout({
         </main>
       </div>
       <div className="hidden md:block mt-auto pb-16 md:pb-0">
-        <Footer storeName="Urban Outfit Local" />
+        <Footer storeName={storeName} />
       </div>
       <BottomNav />
     </div>
