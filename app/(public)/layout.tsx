@@ -14,7 +14,9 @@ export default async function PublicLayout({
     <div className="flex min-h-screen flex-col">
       <Header storeName={storeName} />
       <main className="flex-1 pb-16 md:pb-0">{children}</main>
-      <Footer storeName={storeName} />
+      <div className="hidden md:block">
+        <Footer storeName={storeName} />
+      </div>
       <BottomNav />
     </div>
   );
