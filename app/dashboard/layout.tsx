@@ -50,12 +50,15 @@ export default function DashboardLayout({
   // Dashboard usually has a grey background with white content areas
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f5f5]">
-      <Header storeName="Urban Outfit Local" />
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 flex items-start gap-8">
+      <div className="hidden md:block">
+        <Header storeName="Urban Outfit Local" />
+      </div>
+      {/* Main Content Area: Full width on mobile, max-width on desktop */}
+      <div className="flex-1 w-full max-w-7xl mx-auto md:px-4 md:py-8 flex items-start gap-8">
         <div className="hidden md:block">
           <DashboardSidebar />
         </div>
-        <main className="flex-1 min-w-0 bg-white rounded-sm shadow-sm p-6">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>

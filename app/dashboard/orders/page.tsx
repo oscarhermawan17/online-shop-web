@@ -18,11 +18,13 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold mb-4">Riwayat Pesanan</h1>
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-50" />
-        ))}
+      <div className="space-y-6">
+        <h1 className="text-lg font-semibold">Riwayat Pesanan</h1>
+        <div className="bg-white rounded-sm shadow-sm p-6 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-50" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -31,40 +33,43 @@ export default function OrdersPage() {
     <div className="space-y-6">
       <h1 className="text-lg font-semibold">Riwayat Pesanan</h1>
 
-      {!orders || orders.length === 0 ? (
-        <EmptyState
-          type="orders"
-          title="Belum Ada Pesanan"
-          description="Anda belum memiliki riwayat pesanan."
-          actionLabel="Mulai Belanja"
-          actionHref="/"
-        />
-      ) : (
-        <div className="space-y-3">
-          {orders.map((order) => (
-            <Card key={order.id} className="border-gray-200 shadow-none">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    #{order.publicOrderId}
-                  </CardTitle>
-                  <OrderStatusBadge status={order.status} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      {order.items.length} item · {formatDate(order.createdAt)}
-                    </p>
+      <div className="bg-white rounded-sm shadow-sm p-6">
+        {!orders || orders.length === 0 ? (
+          <EmptyState
+            type="orders"
+            title="Belum Ada Pesanan"
+            description="Anda belum memiliki riwayat pesanan."
+            actionLabel="Mulai Belanja"
+            actionHref="/"
+          />
+        ) : (
+          <div className="space-y-3">
+            {orders.map((order) => (
+              <Card key={order.id} className="border-gray-200 shadow-none">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-gray-500">
+                      #{order.publicOrderId}
+                    </CardTitle>
+                    <OrderStatusBadge status={order.status} />
                   </div>
-                  <p className="font-semibold">{formatCurrency(order.totalAmount)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        {order.items.length} item · {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+                    <p className="font-semibold">{formatCurrency(order.totalAmount)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
