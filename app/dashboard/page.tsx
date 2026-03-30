@@ -1,99 +1,185 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { LogOut, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared';
-import { OrderStatusBadge } from '@/components/public/order-status';
+import { useState } from 'react';
+import { User, Camera } from 'lucide-react';
 import { useCustomerAuthStore } from '@/stores';
-import { fetcher } from '@/lib/api';
-import type { Order } from '@/types/order';
-import useSWR from 'swr';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { toast } from 'sonner';
 
-export default function DashboardPage() {
-  const router = useRouter();
+export default function ProfilePage() {
   const customer = useCustomerAuthStore((state) => state.customer);
-  const logout = useCustomerAuthStore((state) => state.logout);
+  const [loading, setLoading] = useState(false);
 
-  const { data: orders, isLoading } = useSWR<Order[]>('/customer/orders', fetcher);
+  // Generate days, months, years for selects
+  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setLoading(false);
+      toast.success('Profil berhasil diperbarui');
+    }, 1000);
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const maskEmail = (email: string | null) => {
+    if (!email) return 'Belum ada email';
+    const [user, domain] = email.split('@');
+    return `${user.slice(0, 2)}${'*'.repeat(user.length - 2)}@${domain}`;
+  };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <div className="border-b bg-background">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold">{customer?.name ?? 'Pengguna'}</p>
-              <p className="text-sm text-muted-foreground">{customer?.phone}</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Keluar
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="pb-1">
+        <h1 className="text-lg font-medium text-gray-900">Profil Saya</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Kelola informasi profil Anda untuk mengontrol, melindungi dan mengamankan akun
+        </p>
       </div>
+      
+      <Separator className="bg-gray-100" />
 
-      {/* Content */}
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <h1 className="mb-4 text-lg font-semibold">Riwayat Pesanan</h1>
+      <div className="flex flex-col-reverse md:flex-row gap-12 pt-4">
+        {/* Left Side: Form */}
+        <form onSubmit={handleSave} className="flex-1 space-y-8">
+          <div className="grid grid-cols-[140px,1fr] items-center gap-y-6">
+            {/* Username */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Username</Label>
+            <div className="space-y-1">
+              <span className="text-sm text-gray-900 font-medium">{customer?.phone || 'frederykabryan'}</span>
+              <p className="text-[11px] text-gray-400">Username hanya dapat diubah satu (1) kali.</p>
+            </div>
 
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
-            ))}
+            {/* Nama */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Nama</Label>
+            <Input 
+              placeholder="Masukkan nama"
+              defaultValue={customer?.name || ''}
+              className="max-w-md h-10 border-gray-200"
+            />
+
+            {/* Email */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Email</Label>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-900">{maskEmail(customer?.email || 'fa*******@gmail.com')}</span>
+              <button type="button" className="text-blue-600 text-sm hover:underline">Ubah</button>
+            </div>
+
+            {/* Nomor Telepon */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Nomor Telepon</Label>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-900">{customer?.phone || '********3456'}</span>
+              <button type="button" className="text-blue-600 text-sm hover:underline">Ubah</button>
+            </div>
+
+            {/* Nama Toko */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Nama Toko</Label>
+            <Input 
+              placeholder="Masukkan nama toko"
+              defaultValue="frederykabryan"
+              className="max-w-md h-10 border-gray-200"
+            />
+
+            {/* Jenis Kelamin */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Jenis Kelamin</Label>
+            <div className="flex items-center gap-6">
+              {['Laki-laki', 'Perempuan', 'Lainnya'].map((label) => (
+                <label key={label} className="flex items-center gap-2 cursor-pointer group">
+                  <input 
+                    type="radio" 
+                    name="gender" 
+                    value={label.toLowerCase()} 
+                    className="w-4 h-4 text-[#ee4d2d] focus:ring-[#ee4d2d] border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">{label}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* Tanggal Lahir */}
+            <Label className="text-sm text-gray-500 justify-self-end mr-4">Tanggal lahir</Label>
+            <div className="flex gap-2 max-w-md">
+              <Select defaultValue="9">
+                <SelectTrigger className="h-10 border-gray-200 flex-1">
+                  <SelectValue placeholder="Tanggal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select defaultValue="Januari">
+                <SelectTrigger className="h-10 border-gray-200 flex-1">
+                  <SelectValue placeholder="Bulan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select defaultValue="1995">
+                <SelectTrigger className="h-10 border-gray-200 flex-1">
+                  <SelectValue placeholder="Tahun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Save Button Container */}
+            <div />
+            <div className="pt-2">
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="bg-[#ee4d2d] hover:bg-[#d73211] text-white px-8 h-10 text-sm font-medium"
+              >
+                {loading ? 'Menyimpan...' : 'Simpan'}
+              </Button>
+            </div>
           </div>
-        ) : !orders || orders.length === 0 ? (
-          <EmptyState
-            type="orders"
-            title="Belum Ada Pesanan"
-            description="Anda belum memiliki riwayat pesanan."
-            actionLabel="Mulai Belanja"
-            actionHref="/"
-          />
-        ) : (
-          <div className="space-y-3">
-            {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      #{order.publicOrderId}
-                    </CardTitle>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {order.items.length} item · {formatDate(order.createdAt)}
-                      </p>
-                    </div>
-                    <p className="font-semibold">{formatCurrency(order.totalAmount)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        </form>
+
+        {/* Right Side: Avatar Upload */}
+        <div className="flex flex-col items-center gap-6 md:w-64 md:border-l border-gray-100 pl-0 md:pl-12 pt-4">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
+               <User className="w-12 h-12 text-gray-300" />
+            </div>
+            <button className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="text-white w-6 h-6" />
+            </button>
           </div>
-        )}
+          
+          <div className="flex flex-col items-center gap-3">
+             <Button variant="outline" size="sm" className="bg-white border-gray-200 text-sm px-4">
+                Pilih Gambar
+             </Button>
+             <div className="text-center text-xs text-gray-400 leading-normal">
+                <p>Ukuran gambar: maks. 1 MB</p>
+                <p>Format gambar: .JPEG, .PNG</p>
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

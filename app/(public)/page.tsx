@@ -102,7 +102,7 @@ export default async function HomePage() {
           {/* Mitra CTA */}
           <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 flex flex-col gap-2">
             <p className="text-[#166534] text-xs font-semibold">Ingin jadi Mitra?</p>
-            <p className="text-[#166534]/80 text-[11px] leading-[17px]">
+            <p className="text-[#166534]/80 text-[11px] leading-4.25">
               Dapatkan harga khusus grosir untuk toko Anda dengan mendaftar sebagai mitra resmi.
             </p>
             <button className="bg-[#166534] text-white text-xs font-bold py-2 rounded-lg hover:bg-[#14532d] transition-colors w-full">

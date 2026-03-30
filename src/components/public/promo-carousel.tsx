@@ -48,29 +48,29 @@ export function PromoCarousel() {
   }, [nextSlide]);
 
   return (
-    <div className="relative group overflow-hidden rounded-2xl w-full h-[180px] md:h-48">
+    <div className="relative group overflow-hidden rounded-2xl w-full h-45 md:h-48">
       {/* Slides */}
-      <div 
+      <div
         className="flex transition-transform duration-500 ease-out h-full"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {slides.map((slide) => (
-          <div 
-            key={slide.id} 
-            className={`w-full flex-shrink-0 relative flex items-center h-full ${slide.color}`}
+          <div
+            key={slide.id}
+            className={`w-full shrink-0 relative flex items-center h-full ${slide.color}`}
           >
             {/* Background Overlay */}
             <div className="absolute inset-0 opacity-20 bg-linear-to-br from-white via-transparent to-transparent z-0" />
-            
+
             {/* Background Image (if any) */}
             {slide.image && (
-                <div className="absolute inset-0 z-0 opacity-30 select-none pointer-events-none">
-                    <img 
-                      src={slide.image} 
-                      alt={slide.title}
-                      className="w-full h-full object-cover"
-                    />
-                </div>
+              <div className="absolute inset-0 z-0 opacity-30 select-none pointer-events-none">
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             )}
 
             {/* Content */}
@@ -90,13 +90,13 @@ export function PromoCarousel() {
       </div>
 
       {/* Navigation Arrows */}
-      <button 
+      <button
         onClick={prevSlide}
         className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
       >
         <ChevronLeft size={20} />
       </button>
-      <button 
+      <button
         onClick={nextSlide}
         className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
       >
@@ -109,9 +109,8 @@ export function PromoCarousel() {
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`w-1.5 h-1.5 rounded-full transition-all ${
-              current === i ? 'bg-white w-4' : 'bg-white/40'
-            }`}
+            className={`w-1.5 h-1.5 rounded-full transition-all ${current === i ? 'bg-white w-4' : 'bg-white/40'
+              }`}
           />
         ))}
       </div>

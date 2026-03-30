@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCustomerAuthStore } from '@/stores';
+import { Header, Footer, BottomNav } from '@/components/public';
+import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { Loading } from '@/components/shared';
 
 export default function DashboardLayout({
@@ -45,5 +47,22 @@ export default function DashboardLayout({
     );
   }
 
-  return <>{children}</>;
+  // Dashboard usually has a grey background with white content areas
+  return (
+    <div className="flex min-h-screen flex-col bg-[#f5f5f5]">
+      <Header storeName="Urban Outfit Local" />
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 flex items-start gap-8">
+        <div className="hidden md:block">
+          <DashboardSidebar />
+        </div>
+        <main className="flex-1 min-w-0 bg-white rounded-sm shadow-sm p-6 min-h-[600px]">
+          {children}
+        </main>
+      </div>
+      <div className="hidden md:block mt-auto pb-16 md:pb-0">
+        <Footer storeName="Urban Outfit Local" />
+      </div>
+      <BottomNav />
+    </div>
+  );
 }
