@@ -32,7 +32,10 @@ export default function CustomerLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post<{ data: CustomerLoginResponse }>('/customer-auth/login', data);
+      const response = await api.post<{ data: CustomerLoginResponse }>('/customer-auth/login', {
+        ...data,
+        storeId: process.env.NEXT_PUBLIC_STORE_ID,
+      });
       const { token, customer } = response.data.data;
 
       setAuth(token, customer);
