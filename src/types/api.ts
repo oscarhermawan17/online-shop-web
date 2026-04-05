@@ -50,6 +50,15 @@ export interface CustomerUser {
   email: string | null;
 }
 
+export interface CustomerListItem {
+  id: string;
+  name: string | null;
+  phone: string;
+  email: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface CustomerLoginResponse {
   token: string;
   customer: CustomerUser;

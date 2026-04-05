@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Store } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Store, Users } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Beranda', icon: LayoutDashboard, exact: true },
   { href: '/admin/products', label: 'Product', icon: Package, exact: false },
   { href: '/admin/orders', label: 'Pesanan', icon: ShoppingCart, exact: false },
+  { href: '/admin/customers', label: 'Pelanggan', icon: Users, exact: false },
   { href: '/admin/store', label: 'Toko', icon: Store, exact: false },
 ];
 
