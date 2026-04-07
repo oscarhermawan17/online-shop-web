@@ -11,12 +11,14 @@ import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { CheckoutFormData } from '@/lib/validations';
-import type { CheckoutResponse } from '@/types';
+import type { CheckoutResponse, DeliveryMethod } from '@/types';
+import type { Store } from '@/types';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [store, setStore] = useState<Pick<Store, 'name' | 'address'> | null>(null);
 
   const items = useCartStore((state) => state.items);
   const storeId = useCartStore((state) => state.storeId);
@@ -24,6 +26,20 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Fetch store info for pickup address
+  useEffect(() => {
+    async function fetchStore() {
+      try {
+        const res = await api.get<{ data: Store }>('/store');
+        const data = res.data.data;
+        setStore({ name: data.name, address: data.address });
+      } catch {
+        // Store info is optional for checkout
+      }
+    }
+    fetchStore();
   }, []);
 
   if (!mounted) {
@@ -57,11 +73,13 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      const isPickup = data.deliveryMethod === 'pickup';
       const payload = {
         storeId,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
-        customerAddress: data.customerAddress,
+        customerAddress: isPickup ? (store?.address || 'Pickup di toko') : (data.customerAddress || ''),
+        deliveryMethod: data.deliveryMethod as DeliveryMethod,
         notes: data.notes || undefined,
         items: items.map((item) => ({
           productId: item.productId,
@@ -102,7 +120,12 @@ export default function CheckoutPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Checkout Form */}
         <div className="lg:col-span-2">
-          <CheckoutForm onSubmit={handleCheckout} isSubmitting={isSubmitting} />
+          <CheckoutForm
+            onSubmit={handleCheckout}
+            isSubmitting={isSubmitting}
+            storeAddress={store?.address}
+            storeName={store?.name}
+          />
         </div>
 
         {/* Order Summary */}

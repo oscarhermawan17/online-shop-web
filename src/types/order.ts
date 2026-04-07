@@ -62,11 +62,14 @@ export interface CheckoutItemPayload {
   quantity: number;
 }
 
+export type DeliveryMethod = 'pickup' | 'delivery';
+
 export interface CheckoutPayload {
   storeId: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  deliveryMethod: DeliveryMethod;
   notes?: string;
   items: CheckoutItemPayload[];
 }

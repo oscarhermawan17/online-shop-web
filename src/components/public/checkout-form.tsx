@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Loader2, MapPin, Truck, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,18 +12,35 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCustomerAuthStore } from '@/stores';
+import type { DeliveryMethod } from '@/types';
+
+const AddressMap = dynamic(
+  () => import('./address-map'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[250px] items-center justify-center rounded-lg border bg-muted/50">
+        <p className="text-sm text-muted-foreground">Memuat peta...</p>
+      </div>
+    ),
+  }
+);
 
 interface CheckoutFormProps {
   onSubmit: (data: CheckoutFormData) => Promise<void>;
   isSubmitting: boolean;
+  storeAddress?: string | null;
+  storeName?: string;
 }
 
-export function CheckoutForm({ onSubmit, isSubmitting }: CheckoutFormProps) {
+export function CheckoutForm({ onSubmit, isSubmitting, storeAddress, storeName }: CheckoutFormProps) {
   const customer = useCustomerAuthStore((state) => state.customer);
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<CheckoutFormData>({
@@ -30,9 +48,13 @@ export function CheckoutForm({ onSubmit, isSubmitting }: CheckoutFormProps) {
     defaultValues: {
       customerName: customer?.name || '',
       customerPhone: customer?.phone || '',
+      deliveryMethod: 'pickup',
       customerAddress: '',
     },
   });
+
+  const deliveryMethod = watch('deliveryMethod');
+  const customerAddress = watch('customerAddress');
 
   // Auto-fill when customer data is available/hydrated
   useEffect(() => {
@@ -40,10 +62,18 @@ export function CheckoutForm({ onSubmit, isSubmitting }: CheckoutFormProps) {
       reset({
         customerName: customer.name || '',
         customerPhone: customer.phone || '',
-        customerAddress: (customer as any).address || '', // Fill if it exists in the object
+        deliveryMethod: deliveryMethod,
+        customerAddress: deliveryMethod === 'delivery' ? (customer as any).address || '' : '',
       });
     }
   }, [customer, reset]);
+
+  const setDeliveryMethod = (method: DeliveryMethod) => {
+    setValue('deliveryMethod', method);
+    if (method === 'pickup') {
+      setValue('customerAddress', '');
+    }
+  };
 
   return (
     <Card>
@@ -81,20 +111,82 @@ export function CheckoutForm({ onSubmit, isSubmitting }: CheckoutFormProps) {
             )}
           </div>
 
-          {/* Address */}
-          <div className="space-y-2">
-            <Label htmlFor="customerAddress">Alamat Lengkap *</Label>
-            <Textarea
-              id="customerAddress"
-              placeholder="Masukkan alamat lengkap (jalan, RT/RW, kelurahan, kecamatan, kota, kode pos)"
-              rows={3}
-              {...register('customerAddress')}
-              disabled={isSubmitting}
-            />
-            {errors.customerAddress && (
-              <p className="text-sm text-destructive">{errors.customerAddress.message}</p>
-            )}
+          {/* Delivery Method */}
+          <div className="space-y-3">
+            <Label>Metode Pengambilan *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setDeliveryMethod('pickup')}
+                disabled={isSubmitting}
+                className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-colors ${
+                  deliveryMethod === 'pickup'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted hover:border-muted-foreground/30'
+                }`}
+              >
+                <Store className={`h-5 w-5 shrink-0 ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className={`font-medium ${deliveryMethod === 'pickup' ? 'text-primary' : ''}`}>Ambil di Toko</p>
+                  <p className="text-xs text-muted-foreground">Pickup langsung</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeliveryMethod('delivery')}
+                disabled={isSubmitting}
+                className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-colors ${
+                  deliveryMethod === 'delivery'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted hover:border-muted-foreground/30'
+                }`}
+              >
+                <Truck className={`h-5 w-5 shrink-0 ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className={`font-medium ${deliveryMethod === 'delivery' ? 'text-primary' : ''}`}>Dikirim</p>
+                  <p className="text-xs text-muted-foreground">Ke alamat kamu</p>
+                </div>
+              </button>
+            </div>
           </div>
+
+          {/* Store Location (Pickup) */}
+          {deliveryMethod === 'pickup' && (
+            <div className="rounded-lg border bg-muted/50 p-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <p className="font-medium">{storeName || 'Lokasi Toko'}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {storeAddress || 'Alamat toko belum tersedia. Silakan hubungi toko untuk informasi lokasi.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delivery Address */}
+          {deliveryMethod === 'delivery' && (
+            <div className="space-y-3">
+              {/* Map */}
+              <AddressMap
+                address={customerAddress || ''}
+                onAddressFound={(addr) => setValue('customerAddress', addr)}
+              />
+
+              <Label htmlFor="customerAddress">Alamat Lengkap *</Label>
+              <Textarea
+                id="customerAddress"
+                placeholder="Masukkan alamat lengkap (jalan, RT/RW, kelurahan, kecamatan, kota, kode pos)"
+                rows={3}
+                {...register('customerAddress')}
+                disabled={isSubmitting}
+              />
+              {errors.customerAddress && (
+                <p className="text-sm text-destructive">{errors.customerAddress.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-2">

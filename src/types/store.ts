@@ -2,6 +2,7 @@ export interface Store {
   id: string;
   name: string;
   description?: string | null;
+  address?: string | null;
   bankName?: string | null;
   bankAccountNumber?: string | null;
   bankAccountName?: string | null;
