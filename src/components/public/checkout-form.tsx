@@ -33,6 +33,7 @@ interface CheckoutFormProps {
   storeName?: string;
   onDeliveryMethodChange?: (method: DeliveryMethod) => void;
   onAddressChange?: (address: string) => void;
+  shippingUnavailable?: boolean;
 }
 
 export function CheckoutForm({
@@ -42,6 +43,7 @@ export function CheckoutForm({
   storeName,
   onDeliveryMethodChange,
   onAddressChange,
+  shippingUnavailable,
 }: CheckoutFormProps) {
   const customer = useCustomerAuthStore((state) => state.customer);
 
@@ -218,7 +220,16 @@ export function CheckoutForm({
             )}
           </div>
 
-          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+          {shippingUnavailable && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              <p className="font-medium">Pengiriman tidak tersedia</p>
+              <p className="mt-0.5 text-xs text-destructive/80">
+                Maaf, kami belum melayani pengiriman ke daerah Anda. Silakan pilih alamat lain atau gunakan opsi Ambil di Toko.
+              </p>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || shippingUnavailable}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

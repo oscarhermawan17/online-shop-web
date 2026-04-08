@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/shared';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { getShippingCost } from '@/lib/shipping';
+import { fetchShippingZones, getShippingCostFromZones, type ShippingArea } from '@/lib/shipping';
 import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
 import type { Store } from '@/types';
@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   // Track form state for the summary sidebar
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [shippingZones, setShippingZones] = useState<ShippingArea[]>([]);
 
   const items = useCartStore((state) => state.items);
   const storeId = useCartStore((state) => state.storeId);
@@ -33,9 +34,9 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
-  // Fetch store info for pickup address
+  // Fetch store info and shipping zones
   useEffect(() => {
-    async function fetchStore() {
+    async function fetchData() {
       try {
         const res = await api.get<{ data: Store }>('/store');
         const data = res.data.data;
@@ -43,15 +44,21 @@ export default function CheckoutPage() {
       } catch {
         // Store info is optional for checkout
       }
+      const zones = await fetchShippingZones();
+      setShippingZones(zones);
     }
-    fetchStore();
+    fetchData();
   }, []);
 
   // Compute shipping from address
   const shipping = useMemo(() => {
     if (deliveryMethod !== 'delivery') return null;
-    return getShippingCost(customerAddress);
-  }, [deliveryMethod, customerAddress]);
+    return getShippingCostFromZones(customerAddress, shippingZones);
+  }, [deliveryMethod, customerAddress, shippingZones]);
+
+  // Shipping unavailable: delivery mode, address entered, but no zone matched
+  const addressEntered = customerAddress.trim().length >= 10;
+  const shippingUnavailable = deliveryMethod === 'delivery' && addressEntered && !shipping;
 
   if (!mounted) {
     return (
@@ -78,6 +85,11 @@ export default function CheckoutPage() {
   const handleCheckout = async (data: CheckoutFormData) => {
     if (!storeId) {
       toast.error('Store ID tidak ditemukan');
+      return;
+    }
+
+    if (data.deliveryMethod === 'delivery' && !shipping) {
+      toast.error('Maaf, kami belum melayani pengiriman ke daerah Anda');
       return;
     }
 
@@ -138,6 +150,7 @@ export default function CheckoutPage() {
             storeName={store?.name}
             onDeliveryMethodChange={setDeliveryMethod}
             onAddressChange={setCustomerAddress}
+            shippingUnavailable={shippingUnavailable}
           />
         </div>
 
@@ -148,6 +161,7 @@ export default function CheckoutPage() {
             deliveryMethod={deliveryMethod}
             shippingCost={shipping?.cost ?? null}
             shippingDistrict={shipping?.district ?? null}
+            shippingUnavailable={shippingUnavailable}
           />
         </div>
       </div>

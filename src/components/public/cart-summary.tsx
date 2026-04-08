@@ -14,6 +14,7 @@ interface CartSummaryProps {
   deliveryMethod?: DeliveryMethod;
   shippingCost?: number | null;
   shippingDistrict?: string | null;
+  shippingUnavailable?: boolean;
 }
 
 export function CartSummary({
@@ -21,6 +22,7 @@ export function CartSummary({
   deliveryMethod,
   shippingCost,
   shippingDistrict,
+  shippingUnavailable,
 }: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
@@ -82,6 +84,8 @@ export function CartSummary({
             <span>
               {resolvedShipping !== null ? (
                 formatRupiah(resolvedShipping)
+              ) : shippingUnavailable ? (
+                <span className="text-xs font-medium text-destructive">Tidak tersedia</span>
               ) : (
                 <span className="text-xs text-muted-foreground">Masukkan alamat</span>
               )}

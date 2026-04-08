@@ -14,6 +14,7 @@ export interface Store {
 export interface UpdateStorePayload {
   name?: string;
   description?: string;
+  address?: string;
   bankName?: string;
   bankAccountNumber?: string;
   bankAccountName?: string;

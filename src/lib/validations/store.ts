@@ -9,6 +9,10 @@ export const storeSchema = z.object({
     .string()
     .max(1000, 'Deskripsi maksimal 1000 karakter')
     .optional(),
+  address: z
+    .string()
+    .max(500, 'Alamat maksimal 500 karakter')
+    .optional(),
   bankName: z
     .string()
     .max(50, 'Nama bank maksimal 50 karakter')

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import dynamic from 'next/dynamic';
 import { Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,18 @@ import api from '@/lib/api';
 import Image from 'next/image';
 import { getOptimizedImageUrl } from '@/lib/utils';
 
+const AddressMap = dynamic(
+  () => import('@/components/public/address-map'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[250px] items-center justify-center rounded-lg border bg-muted/50">
+        <p className="text-sm text-muted-foreground">Memuat peta...</p>
+      </div>
+    ),
+  }
+);
+
 export default function AdminStorePage() {
   const { store, isLoading, isError, mutate } = useAdminStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +41,7 @@ export default function AdminStorePage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<StoreFormData>({
     resolver: zodResolver(storeSchema),
@@ -35,6 +49,7 @@ export default function AdminStorePage() {
       ? {
           name: store.name,
           description: store.description || '',
+          address: store.address || '',
           bankName: store.bankName || '',
           bankAccountNumber: store.bankAccountNumber || '',
           bankAccountName: store.bankAccountName || '',
@@ -42,6 +57,8 @@ export default function AdminStorePage() {
         }
       : undefined,
   });
+
+  const storeAddress = watch('address');
 
   if (isLoading) {
     return <LoadingPage />;
@@ -84,6 +101,7 @@ export default function AdminStorePage() {
       await api.patch('/admin/store', {
         name: data.name,
         description: data.description || undefined,
+        address: data.address || undefined,
         bankName: data.bankName || undefined,
         bankAccountNumber: data.bankAccountNumber || undefined,
         bankAccountName: data.bankAccountName || undefined,
@@ -149,6 +167,27 @@ export default function AdminStorePage() {
                 {errors.description && (
                   <p className="text-sm text-destructive">
                     {errors.description.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Alamat Toko</Label>
+                <AddressMap
+                  address={storeAddress || ''}
+                  onAddressFound={(addr) => setValue('address', addr)}
+                  showShippingZones={false}
+                />
+                <Textarea
+                  id="address"
+                  placeholder="Alamat lengkap toko Anda"
+                  rows={3}
+                  {...register('address')}
+                  disabled={isSubmitting}
+                />
+                {errors.address && (
+                  <p className="text-sm text-destructive">
+                    {errors.address.message}
                   </p>
                 )}
               </div>

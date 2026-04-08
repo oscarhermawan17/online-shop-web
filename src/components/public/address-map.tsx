@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, GeoJSON as GeoJSONLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { LocateFixed } from 'lucide-react';
-import { getShippingAreas, getShippingColor } from '@/lib/shipping';
+import { fetchShippingZones, getShippingColor, type ShippingArea } from '@/lib/shipping';
 import { formatRupiah } from '@/lib/utils';
 import 'leaflet/dist/leaflet.css';
 
@@ -26,6 +26,7 @@ const LOCATED_ZOOM = 15;
 interface AddressMapProps {
   address: string;
   onAddressFound?: (address: string) => void;
+  showShippingZones?: boolean;
 }
 
 function RecenterMap({ lat, lng, zoom }: { lat: number; lng: number; zoom?: number }) {
@@ -73,36 +74,61 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
   return null;
 }
 
-function ShippingZones() {
-  const areas = getShippingAreas();
+function ShippingZonesGeoJSON({ zones }: { zones: ShippingArea[] }) {
+  const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+
+  useEffect(() => {
+    fetch('/mimika-kecamatan.geojson')
+      .then((res) => res.json())
+      .then((data) => setGeojson(data))
+      .catch(() => {});
+  }, []);
+
+  const zoneMap = useCallback(() => {
+    const map: Record<string, number> = {};
+    for (const z of zones) map[z.district] = z.cost;
+    return map;
+  }, [zones]);
+
+  const style = useCallback(
+    (feature: GeoJSON.Feature | undefined) => {
+      const name = feature?.properties?.name || '';
+      const cost = zoneMap()[name] ?? 0;
+      const color = getShippingColor(cost);
+      return {
+        fillColor: color,
+        fillOpacity: 0.3,
+        color,
+        weight: 2,
+      };
+    },
+    [zoneMap],
+  );
+
+  const onEachFeature = useCallback(
+    (feature: GeoJSON.Feature, layer: L.Layer) => {
+      const name = feature.properties?.name || '';
+      const cost = zoneMap()[name] ?? 0;
+      layer.bindTooltip(
+        `<div style="text-align:center">
+          <strong>${name}</strong><br/>
+          ${cost > 0 ? formatRupiah(cost) : '<span style="color:#9ca3af">Belum diatur</span>'}
+        </div>`,
+        { sticky: true, direction: 'top' },
+      );
+    },
+    [zoneMap],
+  );
+
+  if (!geojson || zones.length === 0) return null;
 
   return (
-    <>
-      {areas.map((area) => {
-        const color = getShippingColor(area.cost);
-        return (
-          <Polygon
-            key={area.district}
-            positions={area.polygon}
-            pathOptions={{
-              color,
-              fillColor: color,
-              fillOpacity: 0.25,
-              weight: 2,
-            }}
-          >
-            <Tooltip sticky direction="center" className="shipping-zone-tooltip">
-              <div style={{ textAlign: 'center', fontWeight: 600, fontSize: '12px' }}>
-                {area.district}
-              </div>
-              <div style={{ textAlign: 'center', fontSize: '11px' }}>
-                {formatRupiah(area.cost)}
-              </div>
-            </Tooltip>
-          </Polygon>
-        );
-      })}
-    </>
+    <GeoJSONLayer
+      key={JSON.stringify(zones)}
+      data={geojson}
+      style={style}
+      onEachFeature={onEachFeature}
+    />
   );
 }
 
@@ -135,11 +161,19 @@ async function forwardGeocode(address: string): Promise<[number, number] | null>
   }
 }
 
-export default function AddressMap({ address, onAddressFound }: AddressMapProps) {
+export default function AddressMap({ address, onAddressFound, showShippingZones = true }: AddressMapProps) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
+  const [zones, setZones] = useState<ShippingArea[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextGeocode = useRef(false);
+
+  // Fetch shipping zones from API
+  useEffect(() => {
+    if (showShippingZones) {
+      fetchShippingZones().then(setZones);
+    }
+  }, [showShippingZones]);
 
   // Forward geocode when user types address
   useEffect(() => {
@@ -205,7 +239,7 @@ export default function AddressMap({ address, onAddressFound }: AddressMapProps)
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <ShippingZones />
+          {showShippingZones && <ShippingZonesGeoJSON zones={zones} />}
           {position && (
             <>
               <DraggableMarker position={position} onDragEnd={handleMapInteraction} />
@@ -225,28 +259,9 @@ export default function AddressMap({ address, onAddressFound }: AddressMapProps)
           <LocateFixed className={`h-4 w-4 ${locating ? 'animate-pulse' : ''}`} />
           {locating ? 'Mencari...' : 'Lokasi Saya'}
         </button>
-
-        {/* Legend */}
-        <div className="absolute bottom-3 left-3 z-[1000] rounded-lg border bg-background/90 px-3 py-2 text-xs shadow-md backdrop-blur-sm">
-          <p className="mb-1.5 font-semibold">Ongkir</p>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#22c55e' }} />
-              <span>Rp 8rb - 12rb</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#fb923c' }} />
-              <span>Rp 14rb - 18rb</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#ef4444' }} />
-              <span>Rp 20rb - 25rb</span>
-            </div>
-          </div>
-        </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Klik peta atau geser pin untuk menentukan lokasi. Hover area untuk lihat ongkir.
+        Klik peta atau geser pin untuk menentukan lokasi.{showShippingZones ? ' Hover area untuk lihat ongkir.' : ''}
       </p>
     </div>
   );

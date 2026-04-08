@@ -1,8 +1,8 @@
 import type { Store } from '@/types';
 
-type StoreInfo = Pick<Store, 'name' | 'description'>;
+type StoreInfo = Pick<Store, 'name' | 'description' | 'address'>;
 
-const FALLBACK: StoreInfo = { name: 'Toko Kami', description: '' };
+const FALLBACK: StoreInfo = { name: 'Toko Kami', description: '', address: '' };
 
 export async function getStoreInfo(): Promise<StoreInfo> {
   const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -15,7 +15,11 @@ export async function getStoreInfo(): Promise<StoreInfo> {
     // handles { data: Store } or bare Store shapes
     const data: Store = json.data ?? json;
     if (!data?.name) throw new Error('missing name');
-    return { name: data.name, description: data.description ?? '' };
+    return {
+      name: data.name,
+      description: data.description ?? '',
+      address: data.address ?? '',
+    };
   } catch {
     return FALLBACK;
   }
