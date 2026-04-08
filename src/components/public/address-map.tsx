@@ -8,6 +8,9 @@ import { fetchShippingZones, getShippingColor, type ShippingArea } from '@/lib/s
 import { formatRupiah } from '@/lib/utils';
 import 'leaflet/dist/leaflet.css';
 
+const GOOGLE_ROAD_TILE_URL = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+const GOOGLE_SUBDOMAINS = ['mt0', 'mt1', 'mt2', 'mt3'];
+
 const markerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -19,7 +22,7 @@ const markerIcon = new L.Icon({
 });
 
 // Default center: Timika, Papua
-const DEFAULT_CENTER: [number, number] = [-4.530, 136.890];
+const DEFAULT_CENTER: [number, number] = [-4.53, 136.89];
 const DEFAULT_ZOOM = 11;
 const LOCATED_ZOOM = 15;
 
@@ -109,7 +112,6 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
 }
 
 function ShippingZonesGeoJSON({ zones, geojson }: { zones: ShippingArea[]; geojson: GeoJSON.FeatureCollection | null }) {
-
   const zoneMap = useCallback(() => {
     const map: Record<string, number> = {};
     for (const z of zones) map[z.district] = z.cost;
@@ -237,12 +239,11 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [address]);
+  }, [address, geojsonData, onDistrictDetected]);
 
   const handleMapInteraction = useCallback(
     async (lat: number, lng: number) => {
       setPosition([lat, lng]);
-      // Detect district from coordinates
       if (geojsonData) {
         const district = findDistrictAtPoint(lat, lng, geojsonData);
         onDistrictDetected?.(district);
@@ -285,8 +286,10 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
           style={{ height: '300px', width: '100%' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; Google'
+            url={GOOGLE_ROAD_TILE_URL}
+            subdomains={GOOGLE_SUBDOMAINS}
+            maxZoom={20}
           />
           {showShippingZones && <ShippingZonesGeoJSON zones={zones} geojson={geojsonData} />}
           {position && (
@@ -298,7 +301,6 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
           <MapClickHandler onClick={handleMapInteraction} />
         </MapContainer>
 
-        {/* Locate me button */}
         <button
           type="button"
           onClick={handleLocateMe}

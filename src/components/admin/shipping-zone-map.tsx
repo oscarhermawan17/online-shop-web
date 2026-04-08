@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { formatRupiah } from '@/lib/utils';
-import 'leaflet/dist/leaflet.css';
+
+const GOOGLE_ROAD_TILE_URL = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+const GOOGLE_SUBDOMAINS = ['mt0', 'mt1', 'mt2', 'mt3'];
 
 const MIMIKA_CENTER: [number, number] = [-4.55, 136.89];
 const DEFAULT_ZOOM = 9;
@@ -126,7 +128,7 @@ export default function ShippingZoneMap({
 
   if (!geojson) {
     return (
-      <div className="flex h-[500px] items-center justify-center rounded-lg border bg-muted/50">
+      <div className="flex h-125 items-center justify-center rounded-lg border bg-muted/50">
         <p className="text-sm text-muted-foreground">Memuat peta...</p>
       </div>
     );
@@ -142,8 +144,10 @@ export default function ShippingZoneMap({
         style={{ height: '500px', width: '100%' }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; Google'
+          url={GOOGLE_ROAD_TILE_URL}
+          subdomains={GOOGLE_SUBDOMAINS}
+          maxZoom={20}
         />
         <GeoJSON
           ref={geoJsonRef}
