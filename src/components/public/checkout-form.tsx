@@ -33,6 +33,7 @@ interface CheckoutFormProps {
   storeName?: string;
   onDeliveryMethodChange?: (method: DeliveryMethod) => void;
   onAddressChange?: (address: string) => void;
+  onDistrictDetected?: (district: string | null) => void;
   shippingUnavailable?: boolean;
 }
 
@@ -43,6 +44,7 @@ export function CheckoutForm({
   storeName,
   onDeliveryMethodChange,
   onAddressChange,
+  onDistrictDetected,
   shippingUnavailable,
 }: CheckoutFormProps) {
   const customer = useCustomerAuthStore((state) => state.customer);
@@ -189,6 +191,7 @@ export function CheckoutForm({
               <AddressMap
                 address={customerAddress || ''}
                 onAddressFound={(addr) => setValue('customerAddress', addr)}
+                onDistrictDetected={onDistrictDetected}
               />
 
               <Label htmlFor="customerAddress">Alamat Lengkap *</Label>

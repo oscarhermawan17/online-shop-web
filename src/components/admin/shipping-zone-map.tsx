@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { formatRupiah } from '@/lib/utils';
@@ -98,6 +98,32 @@ export default function ShippingZoneMap({
     [zoneCosts, onDistrictClick],
   );
 
+  const geoJsonRef = useRef<L.GeoJSON | null>(null);
+
+  // Update styles and tooltips imperatively without remounting
+  useEffect(() => {
+    const layer = geoJsonRef.current;
+    if (!layer) return;
+    layer.eachLayer((l) => {
+      const feature = (l as unknown as { feature: GeoJSON.Feature }).feature;
+      if (feature) {
+        (l as L.Path).setStyle(style(feature));
+        const name = feature.properties?.name || '';
+        const zone = zoneCosts[name];
+        const cost = zone?.cost ?? 0;
+        const isActive = zone?.isActive ?? true;
+        l.unbindTooltip();
+        l.bindTooltip(
+          `<div style="text-align:center">
+            <strong>${name}</strong><br/>
+            ${!isActive ? '<span style="color:#9ca3af">Nonaktif</span>' : cost > 0 ? formatRupiah(cost) : '<span style="color:#9ca3af">Belum diatur</span>'}
+          </div>`,
+          { sticky: true, direction: 'top' },
+        );
+      }
+    });
+  }, [zoneCosts, selectedDistrict, style]);
+
   if (!geojson) {
     return (
       <div className="flex h-[500px] items-center justify-center rounded-lg border bg-muted/50">
@@ -119,7 +145,7 @@ export default function ShippingZoneMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <GeoJSON
-          key={JSON.stringify(zoneCosts) + selectedDistrict}
+          ref={geoJsonRef}
           data={geojson}
           style={style}
           onEachFeature={onEachFeature}

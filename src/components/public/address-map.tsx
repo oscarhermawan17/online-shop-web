@@ -23,16 +23,50 @@ const DEFAULT_CENTER: [number, number] = [-4.530, 136.890];
 const DEFAULT_ZOOM = 11;
 const LOCATED_ZOOM = 15;
 
+// Ray-casting point-in-polygon check
+function pointInPolygon(lat: number, lng: number, polygon: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][1], yi = polygon[i][0]; // GeoJSON is [lng, lat]
+    const xj = polygon[j][1], yj = polygon[j][0];
+    const intersect = ((yi > lng) !== (yj > lng)) &&
+      (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function findDistrictAtPoint(lat: number, lng: number, geojson: GeoJSON.FeatureCollection): string | null {
+  for (const feature of geojson.features) {
+    const geom = feature.geometry;
+    let rings: number[][][] = [];
+    if (geom.type === 'Polygon') {
+      rings = (geom as GeoJSON.Polygon).coordinates;
+    } else if (geom.type === 'MultiPolygon') {
+      for (const poly of (geom as GeoJSON.MultiPolygon).coordinates) {
+        rings.push(...poly);
+      }
+    }
+    for (const ring of rings) {
+      if (pointInPolygon(lat, lng, ring)) {
+        return feature.properties?.name || null;
+      }
+    }
+  }
+  return null;
+}
+
 interface AddressMapProps {
   address: string;
   onAddressFound?: (address: string) => void;
+  onDistrictDetected?: (district: string | null) => void;
   showShippingZones?: boolean;
 }
 
 function RecenterMap({ lat, lng, zoom }: { lat: number; lng: number; zoom?: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng], zoom ?? LOCATED_ZOOM);
+    map.setView([lat, lng], zoom, { animate: true });
   }, [map, lat, lng, zoom]);
   return null;
 }
@@ -74,15 +108,7 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
   return null;
 }
 
-function ShippingZonesGeoJSON({ zones }: { zones: ShippingArea[] }) {
-  const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
-
-  useEffect(() => {
-    fetch('/mimika-kecamatan.geojson')
-      .then((res) => res.json())
-      .then((data) => setGeojson(data))
-      .catch(() => {});
-  }, []);
+function ShippingZonesGeoJSON({ zones, geojson }: { zones: ShippingArea[]; geojson: GeoJSON.FeatureCollection | null }) {
 
   const zoneMap = useCallback(() => {
     const map: Record<string, number> = {};
@@ -161,12 +187,22 @@ async function forwardGeocode(address: string): Promise<[number, number] | null>
   }
 }
 
-export default function AddressMap({ address, onAddressFound, showShippingZones = true }: AddressMapProps) {
+export default function AddressMap({ address, onAddressFound, onDistrictDetected, showShippingZones = true }: AddressMapProps) {
   const [position, setPosition] = useState<[number, number] | null>(null);
+  const [recenter, setRecenter] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [zones, setZones] = useState<ShippingArea[]>([]);
+  const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextGeocode = useRef(false);
+
+  // Fetch GeoJSON for district detection
+  useEffect(() => {
+    fetch('/mimika-kecamatan.geojson')
+      .then((res) => res.json())
+      .then((data) => setGeojsonData(data))
+      .catch(() => {});
+  }, []);
 
   // Fetch shipping zones from API
   useEffect(() => {
@@ -188,7 +224,14 @@ export default function AddressMap({ address, onAddressFound, showShippingZones 
 
     debounceRef.current = setTimeout(async () => {
       const result = await forwardGeocode(address);
-      if (result) setPosition(result);
+      if (result) {
+        setPosition(result);
+        setRecenter({ lat: result[0], lng: result[1], zoom: LOCATED_ZOOM });
+        if (geojsonData) {
+          const district = findDistrictAtPoint(result[0], result[1], geojsonData);
+          onDistrictDetected?.(district);
+        }
+      }
     }, 1000);
 
     return () => {
@@ -199,13 +242,18 @@ export default function AddressMap({ address, onAddressFound, showShippingZones 
   const handleMapInteraction = useCallback(
     async (lat: number, lng: number) => {
       setPosition([lat, lng]);
+      // Detect district from coordinates
+      if (geojsonData) {
+        const district = findDistrictAtPoint(lat, lng, geojsonData);
+        onDistrictDetected?.(district);
+      }
       const addr = await reverseGeocode(lat, lng);
       if (addr && onAddressFound) {
         skipNextGeocode.current = true;
         onAddressFound(addr);
       }
     },
-    [onAddressFound]
+    [onAddressFound, onDistrictDetected, geojsonData]
   );
 
   const handleLocateMe = useCallback(() => {
@@ -216,6 +264,7 @@ export default function AddressMap({ address, onAddressFound, showShippingZones 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         await handleMapInteraction(lat, lng);
+        setRecenter({ lat, lng, zoom: LOCATED_ZOOM });
         setLocating(false);
       },
       () => setLocating(false),
@@ -224,14 +273,13 @@ export default function AddressMap({ address, onAddressFound, showShippingZones 
   }, [handleMapInteraction]);
 
   const center = position || DEFAULT_CENTER;
-  const zoom = position ? LOCATED_ZOOM : DEFAULT_ZOOM;
 
   return (
     <div className="space-y-2">
       <div className="relative overflow-hidden rounded-lg border">
         <MapContainer
           center={center}
-          zoom={zoom}
+          zoom={DEFAULT_ZOOM}
           scrollWheelZoom
           style={{ height: '300px', width: '100%' }}
         >
@@ -239,12 +287,12 @@ export default function AddressMap({ address, onAddressFound, showShippingZones 
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {showShippingZones && <ShippingZonesGeoJSON zones={zones} />}
+          {showShippingZones && <ShippingZonesGeoJSON zones={zones} geojson={geojsonData} />}
           {position && (
-            <>
-              <DraggableMarker position={position} onDragEnd={handleMapInteraction} />
-              <RecenterMap lat={position[0]} lng={position[1]} zoom={zoom} />
-            </>
+            <DraggableMarker position={position} onDragEnd={handleMapInteraction} />
+          )}
+          {recenter && (
+            <RecenterMap lat={recenter.lat} lng={recenter.lng} zoom={recenter.zoom} />
           )}
           <MapClickHandler onClick={handleMapInteraction} />
         </MapContainer>

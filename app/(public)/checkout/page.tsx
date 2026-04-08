@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/shared';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { fetchShippingZones, getShippingCostFromZones, type ShippingArea } from '@/lib/shipping';
+import { fetchShippingZones, type ShippingArea } from '@/lib/shipping';
 import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
 import type { Store } from '@/types';
@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   // Track form state for the summary sidebar
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [detectedDistrict, setDetectedDistrict] = useState<string | null>(null);
   const [shippingZones, setShippingZones] = useState<ShippingArea[]>([]);
 
   const items = useCartStore((state) => state.items);
@@ -50,15 +51,17 @@ export default function CheckoutPage() {
     fetchData();
   }, []);
 
-  // Compute shipping from address
+  // Compute shipping from detected district (point-in-polygon)
   const shipping = useMemo(() => {
-    if (deliveryMethod !== 'delivery') return null;
-    return getShippingCostFromZones(customerAddress, shippingZones);
-  }, [deliveryMethod, customerAddress, shippingZones]);
+    if (deliveryMethod !== 'delivery' || !detectedDistrict) return null;
+    const zone = shippingZones.find((z) => z.district === detectedDistrict);
+    if (zone) return { district: zone.district, cost: zone.cost };
+    return null;
+  }, [deliveryMethod, detectedDistrict, shippingZones]);
 
-  // Shipping unavailable: delivery mode, address entered, but no zone matched
-  const addressEntered = customerAddress.trim().length >= 10;
-  const shippingUnavailable = deliveryMethod === 'delivery' && addressEntered && !shipping;
+  // Shipping unavailable: delivery mode, pin placed on map, but no zone matched
+  const pinPlaced = detectedDistrict !== null;
+  const shippingUnavailable = deliveryMethod === 'delivery' && pinPlaced && !shipping;
 
   if (!mounted) {
     return (
@@ -150,6 +153,7 @@ export default function CheckoutPage() {
             storeName={store?.name}
             onDeliveryMethodChange={setDeliveryMethod}
             onAddressChange={setCustomerAddress}
+            onDistrictDetected={setDetectedDistrict}
             shippingUnavailable={shippingUnavailable}
           />
         </div>
