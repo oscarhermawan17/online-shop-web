@@ -276,8 +276,9 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-lg border">
+      <div className="relative z-0 overflow-hidden rounded-lg border">
         <MapContainer
+          className="z-0"
           center={center}
           zoom={DEFAULT_ZOOM}
           scrollWheelZoom
@@ -302,7 +303,7 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
           type="button"
           onClick={handleLocateMe}
           disabled={locating}
-          className="absolute bottom-3 right-3 z-[1000] flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm font-medium shadow-md transition-colors hover:bg-accent"
+          className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm font-medium shadow-md transition-colors hover:bg-accent"
         >
           <LocateFixed className={`h-4 w-4 ${locating ? 'animate-pulse' : ''}`} />
           {locating ? 'Mencari...' : 'Lokasi Saya'}

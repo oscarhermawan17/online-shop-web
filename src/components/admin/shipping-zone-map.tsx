@@ -133,8 +133,9 @@ export default function ShippingZoneMap({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="relative z-0 overflow-hidden rounded-lg border">
       <MapContainer
+        className="z-0"
         center={MIMIKA_CENTER}
         zoom={DEFAULT_ZOOM}
         scrollWheelZoom
