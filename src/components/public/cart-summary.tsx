@@ -7,12 +7,21 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/stores';
 import { formatRupiah } from '@/lib/utils';
+import type { DeliveryMethod } from '@/types';
 
 interface CartSummaryProps {
   showCheckoutButton?: boolean;
+  deliveryMethod?: DeliveryMethod;
+  shippingCost?: number | null;
+  shippingDistrict?: string | null;
 }
 
-export function CartSummary({ showCheckoutButton = true }: CartSummaryProps) {
+export function CartSummary({
+  showCheckoutButton = true,
+  deliveryMethod,
+  shippingCost,
+  shippingDistrict,
+}: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const getTotalPrice = useCartStore((state) => state.getTotalPrice);
@@ -20,6 +29,10 @@ export function CartSummary({ showCheckoutButton = true }: CartSummaryProps) {
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
+
+  const isDelivery = deliveryMethod === 'delivery';
+  const resolvedShipping = isDelivery ? (shippingCost ?? null) : null;
+  const grandTotal = totalPrice + (resolvedShipping ?? 0);
 
   return (
     <Card>
@@ -50,9 +63,44 @@ export function CartSummary({ showCheckoutButton = true }: CartSummaryProps) {
           <span>{totalItems} item</span>
         </div>
 
+        <div className="flex justify-between text-sm">
+          <span>Subtotal Produk</span>
+          <span>{formatRupiah(totalPrice)}</span>
+        </div>
+
+        {/* Shipping cost row */}
+        {isDelivery && (
+          <div className="flex justify-between text-sm">
+            <span className="flex flex-col">
+              <span>Ongkos Kirim</span>
+              {shippingDistrict && (
+                <span className="text-xs text-muted-foreground">
+                  Kec. {shippingDistrict}
+                </span>
+              )}
+            </span>
+            <span>
+              {resolvedShipping !== null ? (
+                formatRupiah(resolvedShipping)
+              ) : (
+                <span className="text-xs text-muted-foreground">Masukkan alamat</span>
+              )}
+            </span>
+          </div>
+        )}
+
+        {deliveryMethod === 'pickup' && (
+          <div className="flex justify-between text-sm">
+            <span>Ongkos Kirim</span>
+            <span className="font-medium text-green-600">Gratis</span>
+          </div>
+        )}
+
+        <Separator />
+
         <div className="flex justify-between font-semibold">
           <span>Total</span>
-          <span className="text-primary">{formatRupiah(totalPrice)}</span>
+          <span className="text-primary">{formatRupiah(grandTotal)}</span>
         </div>
       </CardContent>
 

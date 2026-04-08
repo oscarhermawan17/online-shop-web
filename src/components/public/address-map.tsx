@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { LocateFixed } from 'lucide-react';
+import { getShippingAreas, getShippingColor } from '@/lib/shipping';
+import { formatRupiah } from '@/lib/utils';
 import 'leaflet/dist/leaflet.css';
 
 const markerIcon = new L.Icon({
@@ -16,10 +18,10 @@ const markerIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
-// Default center: Indonesia
-const DEFAULT_CENTER: [number, number] = [-6.2, 106.816];
-const DEFAULT_ZOOM = 5;
-const LOCATED_ZOOM = 16;
+// Default center: Timika, Papua
+const DEFAULT_CENTER: [number, number] = [-4.530, 136.890];
+const DEFAULT_ZOOM = 11;
+const LOCATED_ZOOM = 15;
 
 interface AddressMapProps {
   address: string;
@@ -71,6 +73,39 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
   return null;
 }
 
+function ShippingZones() {
+  const areas = getShippingAreas();
+
+  return (
+    <>
+      {areas.map((area) => {
+        const color = getShippingColor(area.cost);
+        return (
+          <Polygon
+            key={area.district}
+            positions={area.polygon}
+            pathOptions={{
+              color,
+              fillColor: color,
+              fillOpacity: 0.25,
+              weight: 2,
+            }}
+          >
+            <Tooltip sticky direction="center" className="shipping-zone-tooltip">
+              <div style={{ textAlign: 'center', fontWeight: 600, fontSize: '12px' }}>
+                {area.district}
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '11px' }}>
+                {formatRupiah(area.cost)}
+              </div>
+            </Tooltip>
+          </Polygon>
+        );
+      })}
+    </>
+  );
+}
+
 async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
   try {
     const res = await fetch(
@@ -104,8 +139,6 @@ export default function AddressMap({ address, onAddressFound }: AddressMapProps)
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track whether the last update came from a map interaction (click/drag/locate)
-  // to avoid geocoding the address we just reverse-geocoded
   const skipNextGeocode = useRef(false);
 
   // Forward geocode when user types address
@@ -166,12 +199,13 @@ export default function AddressMap({ address, onAddressFound }: AddressMapProps)
           center={center}
           zoom={zoom}
           scrollWheelZoom
-          style={{ height: '250px', width: '100%' }}
+          style={{ height: '300px', width: '100%' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <ShippingZones />
           {position && (
             <>
               <DraggableMarker position={position} onDragEnd={handleMapInteraction} />
@@ -191,9 +225,28 @@ export default function AddressMap({ address, onAddressFound }: AddressMapProps)
           <LocateFixed className={`h-4 w-4 ${locating ? 'animate-pulse' : ''}`} />
           {locating ? 'Mencari...' : 'Lokasi Saya'}
         </button>
+
+        {/* Legend */}
+        <div className="absolute bottom-3 left-3 z-[1000] rounded-lg border bg-background/90 px-3 py-2 text-xs shadow-md backdrop-blur-sm">
+          <p className="mb-1.5 font-semibold">Ongkir</p>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#22c55e' }} />
+              <span>Rp 8rb - 12rb</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#fb923c' }} />
+              <span>Rp 14rb - 18rb</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: '#ef4444' }} />
+              <span>Rp 20rb - 25rb</span>
+            </div>
+          </div>
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Klik peta atau geser pin untuk menentukan lokasi
+        Klik peta atau geser pin untuk menentukan lokasi. Hover area untuk lihat ongkir.
       </p>
     </div>
   );

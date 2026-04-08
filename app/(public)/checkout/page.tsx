@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { getShippingCost } from '@/lib/shipping';
 import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
 import type { Store } from '@/types';
@@ -19,6 +20,10 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [store, setStore] = useState<Pick<Store, 'name' | 'address'> | null>(null);
+
+  // Track form state for the summary sidebar
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
+  const [customerAddress, setCustomerAddress] = useState('');
 
   const items = useCartStore((state) => state.items);
   const storeId = useCartStore((state) => state.storeId);
@@ -41,6 +46,12 @@ export default function CheckoutPage() {
     }
     fetchStore();
   }, []);
+
+  // Compute shipping from address
+  const shipping = useMemo(() => {
+    if (deliveryMethod !== 'delivery') return null;
+    return getShippingCost(customerAddress);
+  }, [deliveryMethod, customerAddress]);
 
   if (!mounted) {
     return (
@@ -125,12 +136,19 @@ export default function CheckoutPage() {
             isSubmitting={isSubmitting}
             storeAddress={store?.address}
             storeName={store?.name}
+            onDeliveryMethodChange={setDeliveryMethod}
+            onAddressChange={setCustomerAddress}
           />
         </div>
 
         {/* Order Summary */}
         <div className="lg:sticky lg:top-24">
-          <CartSummary showCheckoutButton={false} />
+          <CartSummary
+            showCheckoutButton={false}
+            deliveryMethod={deliveryMethod}
+            shippingCost={shipping?.cost ?? null}
+            shippingDistrict={shipping?.district ?? null}
+          />
         </div>
       </div>
     </div>

@@ -31,9 +31,18 @@ interface CheckoutFormProps {
   isSubmitting: boolean;
   storeAddress?: string | null;
   storeName?: string;
+  onDeliveryMethodChange?: (method: DeliveryMethod) => void;
+  onAddressChange?: (address: string) => void;
 }
 
-export function CheckoutForm({ onSubmit, isSubmitting, storeAddress, storeName }: CheckoutFormProps) {
+export function CheckoutForm({
+  onSubmit,
+  isSubmitting,
+  storeAddress,
+  storeName,
+  onDeliveryMethodChange,
+  onAddressChange,
+}: CheckoutFormProps) {
   const customer = useCustomerAuthStore((state) => state.customer);
 
   const {
@@ -68,8 +77,14 @@ export function CheckoutForm({ onSubmit, isSubmitting, storeAddress, storeName }
     }
   }, [customer, reset]);
 
+  // Notify parent when address changes
+  useEffect(() => {
+    onAddressChange?.(customerAddress || '');
+  }, [customerAddress, onAddressChange]);
+
   const setDeliveryMethod = (method: DeliveryMethod) => {
     setValue('deliveryMethod', method);
+    onDeliveryMethodChange?.(method);
     if (method === 'pickup') {
       setValue('customerAddress', '');
     }
