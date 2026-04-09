@@ -160,14 +160,18 @@ function ShippingZonesGeoJSON({ zones, geojson }: { zones: ShippingArea[]; geojs
   );
 }
 
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+
 async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
-      { headers: { 'Accept-Language': 'id' } }
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=id&key=${GOOGLE_API_KEY}`
     );
     const data = await res.json();
-    return data?.display_name || null;
+    if (data.status === 'OK' && data.results?.length > 0) {
+      return data.results[0].formatted_address || null;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -176,12 +180,12 @@ async function reverseGeocode(lat: number, lon: number): Promise<string | null> 
 async function forwardGeocode(address: string): Promise<[number, number] | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-      { headers: { 'Accept-Language': 'id' } }
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=id&region=id&key=${GOOGLE_API_KEY}`
     );
     const data = await res.json();
-    if (data && data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    if (data.status === 'OK' && data.results?.length > 0) {
+      const loc = data.results[0].geometry.location;
+      return [loc.lat, loc.lng];
     }
     return null;
   } catch {
@@ -196,7 +200,10 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
   const [zones, setZones] = useState<ShippingArea[]>([]);
   const [geojsonData, setGeojsonData] = useState<GeoJSON.FeatureCollection | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipNextGeocode = useRef(false);
+  // Counter-based skip: incremented when map sets address, decremented when forward geocode sees it
+  const skipGeocodeCount = useRef(0);
+  // Track the last address set by map interaction to avoid forward-geocoding it
+  const lastMapAddress = useRef<string>('');
 
   // Fetch GeoJSON for district detection
   useEffect(() => {
@@ -215,10 +222,13 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
 
   // Forward geocode when user types address
   useEffect(() => {
-    if (skipNextGeocode.current) {
-      skipNextGeocode.current = false;
+    // Skip if this address was set by map interaction (reverse geocode)
+    if (skipGeocodeCount.current > 0) {
+      skipGeocodeCount.current--;
       return;
     }
+    // Also skip if the address exactly matches what the map last set
+    if (address && address === lastMapAddress.current) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -250,7 +260,8 @@ export default function AddressMap({ address, onAddressFound, onDistrictDetected
       }
       const addr = await reverseGeocode(lat, lng);
       if (addr && onAddressFound) {
-        skipNextGeocode.current = true;
+        skipGeocodeCount.current++;
+        lastMapAddress.current = addr;
         onAddressFound(addr);
       }
     },

@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
-import { Loader2, MapPin, Truck, Store } from 'lucide-react';
+import Link from 'next/link';
+import useSWR from 'swr';
+import { Loader2, MapPin, Truck, Store, Check, PenLine, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCustomerAuthStore } from '@/stores';
+import { fetcher } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { DeliveryMethod } from '@/types';
+import type { CustomerAddress } from '@/types/address';
 
 const AddressMap = dynamic(
   () => import('./address-map'),
@@ -48,6 +54,18 @@ export function CheckoutForm({
   shippingUnavailable,
 }: CheckoutFormProps) {
   const customer = useCustomerAuthStore((state) => state.customer);
+  const token = useCustomerAuthStore((state) => state.token);
+  const isLoggedIn = !!token && !!customer;
+
+  // Fetch saved addresses for logged-in customers
+  const { data: savedAddresses } = useSWR<CustomerAddress[]>(
+    isLoggedIn ? '/customer/addresses' : null,
+    fetcher,
+  );
+
+  // 'saved' = using a saved address, 'manual' = typing manually
+  const [addressMode, setAddressMode] = useState<'saved' | 'manual'>('saved');
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
   const {
     register,
@@ -69,6 +87,30 @@ export function CheckoutForm({
   const deliveryMethod = watch('deliveryMethod');
   const customerAddress = watch('customerAddress');
 
+  // Auto-select default address when addresses load
+  useEffect(() => {
+    if (savedAddresses && savedAddresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+      setSelectedAddressId(defaultAddr.id);
+    }
+  }, [savedAddresses, selectedAddressId]);
+
+  // When a saved address is selected, sync form values and notify parent
+  useEffect(() => {
+    if (addressMode !== 'saved' || !selectedAddressId || !savedAddresses) return;
+    const addr = savedAddresses.find((a) => a.id === selectedAddressId);
+    if (!addr) return;
+    setValue('customerAddress', addr.address);
+    onAddressChange?.(addr.address);
+    onDistrictDetected?.(addr.district);
+  }, [selectedAddressId, addressMode, savedAddresses, setValue, onAddressChange, onDistrictDetected]);
+
+  // Stable callback for when map reverse-geocodes an address
+  const handleAddressFromMap = useCallback(
+    (addr: string) => setValue('customerAddress', addr),
+    [setValue]
+  );
+
   // Auto-fill when customer data is available/hydrated
   useEffect(() => {
     if (customer) {
@@ -76,23 +118,41 @@ export function CheckoutForm({
         customerName: customer.name || '',
         customerPhone: customer.phone || '',
         deliveryMethod: deliveryMethod,
-        customerAddress: deliveryMethod === 'delivery' ? (customer as any).address || '' : '',
+        customerAddress: '',
       });
     }
   }, [customer, reset]);
 
-  // Notify parent when address changes
+  // Notify parent when address changes (only in manual mode)
   useEffect(() => {
-    onAddressChange?.(customerAddress || '');
-  }, [customerAddress, onAddressChange]);
+    if (addressMode === 'manual') {
+      onAddressChange?.(customerAddress || '');
+    }
+  }, [customerAddress, onAddressChange, addressMode]);
 
   const setDeliveryMethod = (method: DeliveryMethod) => {
     setValue('deliveryMethod', method);
     onDeliveryMethodChange?.(method);
     if (method === 'pickup') {
       setValue('customerAddress', '');
+      onDistrictDetected?.(null);
     }
   };
+
+  const handleSelectAddress = (addr: CustomerAddress) => {
+    setSelectedAddressId(addr.id);
+    setAddressMode('saved');
+  };
+
+  const handleSwitchToManual = () => {
+    setAddressMode('manual');
+    setSelectedAddressId(null);
+    setValue('customerAddress', '');
+    onDistrictDetected?.(null);
+    onAddressChange?.('');
+  };
+
+  const hasSavedAddresses = isLoggedIn && savedAddresses && savedAddresses.length > 0;
 
   return (
     <Card>
@@ -187,23 +247,109 @@ export function CheckoutForm({
           {/* Delivery Address */}
           {deliveryMethod === 'delivery' && (
             <div className="space-y-3">
-              {/* Map */}
-              <AddressMap
-                address={customerAddress || ''}
-                onAddressFound={(addr) => setValue('customerAddress', addr)}
-                onDistrictDetected={onDistrictDetected}
-              />
+              {/* Saved addresses for logged-in users */}
+              {hasSavedAddresses && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Pilih Alamat Tersimpan</Label>
+                    {addressMode === 'saved' && (
+                      <button
+                        type="button"
+                        onClick={handleSwitchToManual}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        <PenLine className="h-3 w-3" />
+                        Tulis manual
+                      </button>
+                    )}
+                    {addressMode === 'manual' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressMode('saved');
+                          const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+                          setSelectedAddressId(defaultAddr.id);
+                        }}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        <MapPin className="h-3 w-3" />
+                        Pilih tersimpan
+                      </button>
+                    )}
+                  </div>
 
-              <Label htmlFor="customerAddress">Alamat Lengkap *</Label>
-              <Textarea
-                id="customerAddress"
-                placeholder="Masukkan alamat lengkap (jalan, RT/RW, kelurahan, kecamatan, kota, kode pos)"
-                rows={3}
-                {...register('customerAddress')}
-                disabled={isSubmitting}
-              />
-              {errors.customerAddress && (
-                <p className="text-sm text-destructive">{errors.customerAddress.message}</p>
+                  {addressMode === 'saved' && (
+                    <div className="space-y-2">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => handleSelectAddress(addr)}
+                          className={cn(
+                            'w-full rounded-lg border-2 p-3 text-left transition-colors',
+                            selectedAddressId === addr.id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted hover:border-muted-foreground/30',
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-sm font-medium">{addr.label}</span>
+                                <span className="text-xs text-muted-foreground">{addr.phone}</span>
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {addr.recipient}
+                                </Badge>
+                                {addr.isDefault && (
+                                  <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary hover:bg-primary/10 border-0">
+                                    Utama
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{addr.address}</p>
+                              {addr.district && (
+                                <p className="text-[10px] text-muted-foreground/70 mt-0.5">Kec. {addr.district}</p>
+                              )}
+                            </div>
+                            {selectedAddressId === addr.id && (
+                              <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                      <Link
+                        href="/dashboard/address"
+                        className="flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-muted p-2.5 text-xs text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Tambah alamat baru
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual address entry: shown for guests OR when user picks manual mode */}
+              {(!hasSavedAddresses || addressMode === 'manual') && (
+                <div className="space-y-3">
+                  <AddressMap
+                    address={customerAddress || ''}
+                    onAddressFound={handleAddressFromMap}
+                    onDistrictDetected={onDistrictDetected}
+                  />
+
+                  <Label htmlFor="customerAddress">Alamat Lengkap *</Label>
+                  <Textarea
+                    id="customerAddress"
+                    placeholder="Masukkan alamat lengkap (jalan, RT/RW, kelurahan, kecamatan, kota, kode pos)"
+                    rows={3}
+                    {...register('customerAddress')}
+                    disabled={isSubmitting}
+                  />
+                  {errors.customerAddress && (
+                    <p className="text-sm text-destructive">{errors.customerAddress.message}</p>
+                  )}
+                </div>
               )}
             </div>
           )}

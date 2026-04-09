@@ -24,7 +24,7 @@ export function DashboardSidebar() {
       subItems: [
         { title: 'Profil', href: '/dashboard' },
         // { title: 'Bank & Kartu', href: '#' },
-        { title: 'Alamat', href: '#' },
+        { title: 'Alamat', href: '/dashboard/address' },
         { title: 'Ubah Password', href: '#' },
         // { title: 'Pengaturan Notifikasi', href: '#' },
         // { title: 'Pengaturan Privasi', href: '#' },

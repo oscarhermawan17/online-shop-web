@@ -107,6 +107,7 @@ export default function CheckoutPage() {
         customerAddress: isPickup ? (store?.address || 'Pickup di toko') : (data.customerAddress || ''),
         deliveryMethod: data.deliveryMethod as DeliveryMethod,
         notes: data.notes || undefined,
+        shippingCost: shipping?.cost ?? 0,
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || undefined,

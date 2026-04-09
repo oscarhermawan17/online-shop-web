@@ -11,6 +11,8 @@ export interface OrderItem {
   id: string;
   productName: string;
   variantDescription?: string | null;
+  imageUrl?: string | null;
+  originalPrice?: number | null;
   price: number;
   quantity: number;
 }
@@ -22,7 +24,9 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  deliveryMethod: DeliveryMethod | null;
   notes?: string | null;
+  shippingCost: number;
   totalAmount: number;
   status: OrderStatus;
   expiresAt: string;
@@ -41,7 +45,12 @@ export interface PaymentProof {
 export interface PublicOrder {
   publicOrderId: string;
   status: OrderStatus;
-  customerName: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  deliveryMethod: DeliveryMethod | null;
+  notes: string | null;
+  shippingCost: number;
   totalAmount: number;
   expiresAt: string;
   createdAt: string;
@@ -71,6 +80,7 @@ export interface CheckoutPayload {
   customerAddress: string;
   deliveryMethod: DeliveryMethod;
   notes?: string;
+  shippingCost?: number;
   items: CheckoutItemPayload[];
 }
 

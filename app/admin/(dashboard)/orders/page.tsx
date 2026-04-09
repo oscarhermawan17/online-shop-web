@@ -2,34 +2,72 @@
 
 import { useState } from 'react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { OrderTable } from '@/components/admin';
-import { LoadingPage, ErrorMessage, EmptyState } from '@/components/shared';
+  Check,
+  Truck,
+  PackageCheck,
+  Loader2,
+} from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { LoadingPage, ErrorMessage, EmptyState, OrderCard } from '@/components/shared';
 import { useAdminOrders } from '@/hooks';
 import { orderStatusLabels } from '@/lib/utils';
-import type { OrderStatus } from '@/types';
+import type { Order, OrderStatus } from '@/types';
+import api from '@/lib/api';
+import { toast } from 'sonner';
 
-const statusOptions: { value: string; label: string }[] = [
-  { value: 'all', label: 'Semua Status' },
-  { value: 'pending_payment', label: orderStatusLabels.pending_payment },
-  { value: 'waiting_confirmation', label: orderStatusLabels.waiting_confirmation },
-  { value: 'paid', label: orderStatusLabels.paid },
-  { value: 'shipped', label: orderStatusLabels.shipped },
-  { value: 'done', label: orderStatusLabels.done },
-  { value: 'expired_unpaid', label: orderStatusLabels.expired_unpaid },
-  { value: 'cancelled', label: orderStatusLabels.cancelled },
+const tabItems: { value: string; label: string }[] = [
+  { value: 'all', label: 'Semua' },
+  { value: 'pending_payment', label: 'Menunggu Bayar' },
+  { value: 'waiting_confirmation', label: 'Konfirmasi' },
+  { value: 'paid', label: 'Dibayar' },
+  { value: 'shipped', label: 'Dikirim' },
+  { value: 'done', label: 'Selesai' },
+  { value: 'cancelled', label: 'Dibatalkan' },
 ];
 
 export default function AdminOrdersPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const status = statusFilter === 'all' ? undefined : (statusFilter as OrderStatus);
-  
+  const [activeTab, setActiveTab] = useState('all');
+  const status =
+    activeTab === 'all' ? undefined : (activeTab as OrderStatus);
+
   const { orders, isLoading, isError, mutate } = useAdminOrders(status);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleConfirmPayment = async (orderId: string) => {
+    setLoadingId(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/confirm`);
+      toast.success('Pembayaran berhasil dikonfirmasi');
+      mutate();
+    } catch {
+      toast.error('Gagal mengkonfirmasi pembayaran');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: 'shipped' | 'done'
+  ) => {
+    setLoadingId(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/status`, {
+        status: newStatus,
+      });
+      toast.success(
+        newStatus === 'shipped'
+          ? 'Pesanan ditandai sebagai dikirim'
+          : 'Pesanan selesai'
+      );
+      mutate();
+    } catch {
+      toast.error('Gagal mengubah status pesanan');
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   if (isLoading) {
     return <LoadingPage />;
@@ -47,39 +85,129 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Pesanan</h1>
-          <p className="text-muted-foreground">{orders.length} pesanan</p>
-        </div>
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Pesanan</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Kelola semua pesanan masuk dari pelanggan
+        </p>
       </div>
 
-      {orders.length === 0 ? (
-        <EmptyState
-          type="orders"
-          title="Belum Ada Pesanan"
-          description={
-            statusFilter === 'all'
-              ? 'Pesanan akan muncul di sini ketika ada pembeli.'
-              : `Tidak ada pesanan dengan status "${statusOptions.find((s) => s.value === statusFilter)?.label}"`
-          }
-        />
-      ) : (
-        <OrderTable orders={orders} onUpdate={() => mutate()} />
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList
+          variant="pill"
+          className="w-full justify-start overflow-x-auto"
+        >
+          {tabItems.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="min-w-fit"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {tabItems.map((tab) => (
+          <TabsContent key={tab.value} value={tab.value} className="mt-4">
+            {orders.length === 0 ? (
+              <EmptyState
+                type="orders"
+                title="Belum Ada Pesanan"
+                description={
+                  activeTab === 'all'
+                    ? 'Pesanan akan muncul di sini ketika ada pembeli.'
+                    : `Tidak ada pesanan dengan status "${orderStatusLabels[activeTab] || activeTab}"`
+                }
+              />
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {orders.length} pesanan
+                </p>
+                {orders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    detailHref={`/admin/orders/${order.id}`}
+                    showCustomer
+                    footerActions={
+                      <AdminActions
+                        order={order}
+                        isLoading={loadingId === order.id}
+                        onConfirmPayment={handleConfirmPayment}
+                        onUpdateStatus={handleUpdateStatus}
+                      />
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
+}
+
+function AdminActions({
+  order,
+  isLoading,
+  onConfirmPayment,
+  onUpdateStatus,
+}: {
+  order: Order;
+  isLoading: boolean;
+  onConfirmPayment: (id: string) => void;
+  onUpdateStatus: (id: string, status: 'shipped' | 'done') => void;
+}) {
+  if (order.status === 'waiting_confirmation') {
+    return (
+      <Button
+        size="sm"
+        onClick={() => onConfirmPayment(order.id)}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+        ) : (
+          <Check className="h-4 w-4 mr-1.5" />
+        )}
+        Konfirmasi
+      </Button>
+    );
+  }
+  if (order.status === 'paid') {
+    return (
+      <Button
+        size="sm"
+        onClick={() => onUpdateStatus(order.id, 'shipped')}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+        ) : (
+          <Truck className="h-4 w-4 mr-1.5" />
+        )}
+        Kirim
+      </Button>
+    );
+  }
+  if (order.status === 'shipped') {
+    return (
+      <Button
+        size="sm"
+        onClick={() => onUpdateStatus(order.id, 'done')}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+        ) : (
+          <PackageCheck className="h-4 w-4 mr-1.5" />
+        )}
+        Selesai
+      </Button>
+    );
+  }
+  return null;
 }
