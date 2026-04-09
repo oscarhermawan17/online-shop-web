@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -123,5 +124,10 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .leaflet-container img,
+  .leaflet-container .leaflet-tile {
+    max-width: none !important;
+    max-height: none !important;
   }
 }

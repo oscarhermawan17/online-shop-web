@@ -14,6 +14,7 @@ import { formatRupiah } from '@/lib/utils';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { ZoneCostMap } from '@/components/admin/shipping-zone-map';
+import { preloadGeojson } from '@/components/admin/shipping-zone-map';
 
 const ShippingZoneMap = dynamic(
   () => import('@/components/admin/shipping-zone-map'),
@@ -26,6 +27,11 @@ const ShippingZoneMap = dynamic(
     ),
   },
 );
+
+// Start fetching GeoJSON in parallel with the dynamic import
+if (typeof window !== 'undefined') {
+  preloadGeojson();
+}
 
 // All kecamatan names from the GeoJSON
 const ALL_DISTRICTS = [

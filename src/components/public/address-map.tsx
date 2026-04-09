@@ -6,7 +6,6 @@ import L from 'leaflet';
 import { LocateFixed } from 'lucide-react';
 import { fetchShippingZones, getShippingColor, type ShippingArea } from '@/lib/shipping';
 import { formatRupiah } from '@/lib/utils';
-import 'leaflet/dist/leaflet.css';
 
 const GOOGLE_ROAD_TILE_URL = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
 const GOOGLE_SUBDOMAINS = ['mt0', 'mt1', 'mt2', 'mt3'];

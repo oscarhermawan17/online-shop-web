@@ -19,6 +19,7 @@ interface ShippingZoneMapProps {
   zoneCosts: ZoneCostMap;
   onDistrictClick?: (name: string) => void;
   selectedDistrict?: string | null;
+  preloadedGeojson?: GeoJSON.FeatureCollection | null;
 }
 
 function getColor(cost: number, isActive: boolean): string {
@@ -32,33 +33,52 @@ function getColor(cost: number, isActive: boolean): string {
   return '#ef4444';
 }
 
-function FitBounds({ geojson }: { geojson: GeoJSON.FeatureCollection | null }) {
+function FitBounds({ geoJsonRef }: { geoJsonRef: React.RefObject<L.GeoJSON | null> }) {
   const map = useMap();
   useEffect(() => {
-    if (geojson) {
-      const layer = L.geoJSON(geojson);
+    const layer = geoJsonRef.current;
+    if (layer) {
       const bounds = layer.getBounds();
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [20, 20] });
       }
     }
-  }, [map, geojson]);
+  }, [map, geoJsonRef]);
   return null;
+}
+
+// Module-level cache so the GeoJSON is fetched once and shared across mounts
+let geojsonCache: GeoJSON.FeatureCollection | null = null;
+let geojsonPromise: Promise<GeoJSON.FeatureCollection> | null = null;
+
+export function preloadGeojson(): Promise<GeoJSON.FeatureCollection> {
+  if (geojsonCache) return Promise.resolve(geojsonCache);
+  if (!geojsonPromise) {
+    geojsonPromise = fetch('/mimika-kecamatan.geojson')
+      .then((res) => res.json())
+      .then((data: GeoJSON.FeatureCollection) => {
+        geojsonCache = data;
+        return data;
+      });
+  }
+  return geojsonPromise;
 }
 
 export default function ShippingZoneMap({
   zoneCosts,
   onDistrictClick,
   selectedDistrict,
+  preloadedGeojson,
 }: ShippingZoneMapProps) {
-  const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(
+    preloadedGeojson ?? geojsonCache,
+  );
 
   useEffect(() => {
-    fetch('/mimika-kecamatan.geojson')
-      .then((res) => res.json())
-      .then((data) => setGeojson(data))
-      .catch(() => {});
-  }, []);
+    if (!geojson) {
+      preloadGeojson().then(setGeojson).catch(() => {});
+    }
+  }, [geojson]);
 
   const style = useCallback(
     (feature: GeoJSON.Feature | undefined) => {
@@ -141,6 +161,7 @@ export default function ShippingZoneMap({
         center={MIMIKA_CENTER}
         zoom={DEFAULT_ZOOM}
         scrollWheelZoom
+        preferCanvas
         style={{ height: '500px', width: '100%' }}
       >
         <TileLayer
@@ -155,7 +176,7 @@ export default function ShippingZoneMap({
           style={style}
           onEachFeature={onEachFeature}
         />
-        <FitBounds geojson={geojson} />
+        <FitBounds geoJsonRef={geoJsonRef} />
       </MapContainer>
     </div>
   );
