@@ -46,7 +46,7 @@ export function OrderStatusTracker({ status }: OrderStatusProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         {displaySteps.map((label, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
