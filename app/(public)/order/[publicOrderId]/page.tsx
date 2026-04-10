@@ -66,6 +66,7 @@ export default function OrderPage({ params }: OrderPageProps) {
     order.status === 'pending_payment' && !order.paymentProof;
   const showPaymentInfo =
     order.status === 'pending_payment' || order.status === 'waiting_confirmation';
+  const hasSidebar = showPaymentInfo || showPaymentUpload || order.status === 'waiting_confirmation';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -82,9 +83,9 @@ export default function OrderPage({ params }: OrderPageProps) {
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className={hasSidebar ? "grid gap-8 lg:grid-cols-3" : "max-w-3xl mx-auto"}>
         {/* Main Content */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className={`space-y-6 ${hasSidebar ? "lg:col-span-2" : ""}`}>
           {/* Status Tracker */}
           <Card>
             <CardHeader>
@@ -308,44 +309,46 @@ export default function OrderPage({ params }: OrderPageProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Payment Info */}
-          {showPaymentInfo && (
-            <PaymentInfo
-              publicOrderId={order.publicOrderId}
-              totalAmount={order.totalAmount}
-              expiresAt={order.expiresAt}
-              bankName={order.store.bankName}
-              bankAccountNumber={order.store.bankAccountNumber}
-              bankAccountName={order.store.bankAccountName}
-              qrisImageUrl={order.store.qrisImageUrl}
-            />
-          )}
+        {hasSidebar && (
+          <div className="space-y-6">
+            {/* Payment Info */}
+            {showPaymentInfo && (
+              <PaymentInfo
+                publicOrderId={order.publicOrderId}
+                totalAmount={order.totalAmount}
+                expiresAt={order.expiresAt}
+                bankName={order.store.bankName}
+                bankAccountNumber={order.store.bankAccountNumber}
+                bankAccountName={order.store.bankAccountName}
+                qrisImageUrl={order.store.qrisImageUrl}
+              />
+            )}
 
-          {/* Upload Payment Proof */}
-          {showPaymentUpload && (
-            <UploadPaymentProof
-              publicOrderId={order.publicOrderId}
-              onSuccess={() => mutate()}
-              existingProof={order.paymentProof?.imageUrl}
-            />
-          )}
+            {/* Upload Payment Proof */}
+            {showPaymentUpload && (
+              <UploadPaymentProof
+                publicOrderId={order.publicOrderId}
+                onSuccess={() => mutate()}
+                existingProof={order.paymentProof?.imageUrl}
+              />
+            )}
 
-          {/* Waiting Confirmation Notice */}
-          {order.status === 'waiting_confirmation' && (
-            <Card>
-              <CardContent className="py-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                  <Receipt className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="font-semibold">Menunggu Konfirmasi</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Bukti pembayaran sudah diterima. Kami sedang memverifikasi pembayaran Anda.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            {/* Waiting Confirmation Notice */}
+            {order.status === 'waiting_confirmation' && (
+              <Card>
+                <CardContent className="py-6 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                    <Receipt className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold">Menunggu Konfirmasi</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Bukti pembayaran sudah diterima. Kami sedang memverifikasi pembayaran Anda.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
