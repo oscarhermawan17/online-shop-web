@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { ProductCard, ProductCardSkeleton, CategoryHorizontalList, PromoHorizontalList, PromoCarousel, PriceRangeFilter } from '@/components/public';
+import { ProductCardSkeleton, CategoryHorizontalList, PromoHorizontalList, PromoCarousel, PriceRangeFilter } from '@/components/public';
+import { ProductGridClient } from './product-grid-client';
 import type { ProductListItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,24 +16,6 @@ async function getProducts(): Promise<ProductListItem[]> {
     console.error('Error fetching products:', error);
     return [];
   }
-}
-
-function ProductGrid({ products }: { products: ProductListItem[] }) {
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-[#757c7a]">Belum ada produk tersedia</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </div>
-  );
 }
 
 function ProductGridSkeleton() {
@@ -111,7 +94,7 @@ export default async function HomePage() {
           <section id="products" className="flex flex-col gap-4">
             <h3 className="px-2 text-[#2d3432] font-bold text-lg uppercase tracking-tight">Katalog Produk</h3>
             <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductGrid products={products} />
+              <ProductGridClient serverProducts={products} />
             </Suspense>
           </section>
 

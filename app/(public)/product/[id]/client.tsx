@@ -3,14 +3,21 @@
 import { useState } from 'react';
 import { VariantSelector, AddToCartButton } from '@/components/public';
 import { formatRupiah, getEffectivePrice } from '@/lib/utils';
-import type { Product, ProductVariant } from '@/types';
+import { useProduct } from '@/hooks/use-products';
+import { useCustomerAuthStore } from '@/stores/customer-auth-store';
+import type { Product } from '@/types';
 
 interface ProductDetailClientProps {
   product: Product;
 }
 
-export function ProductDetailClient({ product }: ProductDetailClientProps) {
+export function ProductDetailClient({ product: serverProduct }: ProductDetailClientProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+
+  // Re-fetch with customer auth to get wholesale prices when logged in
+  const { product: clientProduct } = useProduct(isAuthenticated ? serverProduct.id : null);
+  const product = clientProduct ?? serverProduct;
 
   const hasVariants = product.variants.length > 0;
   const selectedVariant = hasVariants

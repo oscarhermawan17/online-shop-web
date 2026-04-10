@@ -11,6 +11,7 @@ export interface ProductVariant {
   name: string | null;
   isDefault: boolean;
   priceOverride?: number | null;
+  wholesalePriceOverride?: number | null;
   stock: number;
   createdAt: string;
 }
@@ -21,6 +22,7 @@ export interface Product {
   name: string;
   description?: string | null;
   basePrice: number;
+  wholesalePrice?: number | null;
   stock: number;
   isActive: boolean;
   createdAt: string;
@@ -34,6 +36,7 @@ export interface ProductListItem {
   name: string;
   description?: string | null;
   basePrice: number;
+  wholesalePrice?: number | null;
   stock: number;
   isActive: boolean;
   images: ProductImage[];
@@ -44,6 +47,7 @@ export interface CreateProductPayload {
   name: string;
   description?: string;
   basePrice: number;
+  wholesalePrice?: number;
   stock: number;
 }
 
@@ -51,6 +55,7 @@ export interface UpdateProductPayload {
   name?: string;
   description?: string;
   basePrice?: number;
+  wholesalePrice?: number | null;
   stock?: number;
   isActive?: boolean;
 }
@@ -58,12 +63,14 @@ export interface UpdateProductPayload {
 export interface CreateVariantPayload {
   name: string;
   priceOverride?: number | null;
+  wholesalePriceOverride?: number | null;
   stock: number;
 }
 
 export interface UpdateVariantPayload {
   name?: string;
   priceOverride?: number | null;
+  wholesalePriceOverride?: number | null;
   stock?: number;
 }
 

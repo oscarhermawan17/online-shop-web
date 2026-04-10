@@ -51,13 +51,14 @@ export function VariantForm({
     defaultValues: {
       name: '',
       priceOverride: null,
+      wholesalePriceOverride: null,
       stock: 0,
     },
   });
 
   const openAddDialog = () => {
     setEditingVariant(null);
-    reset({ name: '', priceOverride: null, stock: 0 });
+    reset({ name: '', priceOverride: null, wholesalePriceOverride: null, stock: 0 });
     setIsOpen(true);
   };
 
@@ -66,6 +67,7 @@ export function VariantForm({
     reset({
       name: variant.name ?? undefined,
       priceOverride: variant.priceOverride,
+      wholesalePriceOverride: variant.wholesalePriceOverride,
       stock: variant.stock,
     });
     setIsOpen(true);
@@ -77,6 +79,7 @@ export function VariantForm({
       const payload = {
         name: data.name,
         priceOverride: data.priceOverride || null,
+        wholesalePriceOverride: data.wholesalePriceOverride || null,
         stock: data.stock,
       };
 
@@ -151,12 +154,12 @@ export function VariantForm({
 
               <div className="space-y-2">
                 <Label htmlFor="priceOverride">
-                  Harga Varian (Kosongkan untuk pakai harga dasar)
+                  Harga Retail Varian (Kosongkan untuk pakai harga retail produk)
                 </Label>
                 <Input
                   id="priceOverride"
                   type="number"
-                  placeholder={`Harga dasar: ${formatRupiah(basePrice)}`}
+                  placeholder={`Harga retail: ${formatRupiah(basePrice)}`}
                   {...register('priceOverride', {
                     setValueAs: (v) => (v === '' ? null : Number(v)),
                   })}
@@ -165,6 +168,26 @@ export function VariantForm({
                 {errors.priceOverride && (
                   <p className="text-sm text-destructive">
                     {errors.priceOverride.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="wholesalePriceOverride">
+                  Harga Toko Varian (Kosongkan untuk pakai harga toko produk)
+                </Label>
+                <Input
+                  id="wholesalePriceOverride"
+                  type="number"
+                  placeholder="Kosongkan jika sama dengan harga toko produk"
+                  {...register('wholesalePriceOverride', {
+                    setValueAs: (v) => (v === '' ? null : Number(v)),
+                  })}
+                  disabled={isSubmitting}
+                />
+                {errors.wholesalePriceOverride && (
+                  <p className="text-sm text-destructive">
+                    {errors.wholesalePriceOverride.message}
                   </p>
                 )}
               </div>
@@ -220,10 +243,15 @@ export function VariantForm({
                 <div>
                   <p className="font-medium">{variant.name ?? '—'}</p>
                   <p className="text-sm text-muted-foreground">
-                    {variant.priceOverride
+                    Retail: {variant.priceOverride
                       ? formatRupiah(variant.priceOverride)
-                      : `${formatRupiah(basePrice)} (harga dasar)`}{' '}
-                    • Stok: {variant.stock}
+                      : `${formatRupiah(basePrice)} (dasar)`}
+                    {' • '}
+                    Toko: {variant.wholesalePriceOverride
+                      ? formatRupiah(variant.wholesalePriceOverride)
+                      : '(dasar)'}
+                    {' • '}
+                    Stok: {variant.stock}
                   </p>
                 </div>
                 <div className="flex gap-1">

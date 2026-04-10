@@ -56,7 +56,8 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
           <TableRow>
             <TableHead className="w-16">Gambar</TableHead>
             <TableHead>Nama Produk</TableHead>
-            <TableHead className="hidden md:table-cell">Harga</TableHead>
+            <TableHead className="hidden md:table-cell">Harga Retail</TableHead>
+            <TableHead className="hidden lg:table-cell">Harga Toko</TableHead>
             <TableHead className="hidden sm:table-cell">Varian</TableHead>
             <TableHead className="hidden sm:table-cell">Stok</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
@@ -90,11 +91,22 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                     <p className="font-medium line-clamp-1">{product.name}</p>
                     <p className="text-sm text-muted-foreground md:hidden">
                       {formatRupiah(product.basePrice)}
+                      {product.wholesalePrice && (
+                        <span className="ml-1 text-xs">
+                          / {formatRupiah(product.wholesalePrice)}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {formatRupiah(product.basePrice)}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {product.wholesalePrice
+                    ? formatRupiah(product.wholesalePrice)
+                    : <span className="text-muted-foreground">—</span>
+                  }
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   {product.variants.length > 0 ? (

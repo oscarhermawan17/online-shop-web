@@ -13,6 +13,12 @@ export const productSchema = z.object({
     .number()
     .min(0, 'Harga tidak boleh negatif')
     .max(999999999, 'Harga terlalu besar'),
+  wholesalePrice: z
+    .number()
+    .min(0, 'Harga tidak boleh negatif')
+    .max(999999999, 'Harga terlalu besar')
+    .nullable()
+    .optional(),
   stock: z
     .number()
     .int('Stok harus bilangan bulat')
@@ -27,6 +33,11 @@ export const variantSchema = z.object({
     .min(1, 'Nama variant harus diisi')
     .max(100, 'Nama variant maksimal 100 karakter'),
   priceOverride: z
+    .number()
+    .min(0, 'Harga tidak boleh negatif')
+    .nullable()
+    .optional(),
+  wholesalePriceOverride: z
     .number()
     .min(0, 'Harga tidak boleh negatif')
     .nullable()

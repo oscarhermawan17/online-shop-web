@@ -31,12 +31,14 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
           name: product.name,
           description: product.description || '',
           basePrice: product.basePrice,
+          wholesalePrice: product.wholesalePrice ?? null,
           stock: product.stock,
         }
       : {
           name: '',
           description: '',
           basePrice: 0,
+          wholesalePrice: null,
           stock: 0,
         },
   });
@@ -79,9 +81,9 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
             )}
           </div>
 
-          {/* Price */}
+          {/* Retail Price */}
           <div className="space-y-2">
-            <Label htmlFor="basePrice">Harga Dasar (Rp) *</Label>
+            <Label htmlFor="basePrice">Harga Retail (Rp) *</Label>
             <Input
               id="basePrice"
               type="number"
@@ -89,9 +91,38 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
               {...register('basePrice', { valueAsNumber: true })}
               disabled={isSubmitting}
             />
+            <p className="text-xs text-muted-foreground">
+              Harga untuk customer umum (tidak login)
+            </p>
             {errors.basePrice && (
               <p className="text-sm text-destructive">
                 {errors.basePrice.message}
+              </p>
+            )}
+          </div>
+
+          {/* Wholesale Price */}
+          <div className="space-y-2">
+            <Label htmlFor="wholesalePrice">Harga Toko (Rp)</Label>
+            <Input
+              id="wholesalePrice"
+              type="number"
+              placeholder="Kosongkan jika sama dengan harga retail"
+              {...register('wholesalePrice', {
+                setValueAs: (v: string) => {
+                  if (v === '' || v === undefined || v === null) return null;
+                  const n = Number(v);
+                  return isNaN(n) ? null : n;
+                },
+              })}
+              disabled={isSubmitting}
+            />
+            <p className="text-xs text-muted-foreground">
+              Harga untuk customer toko (login). Kosongkan jika sama dengan harga retail.
+            </p>
+            {errors.wholesalePrice && (
+              <p className="text-sm text-destructive">
+                {errors.wholesalePrice.message}
               </p>
             )}
           </div>
