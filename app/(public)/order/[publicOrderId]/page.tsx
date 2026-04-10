@@ -2,7 +2,20 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Package, Receipt, MapPin, User, Phone, Truck, Store, Clock, StickyNote } from 'lucide-react';
+import {
+  ArrowLeft,
+  Package,
+  Receipt,
+  MapPin,
+  User,
+  Phone,
+  Truck,
+  Store,
+  Clock,
+  StickyNote,
+  CalendarDays,
+  UserRound,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -13,7 +26,12 @@ import {
 } from '@/components/public';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { usePublicOrder } from '@/hooks';
-import { formatRupiah, formatDate } from '@/lib/utils';
+import {
+  formatRupiah,
+  formatDate,
+  formatDateOnly,
+  getShippingShiftLabel,
+} from '@/lib/utils';
 
 interface OrderPageProps {
   params: Promise<{ publicOrderId: string }>;
@@ -234,6 +252,59 @@ export default function OrderPage({ params }: OrderPageProps) {
               )}
             </CardContent>
           </Card>
+
+          {order.shippingAssignment && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Truck className="h-5 w-5" />
+                  Informasi Pengiriman
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-2.5">
+                  <Truck className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Jadwal Pengiriman
+                    </p>
+                    <p className="text-sm font-medium">
+                      {getShippingShiftLabel({
+                        name: order.shippingAssignment.shiftName,
+                        startTime: order.shippingAssignment.shiftStartTime,
+                        endTime: order.shippingAssignment.shiftEndTime,
+                        shiftLabel: order.shippingAssignment.shiftLabel,
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex items-start gap-2.5">
+                    <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Kirim
+                      </p>
+                      <p className="text-sm font-medium">
+                        {formatDateOnly(order.shippingAssignment.deliveryDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <UserRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Driver / Kurir
+                      </p>
+                      <p className="text-sm font-medium">
+                        {order.shippingAssignment.driverName}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}

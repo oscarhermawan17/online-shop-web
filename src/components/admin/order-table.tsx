@@ -20,10 +20,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { OrderStatusBadge } from '@/components/public/order-status';
-import { formatRupiah, formatDate } from '@/lib/utils';
+import {
+  formatRupiah,
+  formatDate,
+  formatDateOnly,
+  getShippingShiftLabel,
+} from '@/lib/utils';
 import type { Order } from '@/types';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { ShipOrderDialog } from './ship-order-dialog';
 
 interface OrderTableProps {
   orders: Order[];
@@ -32,6 +38,20 @@ interface OrderTableProps {
 
 export function OrderTable({ orders, onUpdate }: OrderTableProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [shipOrder, setShipOrder] = useState<Order | null>(null);
+  const [isShipDialogOpen, setIsShipDialogOpen] = useState(false);
+
+  const openShipDialog = (order: Order) => {
+    setShipOrder(order);
+    setIsShipDialogOpen(true);
+  };
+
+  const handleShipDialogChange = (open: boolean) => {
+    setIsShipDialogOpen(open);
+    if (!open) {
+      setShipOrder(null);
+    }
+  };
 
   const handleConfirmPayment = async (orderId: string) => {
     setLoadingId(orderId);
@@ -97,6 +117,17 @@ export function OrderTable({ orders, onUpdate }: OrderTableProps) {
                   <p className="text-sm text-muted-foreground">
                     {order.customerPhone}
                   </p>
+                  {order.shippingAssignment && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatDateOnly(order.shippingAssignment.deliveryDate)} ·{' '}
+                      {getShippingShiftLabel({
+                        name: order.shippingAssignment.shiftName,
+                        startTime: order.shippingAssignment.shiftStartTime,
+                        endTime: order.shippingAssignment.shiftEndTime,
+                        shiftLabel: order.shippingAssignment.shiftLabel,
+                      })}
+                    </p>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
@@ -140,12 +171,19 @@ export function OrderTable({ orders, onUpdate }: OrderTableProps) {
                       </DropdownMenuItem>
                     )}
                     {order.status === 'paid' && (
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateStatus(order.id, 'shipped')}
-                      >
-                        <Truck className="mr-2 h-4 w-4" />
-                        Tandai Dikirim
-                      </DropdownMenuItem>
+                      order.deliveryMethod === 'delivery' ? (
+                        <DropdownMenuItem onSelect={() => openShipDialog(order)}>
+                          <Truck className="mr-2 h-4 w-4" />
+                          Jadwalkan Pengiriman
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => handleUpdateStatus(order.id, 'shipped')}
+                        >
+                          <Truck className="mr-2 h-4 w-4" />
+                          Tandai Dikirim
+                        </DropdownMenuItem>
+                      )
                     )}
                     {order.status === 'shipped' && (
                       <DropdownMenuItem
@@ -162,6 +200,12 @@ export function OrderTable({ orders, onUpdate }: OrderTableProps) {
           ))}
         </TableBody>
       </Table>
+      <ShipOrderDialog
+        order={shipOrder}
+        open={isShipDialogOpen}
+        onOpenChange={handleShipDialogChange}
+        onSuccess={onUpdate}
+      />
     </div>
   );
 }

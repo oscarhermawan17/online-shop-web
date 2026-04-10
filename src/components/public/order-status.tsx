@@ -52,46 +52,44 @@ export function OrderStatusTracker({ status }: OrderStatusProps) {
           const isCurrent = index === currentIndex;
 
           return (
-            <div key={label} className="flex flex-1 items-center">
-              {/* Step Circle */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium',
-                    isCompleted
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : isCurrent
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-muted-foreground/30 text-muted-foreground/50'
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                <p
-                  className={cn(
-                    'mt-2 text-center text-xs',
-                    isCurrent
-                      ? 'font-medium text-primary'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {label}
-                </p>
-              </div>
-
+            <div key={label} className="relative flex flex-col items-center flex-1">
               {/* Connector Line */}
               {index < displaySteps.length - 1 && (
                 <div
                   className={cn(
-                    'mx-2 h-0.5 flex-1',
+                    'absolute top-4 left-[calc(50%+1rem)] w-[calc(100%-2rem)] h-0.5',
                     index < currentIndex ? 'bg-primary' : 'bg-muted-foreground/30'
                   )}
                 />
               )}
+
+              {/* Step Circle */}
+              <div
+                className={cn(
+                  'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium shrink-0',
+                  isCompleted
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : isCurrent
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-muted-foreground/30 bg-background text-muted-foreground/50'
+                )}
+              >
+                {isCompleted ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  index + 1
+                )}
+              </div>
+              <p
+                className={cn(
+                  'mt-2 text-center text-xs px-1',
+                  isCurrent
+                    ? 'font-medium text-primary'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {label}
+              </p>
             </div>
           );
         })}

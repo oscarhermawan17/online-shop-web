@@ -7,3 +7,6 @@ export { VariantForm } from './variant-form';
 export { ProductTable } from './product-table';
 export { OrderTable } from './order-table';
 export { CustomerTable } from './customer-table';
+export { ShippingDriverForm } from './shipping-driver-form';
+export { ShippingShiftForm } from './shipping-shift-form';
+export { ShipOrderDialog } from './ship-order-dialog';

@@ -7,6 +7,7 @@ import {
   PackageCheck,
   Loader2,
 } from 'lucide-react';
+import { ShipOrderDialog } from '@/components/admin';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { LoadingPage, ErrorMessage, EmptyState, OrderCard } from '@/components/shared';
@@ -131,10 +132,12 @@ export default function AdminOrdersPage() {
                     order={order}
                     detailHref={`/admin/orders/${order.id}`}
                     showCustomer
+                    showShippingSummary
                     footerActions={
                       <AdminActions
                         order={order}
                         isLoading={loadingId === order.id}
+                        onRefresh={mutate}
                         onConfirmPayment={handleConfirmPayment}
                         onUpdateStatus={handleUpdateStatus}
                       />
@@ -153,11 +156,13 @@ export default function AdminOrdersPage() {
 function AdminActions({
   order,
   isLoading,
+  onRefresh,
   onConfirmPayment,
   onUpdateStatus,
 }: {
   order: Order;
   isLoading: boolean;
+  onRefresh: () => void | Promise<void>;
   onConfirmPayment: (id: string) => void;
   onUpdateStatus: (id: string, status: 'shipped' | 'done') => void;
 }) {
@@ -178,6 +183,23 @@ function AdminActions({
     );
   }
   if (order.status === 'paid') {
+    if (order.deliveryMethod === 'delivery') {
+      return (
+        <ShipOrderDialog order={order} onSuccess={onRefresh}>
+          {({ open, isSubmitting }) => (
+            <Button size="sm" onClick={open} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              ) : (
+                <Truck className="h-4 w-4 mr-1.5" />
+              )}
+              Kirim
+            </Button>
+          )}
+        </ShipOrderDialog>
+      );
+    }
+
     return (
       <Button
         size="sm"

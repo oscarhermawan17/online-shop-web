@@ -2,7 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Store, Users, MapPinned, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Store,
+  Users,
+  MapPinned,
+  Clock3,
+  UserRound,
+  LogOut,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores';
 
@@ -12,6 +22,8 @@ const navItems = [
   { href: '/admin/orders', label: 'Pesanan', icon: ShoppingCart, exact: false },
   { href: '/admin/customers', label: 'Pelanggan', icon: Users, exact: false },
   { href: '/admin/shipping-zones', label: 'Area Pengiriman', icon: MapPinned, exact: false },
+  { href: '/admin/shipping-shifts', label: 'Shift Pengiriman', icon: Clock3, exact: false },
+  { href: '/admin/shipping-drivers', label: 'Driver Pengiriman', icon: UserRound, exact: false },
   { href: '/admin/store', label: 'Pengaturan Toko', icon: Store, exact: false },
 ];
 

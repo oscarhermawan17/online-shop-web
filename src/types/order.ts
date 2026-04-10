@@ -17,6 +17,49 @@ export interface OrderItem {
   quantity: number;
 }
 
+export interface ShippingShift {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  sortOrder?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ShippingShiftPayload {
+  name: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+
+export interface ShippingDriver {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ShippingDriverPayload {
+  name: string;
+  isActive: boolean;
+}
+
+export interface OrderShippingAssignment {
+  deliveryDate: string;
+  shiftId: string;
+  driverName: string;
+  assignedAt?: string;
+  assignedByAdminId?: string | null;
+  shiftName?: string | null;
+  shiftStartTime?: string | null;
+  shiftEndTime?: string | null;
+  shiftLabel?: string | null;
+}
+
 export interface Order {
   id: string;
   publicOrderId: string;
@@ -34,6 +77,7 @@ export interface Order {
   updatedAt: string;
   items: OrderItem[];
   paymentProof?: PaymentProof | null;
+  shippingAssignment?: OrderShippingAssignment | null;
 }
 
 export interface PaymentProof {
@@ -63,6 +107,7 @@ export interface PublicOrder {
     qrisImageUrl?: string | null;
   };
   paymentProof?: PaymentProof | null;
+  shippingAssignment?: OrderShippingAssignment | null;
 }
 
 export interface CheckoutItemPayload {
@@ -101,4 +146,10 @@ export interface PaymentProofPayload {
 
 export interface UpdateOrderStatusPayload {
   status: 'shipped' | 'done' | 'cancelled';
+}
+
+export interface ShipOrderPayload {
+  deliveryDate: string;
+  shiftId: string;
+  driverName: string;
 }

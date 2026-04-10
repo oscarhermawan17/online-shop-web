@@ -30,6 +30,35 @@ export function formatDateOnly(date: string | Date): string {
   }).format(new Date(date));
 }
 
+export function formatTimeRange(startTime: string, endTime: string): string {
+  return `${startTime} - ${endTime}`;
+}
+
+export function getShippingShiftLabel(shift: {
+  name?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  shiftLabel?: string | null;
+}): string {
+  if (shift.shiftLabel) {
+    return shift.shiftLabel;
+  }
+
+  if (shift.name && shift.startTime && shift.endTime) {
+    return `${shift.name} (${formatTimeRange(shift.startTime, shift.endTime)})`;
+  }
+
+  if (shift.name) {
+    return shift.name;
+  }
+
+  if (shift.startTime && shift.endTime) {
+    return formatTimeRange(shift.startTime, shift.endTime);
+  }
+
+  return '-';
+}
+
 // Get effective price (variant override or base price)
 export function getEffectivePrice(
   basePrice: number,
@@ -95,9 +124,6 @@ export const orderStatusColors: Record<string, string> = {
   expired_unpaid: 'bg-red-100 text-red-800',
   cancelled: 'bg-red-100 text-red-800',
 };
-
-// Cloudinary image optimization
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dunf5zurf';
 
 export function getOptimizedImageUrl(
   url: string,

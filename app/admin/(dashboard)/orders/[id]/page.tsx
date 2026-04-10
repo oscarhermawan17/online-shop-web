@@ -3,14 +3,35 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Check, Truck, PackageCheck, Loader2, MapPin, User, Phone, Clock, StickyNote, Store } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Truck,
+  PackageCheck,
+  Loader2,
+  MapPin,
+  User,
+  Phone,
+  Clock,
+  StickyNote,
+  Store,
+  CalendarDays,
+  UserRound,
+} from 'lucide-react';
+import { ShipOrderDialog } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/public/order-status';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminOrder } from '@/hooks';
-import { formatRupiah, formatDate, getOptimizedImageUrl } from '@/lib/utils';
+import {
+  formatRupiah,
+  formatDate,
+  formatDateOnly,
+  getOptimizedImageUrl,
+  getShippingShiftLabel,
+} from '@/lib/utils';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -162,6 +183,54 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 </>
               )}
 
+              {order.shippingAssignment && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-2.5">
+                      <Truck className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Shift Pengiriman
+                        </p>
+                        <p className="text-sm font-medium">
+                          {getShippingShiftLabel({
+                            name: order.shippingAssignment.shiftName,
+                            startTime: order.shippingAssignment.shiftStartTime,
+                            endTime: order.shippingAssignment.shiftEndTime,
+                            shiftLabel: order.shippingAssignment.shiftLabel,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex items-start gap-2.5">
+                        <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Tanggal Pengiriman
+                          </p>
+                          <p className="text-sm font-medium">
+                            {formatDateOnly(order.shippingAssignment.deliveryDate)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <UserRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Driver / Kurir
+                          </p>
+                          <p className="text-sm font-medium">
+                            {order.shippingAssignment.driverName}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               {order.notes && (
                 <>
                   <Separator />
@@ -260,7 +329,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 <CardTitle className="text-lg">Bukti Pembayaran</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted">
+                <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-muted">
                   <Image
                     src={getOptimizedImageUrl(order.paymentProof.imageUrl, 400)}
                     alt="Bukti pembayaran"
@@ -296,18 +365,42 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 </Button>
               )}
               {order.status === 'paid' && (
-                <Button
-                  className="w-full"
-                  onClick={() => handleUpdateStatus('shipped')}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Truck className="mr-2 h-4 w-4" />
-                  )}
-                  Tandai Dikirim
-                </Button>
+                order.deliveryMethod === 'delivery' ? (
+                  <ShipOrderDialog
+                    order={order}
+                    onSuccess={async () => {
+                      await mutate();
+                    }}
+                  >
+                    {({ open, isSubmitting }) => (
+                      <Button
+                        className="w-full"
+                        onClick={open}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Truck className="mr-2 h-4 w-4" />
+                        )}
+                        Jadwalkan Pengiriman
+                      </Button>
+                    )}
+                  </ShipOrderDialog>
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={() => handleUpdateStatus('shipped')}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Truck className="mr-2 h-4 w-4" />
+                    )}
+                    Tandai Dikirim
+                  </Button>
+                )
               )}
               {order.status === 'shipped' && (
                 <Button
