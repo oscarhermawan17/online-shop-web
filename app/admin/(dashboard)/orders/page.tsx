@@ -137,7 +137,7 @@ export default function AdminOrdersPage() {
                       <AdminActions
                         order={order}
                         isLoading={loadingId === order.id}
-                        onRefresh={mutate}
+                        onRefresh={() => { mutate() }}
                         onConfirmPayment={handleConfirmPayment}
                         onUpdateStatus={handleUpdateStatus}
                       />

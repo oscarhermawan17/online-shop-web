@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { getStoreInfo } from '@/lib/get-store-info';
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
