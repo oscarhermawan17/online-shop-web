@@ -154,12 +154,12 @@ export function VariantForm({
 
               <div className="space-y-2">
                 <Label htmlFor="priceOverride">
-                  Harga Retail Varian (Kosongkan untuk pakai harga retail produk)
+                  Harga Normal Varian (Kosongkan untuk pakai harga normal produk)
                 </Label>
                 <Input
                   id="priceOverride"
                   type="number"
-                  placeholder={`Harga retail: ${formatRupiah(basePrice)}`}
+                  placeholder={`Harga normal: ${formatRupiah(basePrice)}`}
                   {...register('priceOverride', {
                     setValueAs: (v) => (v === '' ? null : Number(v)),
                   })}
@@ -174,12 +174,12 @@ export function VariantForm({
 
               <div className="space-y-2">
                 <Label htmlFor="wholesalePriceOverride">
-                  Harga Toko Varian (Kosongkan untuk pakai harga toko produk)
+                  Harga Retail Varian (Kosongkan untuk pakai harga retail produk)
                 </Label>
                 <Input
                   id="wholesalePriceOverride"
                   type="number"
-                  placeholder="Kosongkan jika sama dengan harga toko produk"
+                  placeholder="Kosongkan jika sama dengan harga retail produk"
                   {...register('wholesalePriceOverride', {
                     setValueAs: (v) => (v === '' ? null : Number(v)),
                   })}
@@ -243,11 +243,11 @@ export function VariantForm({
                 <div>
                   <p className="font-medium">{variant.name ?? '—'}</p>
                   <p className="text-sm text-muted-foreground">
-                    Retail: {variant.priceOverride
+                    Normal: {variant.priceOverride
                       ? formatRupiah(variant.priceOverride)
                       : `${formatRupiah(basePrice)} (dasar)`}
                     {' • '}
-                    Toko: {variant.wholesalePriceOverride
+                    Retail: {variant.wholesalePriceOverride
                       ? formatRupiah(variant.wholesalePriceOverride)
                       : '(dasar)'}
                     {' • '}

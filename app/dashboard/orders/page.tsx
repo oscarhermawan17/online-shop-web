@@ -15,6 +15,7 @@ const tabItems: { value: string; label: string }[] = [
   { value: 'shipped', label: 'Dikirim' },
   { value: 'done', label: 'Selesai' },
   { value: 'cancelled', label: 'Dibatalkan' },
+  { value: 'expired_unpaid', label: 'Kadaluarsa' },
 ];
 
 export default function OrdersPage() {

@@ -83,7 +83,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
 
           {/* Retail Price */}
           <div className="space-y-2">
-            <Label htmlFor="basePrice">Harga Retail (Rp) *</Label>
+            <Label htmlFor="basePrice">Harga Normal (Rp) *</Label>
             <Input
               id="basePrice"
               type="number"
@@ -92,7 +92,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
               disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">
-              Harga untuk customer umum (tidak login)
+              Harga untuk semua customer (termasuk guest / tidak login)
             </p>
             {errors.basePrice && (
               <p className="text-sm text-destructive">
@@ -103,11 +103,11 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
 
           {/* Wholesale Price */}
           <div className="space-y-2">
-            <Label htmlFor="wholesalePrice">Harga Toko (Rp)</Label>
+            <Label htmlFor="wholesalePrice">Harga Retail (Rp)</Label>
             <Input
               id="wholesalePrice"
               type="number"
-              placeholder="Kosongkan jika sama dengan harga retail"
+              placeholder="Kosongkan jika sama dengan harga normal"
               {...register('wholesalePrice', {
                 setValueAs: (v: string) => {
                   if (v === '' || v === undefined || v === null) return null;
@@ -118,7 +118,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
               disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">
-              Harga untuk customer toko (login). Kosongkan jika sama dengan harga retail.
+              Harga untuk customer ritel (login). Kosongkan jika sama dengan harga normal.
             </p>
             {errors.wholesalePrice && (
               <p className="text-sm text-destructive">

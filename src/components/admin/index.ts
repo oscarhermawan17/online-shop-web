@@ -10,3 +10,4 @@ export { CustomerTable } from './customer-table';
 export { ShippingDriverForm } from './shipping-driver-form';
 export { ShippingShiftForm } from './shipping-shift-form';
 export { ShipOrderDialog } from './ship-order-dialog';
+export { DiscountForm } from './discount-form';

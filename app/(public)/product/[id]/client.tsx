@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { VariantSelector, AddToCartButton } from '@/components/public';
-import { formatRupiah, getEffectivePrice } from '@/lib/utils';
+import { formatRupiah } from '@/lib/utils';
 import { useProduct } from '@/hooks/use-products';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { Product } from '@/types';
@@ -24,10 +24,8 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
     ? product.variants.find((v) => v.id === selectedVariantId) || null
     : null;
 
-  const currentPrice = getEffectivePrice(
-    product.basePrice,
-    selectedVariant?.priceOverride
-  );
+  // Use resolved price from public API (already accounts for variant override, wholesale, discount)
+  const currentPrice = selectedVariant?.price ?? product.basePrice;
 
   return (
     <>
@@ -36,12 +34,11 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
         <p className="text-3xl font-bold text-primary">
           {formatRupiah(currentPrice)}
         </p>
-        {selectedVariant?.priceOverride &&
-          selectedVariant.priceOverride !== product.basePrice && (
-            <p className="text-sm text-muted-foreground line-through">
-              {formatRupiah(product.basePrice)}
-            </p>
-          )}
+        {selectedVariant?.price && selectedVariant.price !== product.basePrice && (
+          <p className="text-sm text-muted-foreground line-through">
+            {formatRupiah(product.basePrice)}
+          </p>
+        )}
       </div>
 
       {/* Variant Selector */}

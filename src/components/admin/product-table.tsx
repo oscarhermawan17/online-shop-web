@@ -24,6 +24,12 @@ import { formatRupiah, getThumbnailUrl, getPlaceholderImage } from '@/lib/utils'
 import type { ProductListItem } from '@/types';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ProductTableProps {
   products: ProductListItem[];
@@ -56,8 +62,8 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
           <TableRow>
             <TableHead className="w-16">Gambar</TableHead>
             <TableHead>Nama Produk</TableHead>
-            <TableHead className="hidden md:table-cell">Harga Retail</TableHead>
-            <TableHead className="hidden lg:table-cell">Harga Toko</TableHead>
+            <TableHead className="hidden md:table-cell">Harga Normal</TableHead>
+            <TableHead className="hidden lg:table-cell">Harga Retail</TableHead>
             <TableHead className="hidden sm:table-cell">Varian</TableHead>
             <TableHead className="hidden sm:table-cell">Stok</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
@@ -88,7 +94,34 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium line-clamp-1">{product.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium line-clamp-1">{product.name}</p>
+                      {(() => {
+                        const d = product.discount;
+                        const hasNormal = d?.normalDiscountActive && d.normalDiscount;
+                        const hasRetail = d?.retailDiscountActive && d.retailDiscount;
+                        if (!hasNormal && !hasRetail) return null;
+
+                        const lines: string[] = [];
+                        if (hasNormal) lines.push(`Diskon ${d!.normalDiscount}% untuk Harga Normal`);
+                        if (hasRetail) lines.push(`Diskon ${d!.retailDiscount}% untuk Harga Retail`);
+
+                        return (
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="destructive" className="text-xs cursor-default shrink-0">
+                                  DISKON
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="text-xs space-y-1">
+                                {lines.map((line, i) => <p key={i}>{line}</p>)}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                    </div>
                     <p className="text-sm text-muted-foreground md:hidden">
                       {formatRupiah(product.basePrice)}
                       {product.wholesalePrice && (

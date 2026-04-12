@@ -5,7 +5,6 @@ import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
-import { getEffectivePrice } from '@/lib/utils';
 import type { Product, ProductVariant } from '@/types';
 
 interface AddToCartButtonProps {
@@ -22,7 +21,7 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
   const needsVariantSelection = hasVariants && !selectedVariant;
 
   const stock = selectedVariant?.stock ?? product.stock;
-  const price = getEffectivePrice(product.basePrice, selectedVariant?.priceOverride);
+  const price = selectedVariant?.price ?? product.basePrice;
   const isOutOfStock = stock === 0;
 
   const handleQuantityChange = (delta: number) => {

@@ -12,6 +12,7 @@ export interface ProductVariant {
   isDefault: boolean;
   priceOverride?: number | null;
   wholesalePriceOverride?: number | null;
+  price?: number;       // resolved price from public API (already accounts for wholesale + discount)
   stock: number;
   createdAt: string;
 }
@@ -29,6 +30,17 @@ export interface Product {
   updatedAt: string;
   images: ProductImage[];
   variants: ProductVariant[];
+  discount?: ProductDiscount | null;
+}
+
+export interface ProductDiscount {
+  id: string;
+  normalDiscount: number | null;
+  normalDiscountActive: boolean;
+  retailDiscount: number | null;
+  retailDiscountActive: boolean;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface ProductListItem {
@@ -41,6 +53,7 @@ export interface ProductListItem {
   isActive: boolean;
   images: ProductImage[];
   variants: ProductVariant[];
+  discount?: ProductDiscount | null;
 }
 
 export interface CreateProductPayload {
