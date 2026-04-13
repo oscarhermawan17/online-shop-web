@@ -22,7 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
     if (!hasVariants) {
       return formatRupiah(product.basePrice);
     }
-    const prices = product.variants.map((v) => v.priceOverride ?? product.basePrice);
+    const prices = product.variants.map((v) => v.price ?? v.priceOverride ?? product.basePrice);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     if (minPrice === maxPrice) return formatRupiah(minPrice);
@@ -38,7 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <Link href={`/product/${product.id}`}>
       <div className="bg-white rounded-xl shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col isolate hover:shadow-md transition-shadow h-full">
         {/* Image */}
-        <div className="bg-[#f1f4f2] relative overflow-clip z-[2]">
+        <div className="bg-[#f1f4f2] relative overflow-clip z-2">
           <div className="relative aspect-square w-full">
             <Image
               src={imageUrl}
@@ -65,7 +65,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Content */}
-        <div className="p-4 flex flex-col gap-2 z-[1] flex-1">
+        <div className="p-4 flex flex-col gap-2 z-1 flex-1">
           {categoryNames && (
             <p className="text-[#acb4b1] text-[10px] font-semibold uppercase tracking-wide">
               {categoryNames}

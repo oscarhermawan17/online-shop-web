@@ -3,7 +3,7 @@ import {
   ProductCardSkeleton,
   CategoryFilterSidebar,
   CategoryHorizontalList,
-  PromoHorizontalList,
+  PromoProductsSection,
   PromoCarousel,
   PriceRangeFilter,
 } from '@/components/public';
@@ -50,7 +50,6 @@ function ProductGridSkeleton() {
 
 export default async function HomePage() {
   const [products, categories] = await Promise.all([getProducts(), getCategories()]);
-  const promoProducts = products.filter(p => p.discount && (p.discount.normalDiscountActive || p.discount.retailDiscountActive)).slice(0, 6);
 
   return (
     <div className="bg-[#f8faf8]">
@@ -94,11 +93,9 @@ export default async function HomePage() {
           </section>
 
           {/* Promo Products Section */}
-          {promoProducts.length > 0 && (
-            <section>
-              <PromoHorizontalList products={promoProducts} title="🔥 Promo" />
-            </section>
-          )}
+          <section>
+            <PromoProductsSection serverProducts={products} />
+          </section>
 
           {/* All Products Grid */}
           <section id="products" className="flex flex-col gap-4">
