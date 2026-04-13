@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatRupiah, getPlaceholderImage, getThumbnailUrl } from '@/lib/utils';
+import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { ProductListItem } from '@/types';
 
 interface ProductCardProps {
@@ -13,10 +14,23 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const hasVariants = product.variants && product.variants.length > 0;
+  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
   const primaryImage = product.images?.[0]?.imageUrl;
   const imageUrl = primaryImage
     ? getThumbnailUrl(primaryImage, 400)
     : getPlaceholderImage(400, 400);
+
+  const activeDiscountPercent = isAuthenticated
+    ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
+    : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
+
+  const getOriginalPriceFromDiscount = (discountedPrice: number) => {
+    if (!activeDiscountPercent || activeDiscountPercent <= 0 || activeDiscountPercent >= 100) {
+      return discountedPrice;
+    }
+
+    return Math.round((discountedPrice * 100) / (100 - activeDiscountPercent));
+  };
 
   const getPriceDisplay = () => {
     if (!hasVariants) {
@@ -29,10 +43,32 @@ export function ProductCard({ product }: ProductCardProps) {
     return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
   };
 
+  const getOriginalPriceDisplay = () => {
+    if (!activeDiscountPercent) {
+      return null;
+    }
+
+    if (!hasVariants) {
+      return formatRupiah(getOriginalPriceFromDiscount(product.basePrice));
+    }
+
+    const discountedPrices = product.variants.map((v) => v.price ?? v.priceOverride ?? product.basePrice);
+    const originalPrices = discountedPrices.map(getOriginalPriceFromDiscount);
+    const minOriginalPrice = Math.min(...originalPrices);
+    const maxOriginalPrice = Math.max(...originalPrices);
+
+    if (minOriginalPrice === maxOriginalPrice) {
+      return formatRupiah(minOriginalPrice);
+    }
+
+    return `${formatRupiah(minOriginalPrice)} - ${formatRupiah(maxOriginalPrice)}`;
+  };
+
   const isLowStock = product.stock > 0 && product.stock <= 20;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const categories = (product as any).categories as { name: string }[] | undefined;
   const categoryNames = categories?.map((c) => c.name).join(', ');
+  const originalPriceDisplay = getOriginalPriceDisplay();
 
   return (
     <Link href={`/product/${product.id}`}>
@@ -78,7 +114,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <div className="flex flex-col gap-2 mt-auto">
             <div>
-              <p className="text-[#006f1d] text-lg font-extrabold leading-7">{getPriceDisplay()}</p>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-[#006f1d] text-lg font-extrabold leading-7">{getPriceDisplay()}</p>
+                {activeDiscountPercent && (
+                  <span className="rounded-full bg-[#ecfdf3] px-2 py-0.5 text-[10px] font-bold text-[#15803d]">
+                    -{activeDiscountPercent}%
+                  </span>
+                )}
+              </div>
+              {originalPriceDisplay && (
+                <p className="text-[#9aa3a0] text-xs leading-4 line-through">
+                  {originalPriceDisplay}
+                </p>
+              )}
               <p className="text-[#757c7a] text-[10px] leading-[15px]">/ {product.unit?.name || 'pcs'}</p>
             </div>
 
