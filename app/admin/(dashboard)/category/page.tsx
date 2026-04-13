@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Trash2, Loader2, Pencil } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, Trash2, Loader2, Pencil, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,13 +10,16 @@ import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminCategories } from '@/hooks';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export default function CategoryPage() {
   const { categories, isLoading, isError, mutate } = useAdminCategories();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +72,26 @@ export default function CategoryPage() {
     }
   };
 
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingIcon(true);
+    try {
+      const result = await uploadToCloudinary(file);
+      setIcon(result.secure_url);
+      toast.success('Icon kategori berhasil diunggah');
+    } catch (error) {
+      console.error('Upload category icon error:', error);
+      toast.error('Gagal mengunggah icon kategori');
+    } finally {
+      setIsUploadingIcon(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (isLoading) return <LoadingPage />;
   if (isError) {
     return (
@@ -112,7 +135,34 @@ export default function CategoryPage() {
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
                   placeholder="URL Icon atau nama class"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploadingIcon}
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSubmitting || isUploadingIcon}
+                  >
+                    {isUploadingIcon ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    Upload Icon
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Gunakan direct image URL atau upload agar stabil.
+                  </span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleIconUpload}
+                  disabled={isSubmitting || isUploadingIcon}
                 />
               </div>
               <div className="flex gap-2">

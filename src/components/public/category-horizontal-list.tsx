@@ -107,21 +107,33 @@ interface CategoryIconProps {
   FallbackIcon: typeof ShoppingBag;
 }
 
+function isDirectImageUrl(url: string) {
+  return (
+    /^data:image\//i.test(url)
+    || /cloudinary\.com/i.test(url)
+    || /\.(png|jpe?g|gif|webp|svg|avif|ico)(\?.*)?$/i.test(url)
+  );
+}
+
 function CategoryIcon({ icon, name, colorClass, FallbackIcon }: CategoryIconProps) {
   const [hasError, setHasError] = useState(false);
   const iconUrl = icon?.trim();
-  const shouldShowImage = !!iconUrl && !hasError;
+  const canLoadFromUrl = !!iconUrl && isDirectImageUrl(iconUrl);
+  const proxiedIconUrl = iconUrl
+    && canLoadFromUrl
+    ? `/api/image-proxy?url=${encodeURIComponent(iconUrl)}`
+    : null;
+  const shouldShowImage = !!proxiedIconUrl && !hasError;
 
   return (
     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm overflow-hidden ${colorClass}`}>
       {shouldShowImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={iconUrl}
+          src={proxiedIconUrl}
           alt={name}
           className="w-full h-full object-cover"
           loading="lazy"
-          referrerPolicy="no-referrer"
           onError={() => setHasError(true)}
         />
       ) : (
