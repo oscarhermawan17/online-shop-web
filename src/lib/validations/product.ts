@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const productSchema = z.object({
+  categoryIds: z.array(z.string()).optional(),
+  unitId: z.string().nullable().optional(),
   name: z
     .string()
     .min(3, 'Nama produk minimal 3 karakter')

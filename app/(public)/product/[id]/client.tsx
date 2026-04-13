@@ -33,6 +33,9 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
       <div className="space-y-1">
         <p className="text-3xl font-bold text-primary">
           {formatRupiah(currentPrice)}
+          <span className="text-lg font-normal text-muted-foreground ml-2">
+            / {product.unit?.name || 'pcs'}
+          </span>
         </p>
         {selectedVariant?.price && selectedVariant.price !== product.basePrice && (
           <p className="text-sm text-muted-foreground line-through">

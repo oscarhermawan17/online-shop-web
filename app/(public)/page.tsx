@@ -1,5 +1,12 @@
 import { Suspense } from 'react';
-import { ProductCardSkeleton, CategoryHorizontalList, PromoHorizontalList, PromoCarousel, PriceRangeFilter } from '@/components/public';
+import {
+  ProductCardSkeleton,
+  CategoryFilterSidebar,
+  CategoryHorizontalList,
+  PromoHorizontalList,
+  PromoCarousel,
+  PriceRangeFilter,
+} from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
 import type { ProductListItem } from '@/types';
 
@@ -18,6 +25,19 @@ async function getProducts(): Promise<ProductListItem[]> {
   }
 }
 
+async function getCategories(): Promise<{ id: string; name: string; icon?: string | null }[]> {
+  try {
+    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${baseUrl}/categories`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
+    const data = await res.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+}
+
 function ProductGridSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
@@ -29,8 +49,8 @@ function ProductGridSkeleton() {
 }
 
 export default async function HomePage() {
-  const products = await getProducts();
-  const promoProducts = products.filter(p => p.stock < 20 || p.basePrice < 100000).slice(0, 6);
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+  const promoProducts = products.filter(p => p.discount && (p.discount.normalDiscountActive || p.discount.retailDiscountActive)).slice(0, 6);
 
   return (
     <div className="bg-[#f8faf8]">
@@ -42,19 +62,7 @@ export default async function HomePage() {
             <h2 className="text-[#2d3432] text-lg font-bold">Refine Search</h2>
 
             {/* Kategori */}
-            <div className="flex flex-col gap-3">
-              <p className="text-[#acb4b1] text-[12px] font-semibold uppercase tracking-[0.6px]">
-                Kategori
-              </p>
-              <div className="flex flex-col gap-2">
-                {['Sembako', 'Peralatan Rumah', 'Kebersihan'].map((cat) => (
-                  <label key={cat} className="flex items-center gap-3 cursor-pointer">
-                    <div className="w-4 h-4 border border-[#acb4b1] rounded bg-white shrink-0" />
-                    <span className="text-[#59615f] text-sm">{cat}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <CategoryFilterSidebar categories={categories} />
 
             {/* Rentang Harga Filter */}
             <PriceRangeFilter />
@@ -82,13 +90,15 @@ export default async function HomePage() {
 
           {/* Category Horizontal List */}
           <section>
-            <CategoryHorizontalList />
+            <CategoryHorizontalList categories={categories} />
           </section>
 
           {/* Promo Products Section */}
-          <section>
-            <PromoHorizontalList products={promoProducts} title="🔥 Promo" />
-          </section>
+          {promoProducts.length > 0 && (
+            <section>
+              <PromoHorizontalList products={promoProducts} title="🔥 Promo" />
+            </section>
+          )}
 
           {/* All Products Grid */}
           <section id="products" className="flex flex-col gap-4">

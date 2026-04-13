@@ -1,6 +1,7 @@
 export { Header } from './header';
 export { Footer } from './footer';
 export { BottomNav } from './bottom-nav';
+export { CategoryFilterSidebar } from './category-filter-sidebar';
 export { CategoryHorizontalList } from './category-horizontal-list';
 export { PromoHorizontalList } from './promo-horizontal-list';
 export { PromoCarousel } from './promo-carousel';

@@ -1,3 +1,18 @@
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Unit {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductImage {
   id: string;
   imageUrl: string;
@@ -20,6 +35,9 @@ export interface ProductVariant {
 export interface Product {
   id: string;
   storeId: string;
+  categories: Category[];
+  unitId?: string | null;
+  unit?: Unit | null;
   name: string;
   description?: string | null;
   basePrice: number;
@@ -45,6 +63,9 @@ export interface ProductDiscount {
 
 export interface ProductListItem {
   id: string;
+  categories: Category[];
+  unitId?: string | null;
+  unit?: Unit | null;
   name: string;
   description?: string | null;
   basePrice: number;
@@ -57,6 +78,8 @@ export interface ProductListItem {
 }
 
 export interface CreateProductPayload {
+  categoryIds?: string[];
+  unitId?: string | null;
   name: string;
   description?: string;
   basePrice: number;
@@ -65,6 +88,8 @@ export interface CreateProductPayload {
 }
 
 export interface UpdateProductPayload {
+  categoryIds?: string[];
+  unitId?: string | null;
   name?: string;
   description?: string;
   basePrice?: number;

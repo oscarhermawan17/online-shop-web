@@ -1,17 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 export function PriceRangeFilter() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
   const formatNumber = (value: string) => {
-    // Remove non-numeric characters except for leading zeros or dots
     const cleanValue = value.replace(/\D/g, '');
     if (!cleanValue) return '';
     return new Intl.NumberFormat('id-ID').format(parseInt(cleanValue));
   };
+
+  const parseFormattedNumber = (value: string) => {
+    const cleanValue = value.replace(/\D/g, '');
+    return cleanValue ? parseInt(cleanValue, 10) : null;
+  };
+
+  useEffect(() => {
+    setMinPrice(formatNumber(searchParams.get('minPrice') || ''));
+    setMaxPrice(formatNumber(searchParams.get('maxPrice') || ''));
+  }, [searchParams]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -21,8 +34,35 @@ export function PriceRangeFilter() {
     setter(formatNumber(rawValue));
   };
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const params = new URLSearchParams(searchParams.toString());
+    let minValue = parseFormattedNumber(minPrice);
+    let maxValue = parseFormattedNumber(maxPrice);
+
+    if (minValue !== null && maxValue !== null && minValue > maxValue) {
+      [minValue, maxValue] = [maxValue, minValue];
+    }
+
+    if (minValue !== null) {
+      params.set('minPrice', String(minValue));
+    } else {
+      params.delete('minPrice');
+    }
+
+    if (maxValue !== null) {
+      params.set('maxPrice', String(maxValue));
+    } else {
+      params.delete('maxPrice');
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  };
+
   return (
-    <div className="flex flex-col gap-3 pt-2">
+    <form className="flex flex-col gap-3 pt-2" onSubmit={handleSubmit}>
       <p className="text-[#acb4b1] text-[12px] font-semibold uppercase tracking-[0.6px]">
         Rentang Harga (IDR)
       </p>
@@ -52,9 +92,12 @@ export function PriceRangeFilter() {
           />
         </div>
       </div>
-      <button className="mt-1 w-full border border-[#166534] text-[#166534] hover:bg-[#166534] hover:text-white py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm active:shadow-none">
+      <button
+        type="submit"
+        className="mt-1 w-full border border-[#166534] text-[#166534] hover:bg-[#166534] hover:text-white py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shadow-sm active:shadow-none"
+      >
         Terapkan Harga
       </button>
-    </div>
+    </form>
   );
 }

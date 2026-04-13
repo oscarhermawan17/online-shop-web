@@ -31,7 +31,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const isLowStock = product.stock > 0 && product.stock <= 20;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categoryName = (product as any).category?.name as string | undefined;
+  const categories = (product as any).categories as { name: string }[] | undefined;
+  const categoryNames = categories?.map((c) => c.name).join(', ');
 
   return (
     <Link href={`/product/${product.id}`}>
@@ -65,9 +66,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-4 flex flex-col gap-2 z-[1] flex-1">
-          {categoryName && (
+          {categoryNames && (
             <p className="text-[#acb4b1] text-[10px] font-semibold uppercase tracking-wide">
-              {categoryName}
+              {categoryNames}
             </p>
           )}
 
@@ -78,7 +79,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex flex-col gap-2 mt-auto">
             <div>
               <p className="text-[#006f1d] text-lg font-extrabold leading-7">{getPriceDisplay()}</p>
-              <p className="text-[#757c7a] text-[10px] leading-[15px]">/ pcs</p>
+              <p className="text-[#757c7a] text-[10px] leading-[15px]">/ {product.unit?.name || 'pcs'}</p>
             </div>
 
             <div className="flex items-center justify-between pb-1">

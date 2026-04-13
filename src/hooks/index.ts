@@ -5,4 +5,6 @@ export { useAdminCustomers } from './use-customers';
 export { useAdminShippingZones } from './use-shipping-zones';
 export { useAdminShippingShifts } from './use-shipping-shifts';
 export { useAdminShippingDrivers } from './use-shipping-drivers';
+export { useAdminCategories } from './use-categories';
+export { useAdminUnits } from './use-units';
 export type { ShippingZone } from './use-shipping-zones';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { productSchema, type ProductFormData } from '@/lib/validations';
 import type { Product } from '@/types';
+import { useAdminCategories, useAdminUnits } from '@/hooks';
 
 interface ProductFormProps {
   product?: Product | null;
@@ -18,10 +20,13 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProps) {
+  const { categories, isLoading: isLoadingCategories } = useAdminCategories();
+  const { units, isLoading: isLoadingUnits } = useAdminUnits();
   const hasRealVariants = product?.variants.some((v) => !v.isDefault) ?? false;
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<ProductFormData>({
@@ -29,6 +34,8 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
     defaultValues: product
       ? {
           name: product.name,
+          categoryIds: product.categories?.map((c) => c.id) || [],
+          unitId: product.unitId || null,
           description: product.description || '',
           basePrice: product.basePrice,
           wholesalePrice: product.wholesalePrice ?? null,
@@ -36,6 +43,8 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
         }
       : {
           name: '',
+          categoryIds: [],
+          unitId: null,
           description: '',
           basePrice: 0,
           wholesalePrice: null,
@@ -62,6 +71,82 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
             {errors.name && (
               <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Category */}
+            <div className="space-y-2">
+              <Label>Kategori</Label>
+              <div className="grid grid-cols-2 gap-2 border rounded-md p-3 max-h-48 overflow-y-auto">
+                {isLoadingCategories ? (
+                  <p className="text-sm text-muted-foreground">Memuat kategori...</p>
+                ) : categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Belum ada kategori.</p>
+                ) : (
+                  <Controller
+                    name="categoryIds"
+                    control={control}
+                    render={({ field }) => (
+                      <>
+                        {categories.map((category) => {
+                          const isChecked = field.value?.includes(category.id);
+                          return (
+                            <label
+                              key={category.id}
+                              className="flex items-center space-x-2 text-sm cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const current = field.value || [];
+                                  if (e.target.checked) {
+                                    field.onChange([...current, category.id]);
+                                  } else {
+                                    field.onChange(current.filter((id) => id !== category.id));
+                                  }
+                                }}
+                                disabled={isSubmitting}
+                              />
+                              <span>{category.name}</span>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Unit */}
+            <div className="space-y-2">
+              <Label htmlFor="unitId">Satuan</Label>
+              <Controller
+                name="unitId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    disabled={isSubmitting || isLoadingUnits}
+                    onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                    value={field.value || 'none'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih satuan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tidak ada satuan</SelectItem>
+                      {units.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
           </div>
 
           {/* Description */}

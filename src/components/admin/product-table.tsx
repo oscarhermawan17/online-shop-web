@@ -62,6 +62,7 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
           <TableRow>
             <TableHead className="w-16">Gambar</TableHead>
             <TableHead>Nama Produk</TableHead>
+            <TableHead className="hidden md:table-cell">Kategori</TableHead>
             <TableHead className="hidden md:table-cell">Harga Normal</TableHead>
             <TableHead className="hidden lg:table-cell">Harga Retail</TableHead>
             <TableHead className="hidden sm:table-cell">Varian</TableHead>
@@ -131,6 +132,19 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                       )}
                     </p>
                   </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {product.categories && product.categories.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {product.categories.map((c) => (
+                        <Badge key={c.id} variant="outline" className="text-xs font-normal">
+                          {c.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {formatRupiah(product.basePrice)}

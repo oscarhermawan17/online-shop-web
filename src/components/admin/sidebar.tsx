@@ -12,6 +12,8 @@ import {
   Clock3,
   UserRound,
   LogOut,
+  Tags,
+  Scale,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores';
@@ -19,6 +21,8 @@ import { useAuthStore } from '@/stores';
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/products', label: 'Produk', icon: Package, exact: false },
+  { href: '/admin/category', label: 'Kategori', icon: Tags, exact: false },
+  { href: '/admin/satuan', label: 'Satuan', icon: Scale, exact: false },
   { href: '/admin/orders', label: 'Pesanan', icon: ShoppingCart, exact: false },
   { href: '/admin/customers', label: 'Pelanggan', icon: Users, exact: false },
   { href: '/admin/shipping-zones', label: 'Area Pengiriman', icon: MapPinned, exact: false },
