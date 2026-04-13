@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Eye, Plus, Bell, ShoppingCart, TrendingUp, Package } from 'lucide-react';
-import { OrderTable } from '@/components/admin';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminProducts, useAdminOrders } from '@/hooks';
 import { useAdminStore } from '@/hooks/use-store';
@@ -104,7 +103,7 @@ export default function AdminDashboardPage() {
       ═══════════════════════════════════════════════════════════ */}
       <div className="md:hidden">
         {/* Mobile Top Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-black/[0.06] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-black/6 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
           <div className="flex items-center justify-between px-6 py-3">
             <span className="text-[#166534] font-bold text-xl leading-7">{storeName}</span>
             <div className="flex items-center gap-4">
@@ -329,7 +328,7 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
           {/* Table header */}
-          <div className="grid grid-cols-[180px_1fr_200px_172px_88px] bg-[rgba(241,244,242,0.5)]">
+          <div className="grid grid-cols-[280px_1fr_150px_120px_80px] bg-[rgba(241,244,242,0.5)]">
             {['ID PESANAN', 'PELANGGAN', 'JUMLAH', 'STATUS', 'AKSI'].map((col) => (
               <div key={col} className="px-6 py-4 text-[#59615f] text-xs font-bold tracking-[0.6px] uppercase">
                 {col}
@@ -346,9 +345,9 @@ export default function AdminDashboardPage() {
               const bgColor = ['#d5e8cf', '#e4e9e7', '#f9fbb7'][initials.charCodeAt(0) % 3];
               const textColor = bgColor === '#d5e8cf' ? '#465643' : '#59615f';
               return (
-                <div key={order.id} className="grid grid-cols-[180px_1fr_200px_172px_88px] border-t border-[#eaefec] items-center">
-                  <div className="px-6 py-7">
-                    <span className="text-[#2d3432] text-base font-medium">#{order.publicOrderId}</span>
+                <div key={order.id} className="grid grid-cols-[280px_1fr_150px_120px_80px] border-t border-[#eaefec] items-center">
+                  <div className="px-6 py-7 min-w-0">
+                    <span className="text-[#2d3432] text-base font-medium whitespace-nowrap truncate block">#{order.publicOrderId}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold uppercase shrink-0"
