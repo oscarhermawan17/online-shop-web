@@ -7,6 +7,10 @@ export interface Store {
   bankAccountNumber?: string | null;
   bankAccountName?: string | null;
   qrisImageUrl?: string | null;
+  deliveryRetailMinimumOrder?: number | null;
+  deliveryStoreMinimumOrder?: number | null;
+  deliveryRetailFreeShippingMinimumOrder?: number | null;
+  deliveryStoreFreeShippingMinimumOrder?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,4 +23,8 @@ export interface UpdateStorePayload {
   bankAccountNumber?: string;
   bankAccountName?: string;
   qrisImageUrl?: string;
+  deliveryRetailMinimumOrder?: number | null;
+  deliveryStoreMinimumOrder?: number | null;
+  deliveryRetailFreeShippingMinimumOrder?: number | null;
+  deliveryStoreFreeShippingMinimumOrder?: number | null;
 }

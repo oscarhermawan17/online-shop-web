@@ -17,7 +17,7 @@ import { uploadToCloudinary } from '@/lib/cloudinary';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import Image from 'next/image';
-import { getOptimizedImageUrl } from '@/lib/utils';
+import { formatRupiah, getOptimizedImageUrl } from '@/lib/utils';
 
 const AddressMap = dynamic(
   () => import('@/components/public/address-map'),
@@ -30,6 +30,20 @@ const AddressMap = dynamic(
     ),
   }
 );
+
+const preventNegativeNumberKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (['-', '+', 'e', 'E'].includes(e.key)) {
+    e.preventDefault();
+  }
+};
+
+const sanitizeNonNegativeNumberInput = (e: React.FormEvent<HTMLInputElement>) => {
+  const target = e.currentTarget;
+
+  if (target.value.startsWith('-')) {
+    target.value = target.value.replace(/^-+/, '');
+  }
+};
 
 export default function AdminStorePage() {
   const { store, isLoading, isError, mutate } = useAdminStore();
@@ -54,11 +68,19 @@ export default function AdminStorePage() {
           bankAccountNumber: store.bankAccountNumber || '',
           bankAccountName: store.bankAccountName || '',
           qrisImageUrl: store.qrisImageUrl || '',
+          deliveryRetailMinimumOrder: store.deliveryRetailMinimumOrder ?? null,
+          deliveryStoreMinimumOrder: store.deliveryStoreMinimumOrder ?? null,
+          deliveryRetailFreeShippingMinimumOrder: store.deliveryRetailFreeShippingMinimumOrder ?? null,
+          deliveryStoreFreeShippingMinimumOrder: store.deliveryStoreFreeShippingMinimumOrder ?? null,
         }
       : undefined,
   });
 
   const storeAddress = watch('address');
+  const deliveryRetailMinimumOrder = watch('deliveryRetailMinimumOrder');
+  const deliveryStoreMinimumOrder = watch('deliveryStoreMinimumOrder');
+  const deliveryRetailFreeShippingMinimumOrder = watch('deliveryRetailFreeShippingMinimumOrder');
+  const deliveryStoreFreeShippingMinimumOrder = watch('deliveryStoreFreeShippingMinimumOrder');
 
   if (isLoading) {
     return <LoadingPage />;
@@ -106,6 +128,10 @@ export default function AdminStorePage() {
         bankAccountNumber: data.bankAccountNumber || undefined,
         bankAccountName: data.bankAccountName || undefined,
         qrisImageUrl: data.qrisImageUrl || undefined,
+        deliveryRetailMinimumOrder: data.deliveryRetailMinimumOrder ?? null,
+        deliveryStoreMinimumOrder: data.deliveryStoreMinimumOrder ?? null,
+        deliveryRetailFreeShippingMinimumOrder: data.deliveryRetailFreeShippingMinimumOrder ?? null,
+        deliveryStoreFreeShippingMinimumOrder: data.deliveryStoreFreeShippingMinimumOrder ?? null,
       });
 
       toast.success('Pengaturan toko berhasil disimpan');
@@ -246,6 +272,150 @@ export default function AdminStorePage() {
                     {errors.bankAccountName.message}
                   </p>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Aturan Pengiriman</CardTitle>
+              <CardDescription>
+                Berlaku hanya saat pelanggan memilih metode dikirim
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Minimal Belanja</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Kosongkan jika tidak ingin membatasi checkout pengiriman.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryRetailMinimumOrder">Retail</Label>
+                  <Input
+                    id="deliveryRetailMinimumOrder"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Kosongkan jika tidak ada minimal"
+                    {...register('deliveryRetailMinimumOrder', {
+                      setValueAs: (v: string) => (v === '' ? null : Number(v)),
+                    })}
+                    onKeyDown={preventNegativeNumberKey}
+                    onInput={sanitizeNonNegativeNumberInput}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Customer umum yang checkout tanpa login.
+                    {typeof deliveryRetailMinimumOrder === 'number' && deliveryRetailMinimumOrder > 0
+                      ? ` Aktif di ${formatRupiah(deliveryRetailMinimumOrder)}.`
+                      : ' Tidak ada batas minimal aktif.'}
+                  </p>
+                  {errors.deliveryRetailMinimumOrder && (
+                    <p className="text-sm text-destructive">
+                      {errors.deliveryRetailMinimumOrder.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryStoreMinimumOrder">Toko</Label>
+                  <Input
+                    id="deliveryStoreMinimumOrder"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Kosongkan jika tidak ada minimal"
+                    {...register('deliveryStoreMinimumOrder', {
+                      setValueAs: (v: string) => (v === '' ? null : Number(v)),
+                    })}
+                    onKeyDown={preventNegativeNumberKey}
+                    onInput={sanitizeNonNegativeNumberInput}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Customer login / mitra toko.
+                    {typeof deliveryStoreMinimumOrder === 'number' && deliveryStoreMinimumOrder > 0
+                      ? ` Aktif di ${formatRupiah(deliveryStoreMinimumOrder)}.`
+                      : ' Tidak ada batas minimal aktif.'}
+                  </p>
+                  {errors.deliveryStoreMinimumOrder && (
+                    <p className="text-sm text-destructive">
+                      {errors.deliveryStoreMinimumOrder.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Minimal Belanja Free Ongkir</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Jika subtotal produk mencapai nilai ini, ongkir akan otomatis menjadi gratis.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryRetailFreeShippingMinimumOrder">Retail</Label>
+                  <Input
+                    id="deliveryRetailFreeShippingMinimumOrder"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Kosongkan jika tidak ada free ongkir otomatis"
+                    {...register('deliveryRetailFreeShippingMinimumOrder', {
+                      setValueAs: (v: string) => (v === '' ? null : Number(v)),
+                    })}
+                    onKeyDown={preventNegativeNumberKey}
+                    onInput={sanitizeNonNegativeNumberInput}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Customer umum yang checkout tanpa login.
+                    {typeof deliveryRetailFreeShippingMinimumOrder === 'number' && deliveryRetailFreeShippingMinimumOrder > 0
+                      ? ` Free ongkir aktif mulai ${formatRupiah(deliveryRetailFreeShippingMinimumOrder)}.`
+                      : ' Free ongkir otomatis tidak aktif.'}
+                  </p>
+                  {errors.deliveryRetailFreeShippingMinimumOrder && (
+                    <p className="text-sm text-destructive">
+                      {errors.deliveryRetailFreeShippingMinimumOrder.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryStoreFreeShippingMinimumOrder">Toko</Label>
+                  <Input
+                    id="deliveryStoreFreeShippingMinimumOrder"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Kosongkan jika tidak ada free ongkir otomatis"
+                    {...register('deliveryStoreFreeShippingMinimumOrder', {
+                      setValueAs: (v: string) => (v === '' ? null : Number(v)),
+                    })}
+                    onKeyDown={preventNegativeNumberKey}
+                    onInput={sanitizeNonNegativeNumberInput}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Customer login / mitra toko.
+                    {typeof deliveryStoreFreeShippingMinimumOrder === 'number' && deliveryStoreFreeShippingMinimumOrder > 0
+                      ? ` Free ongkir aktif mulai ${formatRupiah(deliveryStoreFreeShippingMinimumOrder)}.`
+                      : ' Free ongkir otomatis tidak aktif.'}
+                  </p>
+                  {errors.deliveryStoreFreeShippingMinimumOrder && (
+                    <p className="text-sm text-destructive">
+                      {errors.deliveryStoreFreeShippingMinimumOrder.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

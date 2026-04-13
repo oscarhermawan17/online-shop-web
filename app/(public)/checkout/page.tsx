@@ -7,29 +7,40 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CheckoutForm, CartSummary } from '@/components/public';
 import { EmptyState } from '@/components/shared';
-import { useCartStore } from '@/stores';
+import { useCartStore, useCustomerAuthStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { fetchShippingZones, type ShippingArea } from '@/lib/shipping';
 import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
 import type { Store } from '@/types';
+import { formatRupiah } from '@/lib/utils';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [store, setStore] = useState<Pick<Store, 'name' | 'address'> | null>(null);
+  const [store, setStore] = useState<Pick<
+    Store,
+    | 'name'
+    | 'address'
+    | 'deliveryRetailMinimumOrder'
+    | 'deliveryStoreMinimumOrder'
+    | 'deliveryRetailFreeShippingMinimumOrder'
+    | 'deliveryStoreFreeShippingMinimumOrder'
+  > | null>(null);
 
   // Track form state for the summary sidebar
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
-  const [customerAddress, setCustomerAddress] = useState('');
   const [detectedDistrict, setDetectedDistrict] = useState<string | null>(null);
   const [shippingZones, setShippingZones] = useState<ShippingArea[]>([]);
 
   const items = useCartStore((state) => state.items);
   const storeId = useCartStore((state) => state.storeId);
   const clearCart = useCartStore((state) => state.clearCart);
+  const subtotal = useCartStore((state) => state.getTotalPrice());
+  const customer = useCustomerAuthStore((state) => state.customer);
+  const customerToken = useCustomerAuthStore((state) => state.token);
 
   useEffect(() => {
     setMounted(true);
@@ -41,7 +52,14 @@ export default function CheckoutPage() {
       try {
         const res = await api.get<{ data: Store }>('/store');
         const data = res.data.data;
-        setStore({ name: data.name, address: data.address });
+        setStore({
+          name: data.name,
+          address: data.address,
+          deliveryRetailMinimumOrder: data.deliveryRetailMinimumOrder,
+          deliveryStoreMinimumOrder: data.deliveryStoreMinimumOrder,
+          deliveryRetailFreeShippingMinimumOrder: data.deliveryRetailFreeShippingMinimumOrder,
+          deliveryStoreFreeShippingMinimumOrder: data.deliveryStoreFreeShippingMinimumOrder,
+        });
       } catch {
         // Store info is optional for checkout
       }
@@ -58,6 +76,24 @@ export default function CheckoutPage() {
     if (zone) return { district: zone.district, cost: zone.cost };
     return null;
   }, [deliveryMethod, detectedDistrict, shippingZones]);
+
+  const isStoreCustomer = !!customerToken && !!customer;
+
+  const minimumOrder = isStoreCustomer
+    ? (store?.deliveryStoreMinimumOrder ?? null)
+    : (store?.deliveryRetailMinimumOrder ?? null);
+
+  const freeShippingMinimumOrder = isStoreCustomer
+    ? (store?.deliveryStoreFreeShippingMinimumOrder ?? null)
+    : (store?.deliveryRetailFreeShippingMinimumOrder ?? null);
+
+  const isFreeShippingApplied = deliveryMethod === 'delivery'
+    && freeShippingMinimumOrder !== null
+    && subtotal >= freeShippingMinimumOrder;
+
+  const effectiveShippingCost = deliveryMethod === 'delivery'
+    ? (isFreeShippingApplied ? 0 : (shipping?.cost ?? null))
+    : null;
 
   // Shipping unavailable: delivery mode, pin placed on map, but no zone matched
   const pinPlaced = detectedDistrict !== null;
@@ -96,6 +132,17 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (
+      data.deliveryMethod === 'delivery'
+      && minimumOrder !== null
+      && subtotal < minimumOrder
+    ) {
+      toast.error(
+        `Minimal belanja untuk pengiriman ${isStoreCustomer ? 'toko' : 'retail'} adalah ${formatRupiah(minimumOrder)}`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -107,7 +154,7 @@ export default function CheckoutPage() {
         customerAddress: isPickup ? (store?.address || 'Pickup di toko') : (data.customerAddress || ''),
         deliveryMethod: data.deliveryMethod as DeliveryMethod,
         notes: data.notes || undefined,
-        shippingCost: shipping?.cost ?? 0,
+        shippingCost: isPickup ? 0 : (effectiveShippingCost ?? 0),
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || undefined,
@@ -153,7 +200,6 @@ export default function CheckoutPage() {
             storeAddress={store?.address}
             storeName={store?.name}
             onDeliveryMethodChange={setDeliveryMethod}
-            onAddressChange={setCustomerAddress}
             onDistrictDetected={setDetectedDistrict}
             shippingUnavailable={shippingUnavailable}
           />
@@ -164,9 +210,14 @@ export default function CheckoutPage() {
           <CartSummary
             showCheckoutButton={false}
             deliveryMethod={deliveryMethod}
-            shippingCost={shipping?.cost ?? null}
+            shippingCost={effectiveShippingCost}
             shippingDistrict={shipping?.district ?? null}
             shippingUnavailable={shippingUnavailable}
+            minimumOrder={minimumOrder}
+            freeShippingMinimumOrder={freeShippingMinimumOrder}
+            subtotal={subtotal}
+            isStoreCustomer={isStoreCustomer}
+            isFreeShippingApplied={isFreeShippingApplied}
           />
         </div>
       </div>

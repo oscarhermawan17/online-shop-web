@@ -132,7 +132,11 @@ export interface CheckoutPayload {
 export interface CheckoutResponse {
   publicOrderId: string;
   totalAmount: number;
+  shippingCost: number;
   expiresAt: string;
+  minimumOrderApplied?: number | null;
+  freeShippingMinimumOrderApplied?: number | null;
+  isFreeShippingApplied?: boolean;
   bankName?: string | null;
   bankAccountNumber?: string | null;
   bankAccountName?: string | null;

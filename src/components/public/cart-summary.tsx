@@ -15,6 +15,11 @@ interface CartSummaryProps {
   shippingCost?: number | null;
   shippingDistrict?: string | null;
   shippingUnavailable?: boolean;
+  minimumOrder?: number | null;
+  freeShippingMinimumOrder?: number | null;
+  subtotal?: number;
+  isStoreCustomer?: boolean;
+  isFreeShippingApplied?: boolean;
 }
 
 export function CartSummary({
@@ -23,6 +28,11 @@ export function CartSummary({
   shippingCost,
   shippingDistrict,
   shippingUnavailable,
+  minimumOrder,
+  freeShippingMinimumOrder,
+  subtotal,
+  isStoreCustomer = false,
+  isFreeShippingApplied = false,
 }: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
@@ -31,10 +41,11 @@ export function CartSummary({
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
+  const activeSubtotal = subtotal ?? totalPrice;
 
   const isDelivery = deliveryMethod === 'delivery';
   const resolvedShipping = isDelivery ? (shippingCost ?? null) : null;
-  const grandTotal = totalPrice + (resolvedShipping ?? 0);
+  const grandTotal = activeSubtotal + (resolvedShipping ?? 0);
 
   return (
     <Card>
@@ -67,8 +78,20 @@ export function CartSummary({
 
         <div className="flex justify-between text-sm">
           <span>Subtotal Produk</span>
-          <span>{formatRupiah(totalPrice)}</span>
+          <span>{formatRupiah(activeSubtotal)}</span>
         </div>
+
+        {isDelivery && typeof minimumOrder === 'number' && (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Minimal belanja kirim untuk {isStoreCustomer ? 'toko' : 'retail'}: {formatRupiah(minimumOrder)}
+          </div>
+        )}
+
+        {isDelivery && typeof freeShippingMinimumOrder === 'number' && (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Free ongkir {isStoreCustomer ? 'toko' : 'retail'} mulai {formatRupiah(freeShippingMinimumOrder)}
+          </div>
+        )}
 
         {/* Shipping cost row */}
         {isDelivery && (
@@ -82,7 +105,9 @@ export function CartSummary({
               )}
             </span>
             <span>
-              {resolvedShipping !== null ? (
+              {isFreeShippingApplied ? (
+                <span className="font-medium text-green-600">Gratis</span>
+              ) : resolvedShipping !== null ? (
                 formatRupiah(resolvedShipping)
               ) : shippingUnavailable ? (
                 <span className="text-xs font-medium text-destructive">Tidak tersedia</span>

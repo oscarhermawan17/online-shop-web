@@ -30,6 +30,30 @@ export const storeSchema = z.object({
     .url('URL QRIS tidak valid')
     .optional()
     .or(z.literal('')),
+  deliveryRetailMinimumOrder: z
+    .number()
+    .min(0, 'Minimal belanja retail tidak boleh negatif')
+    .max(999999999, 'Nilai terlalu besar')
+    .nullable()
+    .optional(),
+  deliveryStoreMinimumOrder: z
+    .number()
+    .min(0, 'Minimal belanja toko tidak boleh negatif')
+    .max(999999999, 'Nilai terlalu besar')
+    .nullable()
+    .optional(),
+  deliveryRetailFreeShippingMinimumOrder: z
+    .number()
+    .min(0, 'Minimal free ongkir retail tidak boleh negatif')
+    .max(999999999, 'Nilai terlalu besar')
+    .nullable()
+    .optional(),
+  deliveryStoreFreeShippingMinimumOrder: z
+    .number()
+    .min(0, 'Minimal free ongkir toko tidak boleh negatif')
+    .max(999999999, 'Nilai terlalu besar')
+    .nullable()
+    .optional(),
 });
 
 export type StoreFormData = z.infer<typeof storeSchema>;
