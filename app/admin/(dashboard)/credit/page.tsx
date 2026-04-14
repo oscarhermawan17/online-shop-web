@@ -102,7 +102,7 @@ export default function AdminCreditPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Credit</h1>
+        <h1 className="text-2xl font-bold">Limit Credit</h1>
         <p className="text-muted-foreground">
           Atur limit credit pelanggan dan pantau total invoice credit yang belum dilunasi.
         </p>

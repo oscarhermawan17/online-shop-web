@@ -80,6 +80,28 @@ export interface CustomerCreditSummary {
   updatedAt: string | null;
 }
 
+export interface ReceivablePaymentItem {
+  id: string;
+  amount: number;
+  receivedAt: string;
+  createdAt: string;
+}
+
+export interface ReceivableInvoiceItem {
+  id: string;
+  publicOrderId: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: string;
+  createdAt: string;
+  creditSettledAt: string | null;
+  isSettled: boolean;
+  payments: ReceivablePaymentItem[];
+}
+
 export interface CustomerLoginResponse {
   token: string;
   customer: CustomerUser;
