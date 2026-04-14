@@ -13,7 +13,7 @@ import { formatRupiah, getTimeRemaining, getOptimizedImageUrl } from '@/lib/util
 interface PaymentInfoProps {
   publicOrderId: string;
   totalAmount: number;
-  expiresAt: string;
+  expiresAt: string | null;
   bankName?: string | null;
   bankAccountNumber?: string | null;
   bankAccountName?: string | null;
@@ -30,9 +30,17 @@ export function PaymentInfo({
   qrisImageUrl,
 }: PaymentInfoProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining(expiresAt));
+  const [timeRemaining, setTimeRemaining] = useState(
+    expiresAt
+      ? getTimeRemaining(expiresAt)
+      : { expired: false, hours: 0, minutes: 0, seconds: 0, text: '-' }
+  );
 
   useEffect(() => {
+    if (!expiresAt) {
+      return undefined;
+    }
+
     const timer = setInterval(() => {
       setTimeRemaining(getTimeRemaining(expiresAt));
     }, 1000);

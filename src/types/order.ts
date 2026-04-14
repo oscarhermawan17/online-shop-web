@@ -68,11 +68,13 @@ export interface Order {
   customerPhone: string;
   customerAddress: string;
   deliveryMethod: DeliveryMethod | null;
+  paymentMethod: PaymentMethod | null;
   notes?: string | null;
   shippingCost: number;
   totalAmount: number;
   status: OrderStatus;
-  expiresAt: string;
+  creditSettledAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
@@ -89,6 +91,7 @@ export interface PaymentProof {
 export interface PublicOrder {
   publicOrderId: string;
   status: OrderStatus;
+  paymentMethod: PaymentMethod | null;
   customerName: string | null;
   customerPhone: string | null;
   customerAddress: string | null;
@@ -96,7 +99,8 @@ export interface PublicOrder {
   notes: string | null;
   shippingCost: number;
   totalAmount: number;
-  expiresAt: string;
+  creditSettledAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
   items: OrderItem[];
   store: {
@@ -124,6 +128,7 @@ export interface CheckoutPayload {
   customerPhone: string;
   customerAddress: string;
   deliveryMethod: DeliveryMethod;
+  paymentMethod: PaymentMethod;
   notes?: string;
   shippingCost?: number;
   items: CheckoutItemPayload[];
@@ -131,9 +136,10 @@ export interface CheckoutPayload {
 
 export interface CheckoutResponse {
   publicOrderId: string;
+  paymentMethod: PaymentMethod;
   totalAmount: number;
   shippingCost: number;
-  expiresAt: string;
+  expiresAt: string | null;
   minimumOrderApplied?: number | null;
   freeShippingMinimumOrderApplied?: number | null;
   isFreeShippingApplied?: boolean;
@@ -157,3 +163,5 @@ export interface ShipOrderPayload {
   shiftId: string;
   driverName: string;
 }
+
+export type PaymentMethod = 'bank_transfer' | 'credit';

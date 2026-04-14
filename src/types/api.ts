@@ -59,6 +59,27 @@ export interface CustomerListItem {
   createdAt: string;
 }
 
+export interface CustomerCreditListItem {
+  id: string;
+  name: string | null;
+  phone: string;
+  email: string | null;
+  isActive: boolean;
+  hasAccount: boolean;
+  createdAt: string;
+  creditLimit: number;
+  outstandingCredit: number;
+  remainingCredit: number;
+  creditUpdatedAt: string | null;
+}
+
+export interface CustomerCreditSummary {
+  creditLimit: number;
+  outstandingCredit: number;
+  remainingCredit: number;
+  updatedAt: string | null;
+}
+
 export interface CustomerLoginResponse {
   token: string;
   customer: CustomerUser;

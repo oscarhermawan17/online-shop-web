@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { Loader2, MapPin, Truck, Store, Check, PenLine, Plus } from 'lucide-react';
+import { Loader2, MapPin, Truck, Store, Check, PenLine, Plus, Landmark, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,8 +16,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { useCustomerAuthStore } from '@/stores';
 import { fetcher } from '@/lib/api';
-import { cn } from '@/lib/utils';
-import type { DeliveryMethod } from '@/types';
+import { cn, formatRupiah } from '@/lib/utils';
+import type { DeliveryMethod, PaymentMethod } from '@/types';
+import type { CustomerCreditSummary } from '@/types';
 import type { CustomerAddress } from '@/types/address';
 
 const AddressMap = dynamic(
@@ -62,6 +63,10 @@ export function CheckoutForm({
     isLoggedIn ? '/customer/addresses' : null,
     fetcher,
   );
+  const { data: creditSummary } = useSWR<CustomerCreditSummary>(
+    isLoggedIn ? '/customer/credit' : null,
+    fetcher,
+  );
 
   // 'saved' = using a saved address, 'manual' = typing manually
   const [addressMode, setAddressMode] = useState<'saved' | 'manual'>('saved');
@@ -70,9 +75,9 @@ export function CheckoutForm({
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     reset,
+    control,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -80,30 +85,32 @@ export function CheckoutForm({
       customerName: customer?.name || '',
       customerPhone: customer?.phone || '',
       deliveryMethod: 'pickup',
+      paymentMethod: 'bank_transfer',
       customerAddress: '',
     },
   });
 
-  const deliveryMethod = watch('deliveryMethod');
-  const customerAddress = watch('customerAddress');
-
-  // Auto-select default address when addresses load
-  useEffect(() => {
-    if (savedAddresses && savedAddresses.length > 0 && !selectedAddressId) {
-      const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
-      setSelectedAddressId(defaultAddr.id);
+  const deliveryMethod = useWatch({ control, name: 'deliveryMethod' });
+  const paymentMethod = useWatch({ control, name: 'paymentMethod' });
+  const customerAddress = useWatch({ control, name: 'customerAddress' });
+  const defaultSavedAddress = useMemo(() => {
+    if (!savedAddresses || savedAddresses.length === 0) {
+      return null;
     }
-  }, [savedAddresses, selectedAddressId]);
+
+    return savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+  }, [savedAddresses]);
+  const activeSelectedAddressId = selectedAddressId || defaultSavedAddress?.id || null;
 
   // When a saved address is selected, sync form values and notify parent
   useEffect(() => {
-    if (addressMode !== 'saved' || !selectedAddressId || !savedAddresses) return;
-    const addr = savedAddresses.find((a) => a.id === selectedAddressId);
+    if (addressMode !== 'saved' || !activeSelectedAddressId || !savedAddresses) return;
+    const addr = savedAddresses.find((a) => a.id === activeSelectedAddressId);
     if (!addr) return;
     setValue('customerAddress', addr.address);
     onAddressChange?.(addr.address);
     onDistrictDetected?.(addr.district);
-  }, [selectedAddressId, addressMode, savedAddresses, setValue, onAddressChange, onDistrictDetected]);
+  }, [activeSelectedAddressId, addressMode, savedAddresses, setValue, onAddressChange, onDistrictDetected]);
 
   // Stable callback for when map reverse-geocodes an address
   const handleAddressFromMap = useCallback(
@@ -118,10 +125,17 @@ export function CheckoutForm({
         customerName: customer.name || '',
         customerPhone: customer.phone || '',
         deliveryMethod: deliveryMethod,
+        paymentMethod,
         customerAddress: '',
       });
     }
-  }, [customer, reset]);
+  }, [customer, deliveryMethod, paymentMethod, reset]);
+
+  useEffect(() => {
+    if (!isLoggedIn && paymentMethod !== 'bank_transfer') {
+      setValue('paymentMethod', 'bank_transfer');
+    }
+  }, [isLoggedIn, paymentMethod, setValue]);
 
   // Notify parent when address changes (only in manual mode)
   useEffect(() => {
@@ -137,6 +151,14 @@ export function CheckoutForm({
       setValue('customerAddress', '');
       onDistrictDetected?.(null);
     }
+  };
+
+  const setPaymentMethod = (method: PaymentMethod) => {
+    if (!isLoggedIn && method === 'credit') {
+      return;
+    }
+
+    setValue('paymentMethod', method);
   };
 
   const handleSelectAddress = (addr: CustomerAddress) => {
@@ -187,6 +209,73 @@ export function CheckoutForm({
             />
             {errors.customerPhone && (
               <p className="text-sm text-destructive">{errors.customerPhone.message}</p>
+            )}
+          </div>
+
+          {/* Payment Method */}
+          <div className="space-y-3">
+            <Label>Metode Pembayaran *</Label>
+            <div className={`grid gap-3 ${isLoggedIn ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('bank_transfer')}
+                disabled={isSubmitting}
+                className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-colors ${
+                  paymentMethod === 'bank_transfer'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted hover:border-muted-foreground/30'
+                }`}
+              >
+                <Landmark className={`h-5 w-5 shrink-0 ${paymentMethod === 'bank_transfer' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className={`font-medium ${paymentMethod === 'bank_transfer' ? 'text-primary' : ''}`}>
+                    Transfer Bank
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Bayar manual lalu upload bukti transfer
+                  </p>
+                </div>
+              </button>
+
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('credit')}
+                  disabled={isSubmitting}
+                  className={`flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-colors ${
+                    paymentMethod === 'credit'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <CreditCard className={`h-5 w-5 shrink-0 ${paymentMethod === 'credit' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="min-w-0">
+                    <p className={`font-medium ${paymentMethod === 'credit' ? 'text-primary' : ''}`}>
+                      Credit
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Gunakan limit credit yang diatur admin
+                    </p>
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      <p>Limit: {formatRupiah(creditSummary?.creditLimit ?? 0)}</p>
+                      <p>Terpakai: {formatRupiah(creditSummary?.outstandingCredit ?? 0)}</p>
+                      <p className="font-medium text-foreground">
+                        Sisa: {formatRupiah(creditSummary?.remainingCredit ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {!isLoggedIn ? (
+              <p className="text-xs text-muted-foreground">
+                Login pelanggan untuk menggunakan pembayaran credit.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Pelanggan login dapat memilih transfer bank atau memakai sisa limit credit.
+              </p>
             )}
           </div>
 
@@ -267,8 +356,9 @@ export function CheckoutForm({
                         type="button"
                         onClick={() => {
                           setAddressMode('saved');
-                          const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
-                          setSelectedAddressId(defaultAddr.id);
+                          if (defaultSavedAddress) {
+                            setSelectedAddressId(defaultSavedAddress.id);
+                          }
                         }}
                         className="text-xs text-primary hover:underline flex items-center gap-1"
                       >
@@ -287,7 +377,7 @@ export function CheckoutForm({
                           onClick={() => handleSelectAddress(addr)}
                           className={cn(
                             'w-full rounded-lg border-2 p-3 text-left transition-colors',
-                            selectedAddressId === addr.id
+                            activeSelectedAddressId === addr.id
                               ? 'border-primary bg-primary/5'
                               : 'border-muted hover:border-muted-foreground/30',
                           )}
@@ -311,7 +401,7 @@ export function CheckoutForm({
                                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">Kec. {addr.district}</p>
                               )}
                             </div>
-                            {selectedAddressId === addr.id && (
+                            {activeSelectedAddressId === addr.id && (
                               <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
                             )}
                           </div>

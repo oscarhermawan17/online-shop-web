@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { CalendarDays, ChevronDown, ChevronUp, Clock, Eye, Package, ShoppingBag, Truck, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { OrderStatusBadge } from '@/components/public/order-status';
 import {
   formatRupiah,
@@ -15,7 +16,6 @@ import {
   getShippingShiftLabel,
 } from '@/lib/utils';
 import type { Order } from '@/types';
-import { cn } from '@/lib/utils';
 
 interface OrderCardProps {
   order: Order;
@@ -60,6 +60,9 @@ export function OrderCard({
                   {order.publicOrderId}
                 </span>
                 <OrderStatusBadge status={order.status} />
+                <Badge variant="outline">
+                  {order.paymentMethod === 'credit' ? 'Credit' : 'Transfer'}
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {showCustomer && order.customerName

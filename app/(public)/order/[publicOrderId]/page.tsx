@@ -62,11 +62,17 @@ export default function OrderPage({ params }: OrderPageProps) {
     );
   }
 
+  const isCreditOrder = order.paymentMethod === 'credit';
   const showPaymentUpload =
-    order.status === 'pending_payment' && !order.paymentProof;
+    !isCreditOrder && order.status === 'pending_payment' && !order.paymentProof;
   const showPaymentInfo =
-    order.status === 'pending_payment' || order.status === 'waiting_confirmation';
-  const hasSidebar = showPaymentInfo || showPaymentUpload || order.status === 'waiting_confirmation';
+    !isCreditOrder && (order.status === 'pending_payment' || order.status === 'waiting_confirmation');
+  const showCreditInfo = isCreditOrder;
+  const hasSidebar =
+    showPaymentInfo
+    || showPaymentUpload
+    || order.status === 'waiting_confirmation'
+    || showCreditInfo;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -199,6 +205,15 @@ export default function OrderPage({ params }: OrderPageProps) {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-start gap-2.5">
+                  <Receipt className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pembayaran</p>
+                    <p className="text-sm font-medium">
+                      {isCreditOrder ? 'Credit' : 'Transfer Bank'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Address */}
@@ -311,6 +326,34 @@ export default function OrderPage({ params }: OrderPageProps) {
         {/* Sidebar */}
         {hasSidebar && (
           <div className="space-y-6">
+            {showCreditInfo && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Informasi Credit</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-medium">Transaksi ini menggunakan limit credit.</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Invoice credit tetap tercatat sampai admin menandainya lunas.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Status Invoice Credit</span>
+                    <span className="font-medium">
+                      {order.creditSettledAt ? 'Lunas' : 'Belum Lunas'}
+                    </span>
+                  </div>
+                  {order.creditSettledAt && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Tanggal Pelunasan</span>
+                      <span className="font-medium">{formatDate(order.creditSettledAt)}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Payment Info */}
             {showPaymentInfo && (
               <PaymentInfo

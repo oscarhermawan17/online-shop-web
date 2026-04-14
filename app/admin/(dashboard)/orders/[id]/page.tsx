@@ -9,6 +9,7 @@ import {
   Truck,
   PackageCheck,
   Loader2,
+  WalletCards,
   MapPin,
   User,
   Phone,
@@ -90,6 +91,21 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     }
   };
 
+  const handleSettleCredit = async () => {
+    setIsUpdating(true);
+    try {
+      await api.patch(`/admin/orders/${id}/settle-credit`);
+      toast.success('Invoice credit berhasil ditandai lunas');
+      mutate();
+    } catch (error: unknown) {
+      console.error('Settle credit error:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal melunasi invoice credit');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -143,6 +159,15 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Metode</p>
                     <p className="text-sm font-medium">
                       {order.deliveryMethod === 'delivery' ? 'Dikirim' : 'Ambil di Toko'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <WalletCards className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pembayaran</p>
+                    <p className="text-sm font-medium">
+                      {order.paymentMethod === 'credit' ? 'Credit' : 'Transfer Bank'}
                     </p>
                   </div>
                 </div>
@@ -317,10 +342,33 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Batas Pembayaran</p>
-                <p className="font-medium">{formatDate(order.expiresAt)}</p>
+                <p className="font-medium">
+                  {order.expiresAt ? formatDate(order.expiresAt) : 'Tidak ada batas transfer'}
+                </p>
               </div>
+              {order.paymentMethod === 'credit' && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Status Invoice Credit</p>
+                  <p className="font-medium">
+                    {order.creditSettledAt ? `Lunas pada ${formatDate(order.creditSettledAt)}` : 'Belum lunas'}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {order.paymentMethod === 'credit' && !order.creditSettledAt && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Invoice Credit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Order ini memakai metode pembayaran credit. Nilai order masih dihitung sebagai credit terpakai sampai ditandai lunas.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment Proof */}
           {order.paymentProof && (
@@ -362,6 +410,21 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <Check className="mr-2 h-4 w-4" />
                   )}
                   Konfirmasi Pembayaran
+                </Button>
+              )}
+              {order.paymentMethod === 'credit' && !order.creditSettledAt && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleSettleCredit}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-2 h-4 w-4" />
+                  )}
+                  Lunasi Credit
                 </Button>
               )}
               {order.status === 'paid' && (
@@ -418,7 +481,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               )}
               {!['waiting_confirmation', 'paid', 'shipped'].includes(
                 order.status
-              ) && (
+              ) && !(order.paymentMethod === 'credit' && !order.creditSettledAt) && (
                 <p className="text-center text-sm text-muted-foreground">
                   Tidak ada aksi yang tersedia
                 </p>
