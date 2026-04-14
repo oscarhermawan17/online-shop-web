@@ -16,18 +16,33 @@ export function ProductGridClient({ serverProducts }: ProductGridClientProps) {
   const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
   const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('q')?.trim().toLowerCase() ?? '';
   const selectedCategory = searchParams.get('category')?.trim().toLowerCase();
   const minPrice = Number(searchParams.get('minPrice') || '') || null;
   const maxPrice = Number(searchParams.get('maxPrice') || '') || null;
+  const searchKeywords = searchQuery.split(/\s+/).filter(Boolean);
 
   // Re-fetch with customer auth to get wholesale prices when logged in
-  const { products: clientProducts } = useProducts();
+  const { products: clientProducts } = useProducts(undefined, searchQuery);
   const canUseClientProducts = hasMounted && isAuthenticated && clientProducts.length > 0;
   const products = canUseClientProducts
     ? clientProducts
     : serverProducts;
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      const searchableText = [
+        product.name,
+        product.description ?? '',
+        product.unit?.name ?? '',
+        ...(product.categories?.map((category) => category.name) ?? []),
+      ].join(' ').toLowerCase();
+      const matchesSearch = searchKeywords.length === 0
+        || searchKeywords.every((keyword) => searchableText.includes(keyword));
+
+      if (!matchesSearch) {
+        return false;
+      }
+
       const matchesCategory = !selectedCategory || product.categories?.some(
         (category) => category.name.trim().toLowerCase() === selectedCategory,
       );
@@ -55,14 +70,14 @@ export function ProductGridClient({ serverProducts }: ProductGridClientProps) {
 
       return true;
     });
-  }, [products, selectedCategory, minPrice, maxPrice]);
+  }, [products, searchKeywords, selectedCategory, minPrice, maxPrice]);
 
   if (filteredProducts.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-[#757c7a]">
-          {selectedCategory || minPrice !== null || maxPrice !== null
-            ? 'Belum ada produk yang sesuai filter'
+          {searchKeywords.length > 0 || selectedCategory || minPrice !== null || maxPrice !== null
+            ? 'Belum ada produk yang cocok dengan pencarian atau filter'
             : 'Belum ada produk tersedia'}
         </p>
       </div>

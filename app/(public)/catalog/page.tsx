@@ -9,10 +9,26 @@ import type { ProductListItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-async function getProducts(): Promise<ProductListItem[]> {
+interface CatalogPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+const getSingleQueryValue = (value?: string | string[]) => (
+  Array.isArray(value) ? value[0] : value
+);
+
+async function getProducts(query?: string): Promise<ProductListItem[]> {
   try {
     const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
-    const res = await fetch(`${baseUrl}/products`, { cache: 'no-store' });
+    const params = new URLSearchParams();
+
+    if (query?.trim()) {
+      params.set('q', query.trim());
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `${baseUrl}/products?${queryString}` : `${baseUrl}/products`;
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const data = await res.json();
     return data.data || [];
@@ -45,8 +61,10 @@ function ProductGridSkeleton() {
   );
 }
 
-export default async function CatalogPage() {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const searchQuery = getSingleQueryValue(resolvedSearchParams.q)?.trim() ?? '';
+  const [products, categories] = await Promise.all([getProducts(searchQuery), getCategories()]);
 
   return (
     <div className="bg-[#f8faf8]">
@@ -61,9 +79,16 @@ export default async function CatalogPage() {
 
         <div className="flex-1 min-w-0 flex flex-col gap-4">
           <section className="flex flex-col gap-4">
-            <h1 className="px-2 text-[#2d3432] font-bold text-lg uppercase tracking-tight">
-              Katalog Produk
-            </h1>
+            <div className="px-2 flex flex-col gap-1">
+              <h1 className="text-[#2d3432] font-bold text-lg uppercase tracking-tight">
+                Katalog Produk
+              </h1>
+              {searchQuery ? (
+                <p className="text-sm text-[#64748b]">
+                  Hasil pencarian untuk &quot;{searchQuery}&quot;
+                </p>
+              ) : null}
+            </div>
             <Suspense fallback={<ProductGridSkeleton />}>
               <ProductGridClient serverProducts={products} />
             </Suspense>
