@@ -76,12 +76,12 @@ export function Header({ storeName }: HeaderProps) {
             >
               Produk
             </Link>
-            <Link
+            {/* <Link
               href="#"
               className="text-[#64748b] font-normal text-base hover:text-[#166534] transition-colors"
             >
               Tentang
-            </Link>
+            </Link> */}
           </nav>
 
           {/* Actions */}
@@ -97,12 +97,12 @@ export function Header({ storeName }: HeaderProps) {
             </Link>
 
             {/* Chat - New */}
-            <Link href="/chat" className="relative p-2 rounded-full hover:bg-black/5 transition-colors">
+            {/* <Link href="/chat" className="relative p-2 rounded-full hover:bg-black/5 transition-colors">
               <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-[#166534]" />
               <span className="absolute top-1 right-1 bg-[#dc2626] text-white text-[10px] font-bold rounded-full min-w-4.5 h-4.5 flex items-center justify-center border-2 border-white">
                 4
               </span>
-            </Link>
+            </Link> */}
 
             {/* Login / Profile - Desktop Only or simplified */}
             <div className="hidden md:block">
