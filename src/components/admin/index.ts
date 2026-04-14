@@ -1,5 +1,6 @@
 export { AdminSidebar } from './sidebar';
 export { AdminBottomNav } from './bottom-nav';
+export { CarouselManager } from './carousel-manager';
 export { StatsCard } from './stats-card';
 export { ImageUpload } from './image-upload';
 export { ProductForm } from './product-form';

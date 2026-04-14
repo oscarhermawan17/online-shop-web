@@ -7,6 +7,7 @@ import {
 } from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
 import type { ProductListItem } from '@/types';
+import { getActiveCarouselSlides } from '@/lib/carousel-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,17 +48,21 @@ function ProductGridSkeleton() {
 }
 
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+  const [products, categories, carouselSlides] = await Promise.all([
+    getProducts(),
+    getCategories(),
+    getActiveCarouselSlides(),
+  ]);
 
   return (
     <div className="bg-[#f8faf8]">
       <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-16">
         <div className="flex flex-col gap-6 md:gap-8">
-
-          {/* Promo Carousel */}
-          <section>
-            <PromoCarousel />
-          </section>
+          {carouselSlides.length > 0 ? (
+            <section>
+              <PromoCarousel slides={carouselSlides} />
+            </section>
+          ) : null}
 
           {/* Category Horizontal List */}
           <section>

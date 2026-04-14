@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
-import { Loader2, Upload, Store, CreditCard, Truck, MapPin, Building, Banknote, QrCode, Info, Save } from 'lucide-react';
+import { Loader2, Upload, Store, CreditCard, Truck, MapPin, Building, Banknote, QrCode, Info, Save, Images } from 'lucide-react';
+import { CarouselManager } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -179,7 +180,7 @@ export default function AdminStorePage() {
 
       <form id="store-form" onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="mb-6 grid w-full grid-cols-4">
             <TabsTrigger value="general" className="gap-2">
               <Store className="h-4 w-4" />
               <span className="hidden sm:inline">Umum</span>
@@ -191,6 +192,10 @@ export default function AdminStorePage() {
             <TabsTrigger value="shipping" className="gap-2">
               <Truck className="h-4 w-4" />
               <span className="hidden sm:inline">Pengiriman</span>
+            </TabsTrigger>
+            <TabsTrigger value="carousel" className="gap-2">
+              <Images className="h-4 w-4" />
+              <span className="hidden sm:inline">Carousel</span>
             </TabsTrigger>
           </TabsList>
 
@@ -560,6 +565,9 @@ export default function AdminStorePage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="carousel" className="space-y-6">
+            <CarouselManager />
           </TabsContent>
         </Tabs>
       </form>

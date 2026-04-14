@@ -1,69 +1,71 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { CarouselSlide } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/utils';
 
-const slides = [
-  {
-    id: 1,
-    title: 'Grosir Minyak Goreng\nDiskon s/d 15%',
-    subtitle: 'Stok terbatas untuk kebutuhan restoran dan katering.',
-    badge: 'PROMO UNGGULAN',
-    color: 'bg-[#166534]',
-  },
-  {
-    id: 2,
-    title: 'Paket Sembako\nMurah & Hemat',
-    subtitle: 'Kebutuhan pokok harga grosir untuk UMKM dan rumah tangga.',
-    badge: 'HARGA TERBAIK',
-    color: 'bg-[#006f1d]',
-    // No image for slide 2, using gradient
-  },
-  {
-    id: 3,
-    title: 'Peralatan Rumah\nProduk Berkualitas',
-    subtitle: 'Lengkapi dapur Anda dengan peralatan standar resto.',
-    badge: 'CUCI GUDANG',
-    color: 'bg-[#064e3b]',
-    // No image for slide 3, using gradient
-  },
-];
+interface PromoCarouselProps {
+  slides: CarouselSlide[];
+}
 
-export function PromoCarousel() {
+export function PromoCarousel({ slides }: PromoCarouselProps) {
   const [current, setCurrent] = useState(0);
+  const safeCurrent = current >= slides.length ? 0 : current;
 
   const nextSlide = useCallback(() => {
     setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-  }, []);
+  }, [slides.length]);
 
   const prevSlide = useCallback(() => {
     setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  }, []);
+  }, [slides.length]);
 
   useEffect(() => {
+    if (slides.length <= 1) {
+      return;
+    }
+
     const timer = setInterval(nextSlide, 5000);
     return () => clearInterval(timer);
-  }, [nextSlide]);
+  }, [nextSlide, slides.length]);
+
+  if (slides.length === 0) {
+    return null;
+  }
 
   return (
     <div className="relative group overflow-hidden rounded-2xl w-full h-45 md:h-48">
       {/* Slides */}
       <div
         className="flex transition-transform duration-500 ease-out h-full"
-        style={{ transform: `translateX(-${current * 100}%)` }}
+        style={{ transform: `translateX(-${safeCurrent * 100}%)` }}
       >
         {slides.map((slide) => (
           <div
             key={slide.id}
-            className={`w-full shrink-0 relative flex items-center h-full ${slide.color}`}
+            className="relative flex h-full w-full shrink-0 items-center overflow-hidden"
+            style={{ backgroundColor: slide.backgroundColor || '#166534' }}
           >
-            {/* Background Overlay */}
+            {slide.imageUrl ? (
+              <>
+                <Image
+                  src={getOptimizedImageUrl(slide.imageUrl, 1600)}
+                  alt={slide.title}
+                  fill
+                  className="object-cover"
+                  priority={safeCurrent === index}
+                />
+                <div className="absolute inset-0 bg-black/40 z-0" />
+              </>
+            ) : null}
+
             <div className="absolute inset-0 opacity-20 bg-linear-to-br from-white via-transparent to-transparent z-0" />
 
-            {/* Content */}
             <div className="relative z-10 p-6 md:p-8 w-full">
               <div className="bg-[#f9fbb7] text-[#5e602c] text-[10px] font-bold tracking-[1px] uppercase px-2 py-1 rounded inline-block mb-2 md:mb-3">
-                {slide.badge}
+                {slide.badge || 'PROMO TOKO'}
               </div>
               <h2 className="text-white font-extrabold text-xl md:text-[30px] md:leading-[37.5px] mb-1 md:mb-3 whitespace-pre-line">
                 {slide.title}
@@ -76,31 +78,35 @@ export function PromoCarousel() {
         ))}
       </div>
 
-      {/* Navigation Arrows */}
-      <button
-        onClick={prevSlide}
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
-      >
-        <ChevronLeft size={20} />
-      </button>
-      <button
-        onClick={nextSlide}
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
-      >
-        <ChevronRight size={20} />
-      </button>
-
-      {/* Indicators */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-        {slides.map((_, i) => (
+      {slides.length > 1 ? (
+        <>
           <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className={`w-1.5 h-1.5 rounded-full transition-all ${current === i ? 'bg-white w-4' : 'bg-white/40'
-              }`}
-          />
-        ))}
-      </div>
+            onClick={prevSlide}
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </>
+      ) : null}
+
+      {slides.length > 1 ? (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${safeCurrent === i ? 'bg-white w-4' : 'bg-white/40'
+                }`}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
