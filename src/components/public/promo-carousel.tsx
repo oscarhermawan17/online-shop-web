@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
 
 const slides = [
   {
@@ -11,7 +10,6 @@ const slides = [
     subtitle: 'Stok terbatas untuk kebutuhan restoran dan katering.',
     badge: 'PROMO UNGGULAN',
     color: 'bg-[#166534]',
-    image: '/home/frederyk/.gemini/antigravity/brain/ef6ea6b0-e329-47ea-b7a0-b49a13e2186a/promo_minyak_goreng_1774835627580.png',
   },
   {
     id: 2,
@@ -61,17 +59,6 @@ export function PromoCarousel() {
           >
             {/* Background Overlay */}
             <div className="absolute inset-0 opacity-20 bg-linear-to-br from-white via-transparent to-transparent z-0" />
-
-            {/* Background Image (if any) */}
-            {slide.image && (
-              <div className="absolute inset-0 z-0 opacity-30 select-none pointer-events-none">
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
 
             {/* Content */}
             <div className="relative z-10 p-6 md:p-8 w-full">

@@ -4,6 +4,7 @@ export { BottomNav } from './bottom-nav';
 export { CategoryFilterSidebar } from './category-filter-sidebar';
 export { CategoryHorizontalList } from './category-horizontal-list';
 export { PromoHorizontalList } from './promo-horizontal-list';
+export { PromoProductsGrid } from './promo-products-grid';
 export { PromoProductsSection } from './promo-products-section';
 export { PromoCarousel } from './promo-carousel';
 export { ProductCard, ProductCardSkeleton } from './product-card';

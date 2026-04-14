@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProductCard } from '@/components/public';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import { useProducts } from '@/hooks/use-products';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { ProductListItem } from '@/types';
@@ -12,6 +13,7 @@ interface ProductGridClientProps {
 }
 
 export function ProductGridClient({ serverProducts }: ProductGridClientProps) {
+  const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
   const searchParams = useSearchParams();
   const selectedCategory = searchParams.get('category')?.trim().toLowerCase();
@@ -20,7 +22,8 @@ export function ProductGridClient({ serverProducts }: ProductGridClientProps) {
 
   // Re-fetch with customer auth to get wholesale prices when logged in
   const { products: clientProducts } = useProducts();
-  const products = isAuthenticated && clientProducts.length > 0
+  const canUseClientProducts = hasMounted && isAuthenticated && clientProducts.length > 0;
+  const products = canUseClientProducts
     ? clientProducts
     : serverProducts;
   const filteredProducts = useMemo(() => {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import { formatRupiah, getPlaceholderImage, getThumbnailUrl } from '@/lib/utils';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { ProductListItem } from '@/types';
@@ -14,13 +15,15 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const hasVariants = product.variants && product.variants.length > 0;
+  const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
   const primaryImage = product.images?.[0]?.imageUrl;
   const imageUrl = primaryImage
     ? getThumbnailUrl(primaryImage, 400)
     : getPlaceholderImage(400, 400);
+  const canUseCustomerPricing = hasMounted && isAuthenticated;
 
-  const activeDiscountPercent = isAuthenticated
+  const activeDiscountPercent = canUseCustomerPricing
     ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
     : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
 

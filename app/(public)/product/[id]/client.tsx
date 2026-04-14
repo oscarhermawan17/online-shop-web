@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { VariantSelector, AddToCartButton } from '@/components/public';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 import { formatRupiah } from '@/lib/utils';
 import { useProduct } from '@/hooks/use-products';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
@@ -13,10 +14,12 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ product: serverProduct }: ProductDetailClientProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+  const shouldFetchCustomerProduct = hasMounted && isAuthenticated;
 
   // Re-fetch with customer auth to get wholesale prices when logged in
-  const { product: clientProduct } = useProduct(isAuthenticated ? serverProduct.id : null);
+  const { product: clientProduct } = useProduct(shouldFetchCustomerProduct ? serverProduct.id : null);
   const product = clientProduct ?? serverProduct;
 
   const hasVariants = product.variants.length > 0;
