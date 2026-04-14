@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ShoppingBag, Home, Sparkles, Smartphone, Shirt, PlusCircle, Gamepad, Car } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,6 +29,7 @@ interface CategoryHorizontalListProps {
 }
 
 export function CategoryHorizontalList({ categories }: CategoryHorizontalListProps) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedCategory = searchParams.get('category')?.trim().toLowerCase();
   const buildHref = (categoryName?: string) => {
@@ -41,7 +42,8 @@ export function CategoryHorizontalList({ categories }: CategoryHorizontalListPro
     }
 
     const queryString = params.toString();
-    return queryString ? `/?${queryString}` : '/';
+    const basePath = pathname === '/' ? '/catalog' : pathname;
+    return queryString ? `${basePath}?${queryString}` : basePath;
   };
 
   if (!categories || categories.length === 0) return null;

@@ -1,11 +1,9 @@
 import { Suspense } from 'react';
 import {
   ProductCardSkeleton,
-  CategoryFilterSidebar,
   CategoryHorizontalList,
   PromoProductsSection,
   PromoCarousel,
-  PriceRangeFilter,
 } from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
 import type { ProductListItem } from '@/types';
@@ -53,34 +51,8 @@ export default async function HomePage() {
 
   return (
     <div className="bg-[#f8faf8]">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-16 flex flex-col lg:flex-row gap-8">
-
-        {/* Sidebar - Desktop Only */}
-        <aside className="hidden lg:flex flex-col gap-8 w-64 shrink-0">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-[#2d3432] text-lg font-bold">Refine Search</h2>
-
-            {/* Kategori */}
-            <CategoryFilterSidebar categories={categories} />
-
-            {/* Rentang Harga Filter */}
-            <PriceRangeFilter />
-          </div>
-
-          {/* Mitra CTA */}
-          <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-4 flex flex-col gap-2">
-            <p className="text-[#166534] text-xs font-semibold">Ingin jadi Mitra?</p>
-            <p className="text-[#166534]/80 text-[11px] leading-4.25">
-              Dapatkan harga khusus grosir untuk toko Anda dengan mendaftar sebagai mitra resmi.
-            </p>
-            <button className="bg-[#166534] text-white text-xs font-bold py-2 rounded-lg hover:bg-[#14532d] transition-colors w-full">
-              Daftar Sekarang
-            </button>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 flex flex-col gap-6 md:gap-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-16">
+        <div className="flex flex-col gap-6 md:gap-8">
 
           {/* Promo Carousel */}
           <section>

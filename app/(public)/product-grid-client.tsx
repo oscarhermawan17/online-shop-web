@@ -67,7 +67,7 @@ export function ProductGridClient({ serverProducts }: ProductGridClientProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4 2xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-5">
       {filteredProducts.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
