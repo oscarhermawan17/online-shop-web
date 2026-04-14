@@ -9,7 +9,7 @@ interface CategoriesResponse {
 export function useAdminCategories() {
   const { data, error, isLoading, mutate } = useSWR<CategoriesResponse>(
     '/admin/categories',
-    async (url) => {
+    async (url: string) => {
       const res = await api.get(url);
       return res.data;
     }
