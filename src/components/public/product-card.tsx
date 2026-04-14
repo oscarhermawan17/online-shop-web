@@ -68,9 +68,6 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const isLowStock = product.stock > 0 && product.stock <= 20;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categories = (product as any).categories as { name: string }[] | undefined;
-  const categoryNames = categories?.map((c) => c.name).join(', ');
   const originalPriceDisplay = getOriginalPriceDisplay();
 
   return (
@@ -105,12 +102,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-4 flex flex-col gap-2 z-1 flex-1">
-          {categoryNames && (
-            <p className="text-[#acb4b1] text-[10px] font-semibold uppercase tracking-wide">
-              {categoryNames}
-            </p>
-          )}
-
           <h3 className="text-[#2d3432] text-sm font-medium leading-5 line-clamp-2 min-h-[40px]">
             {product.name}
           </h3>
@@ -167,7 +158,6 @@ export function ProductCardSkeleton() {
         <Skeleton className="h-full w-full rounded-none" />
       </div>
       <div className="p-4 flex flex-col gap-2">
-        <Skeleton className="h-3 w-16 bg-[#f1f4f2]" />
         <Skeleton className="h-4 w-full bg-[#f1f4f2]" />
         <Skeleton className="h-4 w-2/3 bg-[#f1f4f2]" />
         <Skeleton className="h-6 w-1/2 bg-[#f1f4f2] mt-1" />
