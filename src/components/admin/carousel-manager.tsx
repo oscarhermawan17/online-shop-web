@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores';
 import type { CarouselSlide, CarouselSlideInput } from '@/types';
+import api from '@/lib/api';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { carouselSlidesPayloadSchema } from '@/lib/validations';
 import { getOptimizedImageUrl } from '@/lib/utils';
@@ -83,25 +84,14 @@ export function CarouselManager() {
     const loadSlides = async () => {
       try {
         setIsLoading(true);
-
-        const response = await fetch('/api/admin/carousel', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: 'no-store',
-        });
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || 'Gagal memuat carousel');
-        }
+        const response = await api.get<{ data: CarouselSlide[] }>('/admin/carousel');
 
         if (!isMounted) {
           return;
         }
 
-        const fetchedSlides: CarouselSlide[] = Array.isArray(result.data)
-          ? result.data
+        const fetchedSlides: CarouselSlide[] = Array.isArray(response.data.data)
+          ? response.data.data
           : [];
 
         setSlides(
@@ -242,25 +232,15 @@ export function CarouselManager() {
 
     try {
       setIsSaving(true);
-
-      const response = await fetch('/api/admin/carousel', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const response = await api.put<{ data: CarouselSlide[] }>(
+        '/admin/carousel',
+        {
           slides: normalizedSlides,
-        }),
-      });
-      const result = await response.json();
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Gagal menyimpan carousel');
-      }
-
-      const savedSlides: CarouselSlide[] = Array.isArray(result.data)
-        ? result.data
+      const savedSlides: CarouselSlide[] = Array.isArray(response.data.data)
+        ? response.data.data
         : [];
 
       setSlides(savedSlides.map(mapSlideToEditor));

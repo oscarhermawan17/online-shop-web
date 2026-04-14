@@ -6,8 +6,7 @@ import {
   PromoCarousel,
 } from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
-import type { ProductListItem } from '@/types';
-import { getActiveCarouselSlides } from '@/lib/carousel-storage';
+import type { CarouselSlide, ProductListItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +36,19 @@ async function getCategories(): Promise<{ id: string; name: string; icon?: strin
   }
 }
 
+async function getCarouselSlides(): Promise<CarouselSlide[]> {
+  try {
+    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${baseUrl}/carousel`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to fetch carousel: ${res.status}`);
+    const data = await res.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching carousel slides:', error);
+    return [];
+  }
+}
+
 function ProductGridSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
@@ -51,7 +63,7 @@ export default async function HomePage() {
   const [products, categories, carouselSlides] = await Promise.all([
     getProducts(),
     getCategories(),
-    getActiveCarouselSlides(),
+    getCarouselSlides(),
   ]);
 
   return (
