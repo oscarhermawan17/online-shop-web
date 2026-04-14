@@ -14,20 +14,18 @@ interface PromoProductsSectionProps {
 export function PromoProductsSection({ serverProducts }: PromoProductsSectionProps) {
   const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
-  const { products: clientProducts } = useProducts();
-  const canUseClientProducts = hasMounted && isAuthenticated && clientProducts.length > 0;
+  const { products: clientProducts, pagination } = useProducts({
+    promoOnly: true,
+    limit: 5,
+  });
+  const canUseClientProducts = hasMounted && isAuthenticated && !!pagination;
 
   const products = canUseClientProducts
     ? clientProducts
     : serverProducts;
 
   const promoProducts = useMemo(
-    () =>
-      products
-        .filter((product) => product.discount && (
-          product.discount.normalDiscountActive || product.discount.retailDiscountActive
-        ))
-        .slice(0, 5),
+    () => products.slice(0, 5),
     [products],
   );
 

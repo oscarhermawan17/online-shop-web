@@ -34,6 +34,7 @@ export function CategoryHorizontalList({ categories }: CategoryHorizontalListPro
   const selectedCategory = searchParams.get('category')?.trim().toLowerCase();
   const buildHref = (categoryName?: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
 
     if (categoryName) {
       params.set('category', categoryName);

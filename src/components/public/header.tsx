@@ -134,6 +134,7 @@ export function Header({ storeName }: HeaderProps) {
   const buildSearchHref = (rawQuery: string) => {
     const params = new URLSearchParams(pathname === '/catalog' ? searchParams.toString() : '');
     const query = rawQuery.trim();
+    params.delete('page');
 
     if (query) {
       params.set('q', query);

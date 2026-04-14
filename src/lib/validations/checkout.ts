@@ -12,6 +12,7 @@ export const checkoutSchema = z
       .max(15, 'Nomor HP maksimal 15 digit')
       .regex(/^[0-9+]+$/, 'Nomor HP hanya boleh angka'),
     deliveryMethod: z.enum(['pickup', 'delivery']),
+    paymentMethod: z.enum(['bank_transfer', 'credit']),
     customerAddress: z.string().optional(),
     notes: z.string().max(500, 'Catatan maksimal 500 karakter').optional(),
   })

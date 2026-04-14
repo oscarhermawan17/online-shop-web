@@ -6,6 +6,7 @@ import {
   Truck,
   PackageCheck,
   Loader2,
+  WalletCards,
 } from 'lucide-react';
 import { ShipOrderDialog } from '@/components/admin';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -66,6 +67,21 @@ export default function AdminOrdersPage() {
       mutate();
     } catch {
       toast.error('Gagal mengubah status pesanan');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleSettleCredit = async (orderId: string) => {
+    setLoadingId(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/settle-credit`);
+      toast.success('Invoice credit berhasil ditandai lunas');
+      mutate();
+    } catch (error: unknown) {
+      console.error('Settle credit error:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal melunasi invoice credit');
     } finally {
       setLoadingId(null);
     }
@@ -140,6 +156,7 @@ export default function AdminOrdersPage() {
                         isLoading={loadingId === order.id}
                         onRefresh={() => { mutate() }}
                         onConfirmPayment={handleConfirmPayment}
+                        onSettleCredit={handleSettleCredit}
                         onUpdateStatus={handleUpdateStatus}
                       />
                     }
@@ -159,78 +176,104 @@ function AdminActions({
   isLoading,
   onRefresh,
   onConfirmPayment,
+  onSettleCredit,
   onUpdateStatus,
 }: {
   order: Order;
   isLoading: boolean;
   onRefresh: () => void | Promise<void>;
   onConfirmPayment: (id: string) => void;
+  onSettleCredit: (id: string) => void;
   onUpdateStatus: (id: string, status: 'shipped' | 'done') => void;
 }) {
-  if (order.status === 'waiting_confirmation') {
-    return (
-      <Button
-        size="sm"
-        onClick={() => onConfirmPayment(order.id)}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-        ) : (
-          <Check className="h-4 w-4 mr-1.5" />
-        )}
-        Konfirmasi
-      </Button>
-    );
-  }
-  if (order.status === 'paid') {
-    if (order.deliveryMethod === 'delivery') {
-      return (
-        <ShipOrderDialog order={order} onSuccess={onRefresh}>
-          {({ open, isSubmitting }) => (
-            <Button size="sm" onClick={open} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-              ) : (
-                <Truck className="h-4 w-4 mr-1.5" />
-              )}
-              Kirim
-            </Button>
-          )}
-        </ShipOrderDialog>
-      );
-    }
+  const showSettleCredit = order.paymentMethod === 'credit' && !order.creditSettledAt;
 
-    return (
-      <Button
-        size="sm"
-        onClick={() => onUpdateStatus(order.id, 'shipped')}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-        ) : (
-          <Truck className="h-4 w-4 mr-1.5" />
-        )}
-        Kirim
-      </Button>
-    );
+  if (
+    !showSettleCredit
+    && order.status !== 'waiting_confirmation'
+    && order.status !== 'paid'
+    && order.status !== 'shipped'
+  ) {
+    return null;
   }
-  if (order.status === 'shipped') {
-    return (
-      <Button
-        size="sm"
-        onClick={() => onUpdateStatus(order.id, 'done')}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+
+  return (
+    <>
+      {showSettleCredit && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onSettleCredit(order.id)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+          ) : (
+            <WalletCards className="h-4 w-4 mr-1.5" />
+          )}
+          Lunasi Credit
+        </Button>
+      )}
+
+      {order.status === 'waiting_confirmation' && (
+        <Button
+          size="sm"
+          onClick={() => onConfirmPayment(order.id)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+          ) : (
+            <Check className="h-4 w-4 mr-1.5" />
+          )}
+          Konfirmasi
+        </Button>
+      )}
+
+      {order.status === 'paid' && (
+        order.deliveryMethod === 'delivery' ? (
+          <ShipOrderDialog order={order} onSuccess={onRefresh}>
+            {({ open, isSubmitting }) => (
+              <Button size="sm" onClick={open} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : (
+                  <Truck className="h-4 w-4 mr-1.5" />
+                )}
+                Kirim
+              </Button>
+            )}
+          </ShipOrderDialog>
         ) : (
-          <PackageCheck className="h-4 w-4 mr-1.5" />
-        )}
-        Selesai
-      </Button>
-    );
-  }
-  return null;
+          <Button
+            size="sm"
+            onClick={() => onUpdateStatus(order.id, 'shipped')}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+            ) : (
+              <Truck className="h-4 w-4 mr-1.5" />
+            )}
+            Kirim
+          </Button>
+        )
+      )}
+
+      {order.status === 'shipped' && (
+        <Button
+          size="sm"
+          onClick={() => onUpdateStatus(order.id, 'done')}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+          ) : (
+            <PackageCheck className="h-4 w-4 mr-1.5" />
+          )}
+          Selesai
+        </Button>
+      )}
+    </>
+  );
 }
