@@ -48,6 +48,7 @@ export function Header({ storeName }: HeaderProps) {
   const [suggestions, setSuggestions] = useState<ProductSearchSuggestion[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const items = useCartStore((state) => state.items);
   const isCustomerLoggedIn = useCustomerAuthStore((state) => state.isAuthenticated);
   const customerName = useCustomerAuthStore((state) => state.customer?.name);
@@ -60,6 +61,8 @@ export function Header({ storeName }: HeaderProps) {
 
   useEffect(() => {
     setSearchQuery(activeQuery);
+    setIsSuggestionsOpen(false);
+    setIsSearchFocused(false);
   }, [activeQuery]);
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export function Header({ storeName }: HeaderProps) {
     if (trimmedQuery.length < 2) {
       setSuggestions([]);
       setIsSuggestionsLoading(false);
+      setIsSuggestionsOpen(false);
       return;
     }
 
@@ -81,7 +85,10 @@ export function Header({ storeName }: HeaderProps) {
 
         if (!isCancelled) {
           setSuggestions(response.data.data ?? []);
-          setIsSuggestionsOpen(true);
+
+          if (isSearchFocused) {
+            setIsSuggestionsOpen(true);
+          }
         }
       } catch (error) {
         const axiosError = error as AxiosError;
@@ -100,11 +107,12 @@ export function Header({ storeName }: HeaderProps) {
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [searchQuery]);
+  }, [searchQuery, isSearchFocused]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (!searchContainerRef.current?.contains(event.target as Node)) {
+        setIsSearchFocused(false);
         setIsSuggestionsOpen(false);
       }
     };
@@ -139,12 +147,14 @@ export function Header({ storeName }: HeaderProps) {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSearchFocused(false);
     setIsSuggestionsOpen(false);
     router.push(buildSearchHref(searchQuery));
   };
 
   const handleSuggestionSelect = (value: string) => {
     setSearchQuery(value);
+    setIsSearchFocused(false);
     setIsSuggestionsOpen(false);
     router.push(buildSearchHref(value));
   };
@@ -169,13 +179,15 @@ export function Header({ storeName }: HeaderProps) {
                 type="text"
                 value={searchQuery}
                 onFocus={() => {
+                  setIsSearchFocused(true);
                   if (suggestions.length > 0) {
                     setIsSuggestionsOpen(true);
                   }
                 }}
                 onChange={(event) => {
                   setSearchQuery(event.target.value);
-                  setIsSuggestionsOpen(true);
+                  setIsSearchFocused(true);
+                  setIsSuggestionsOpen(event.target.value.trim().length >= 2);
                 }}
                 placeholder="Cari produk, kategori, atau deskripsi..."
                 aria-label="Cari produk"
@@ -191,7 +203,7 @@ export function Header({ storeName }: HeaderProps) {
               </button>
             </form>
 
-            {isSuggestionsOpen && searchQuery.trim().length >= 2 ? (
+            {isSearchFocused && isSuggestionsOpen && searchQuery.trim().length >= 2 ? (
               <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {isSuggestionsLoading ? (
                   <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#64748b]">
