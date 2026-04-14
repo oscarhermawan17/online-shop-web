@@ -63,4 +63,9 @@ export const fetcher = async <T>(url: string): Promise<T> => {
   return response.data.data;
 };
 
+export const responseFetcher = async <T>(url: string): Promise<T> => {
+  const response = await api.get<T>(url);
+  return response.data;
+};
+
 export default api;

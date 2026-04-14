@@ -1,30 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-export function PriceRangeFilter() {
-  const pathname = usePathname();
+const formatNumber = (value: string) => {
+  const cleanValue = value.replace(/\D/g, '');
+  if (!cleanValue) return '';
+  return new Intl.NumberFormat('id-ID').format(parseInt(cleanValue, 10));
+};
+
+const parseFormattedNumber = (value: string) => {
+  const cleanValue = value.replace(/\D/g, '');
+  return cleanValue ? parseInt(cleanValue, 10) : null;
+};
+
+interface PriceRangeFilterFormProps {
+  pathname: string;
+  searchParamsString: string;
+  initialMinPrice: string;
+  initialMaxPrice: string;
+}
+
+function PriceRangeFilterForm({
+  pathname,
+  searchParamsString,
+  initialMinPrice,
+  initialMaxPrice,
+}: PriceRangeFilterFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-
-  const formatNumber = (value: string) => {
-    const cleanValue = value.replace(/\D/g, '');
-    if (!cleanValue) return '';
-    return new Intl.NumberFormat('id-ID').format(parseInt(cleanValue));
-  };
-
-  const parseFormattedNumber = (value: string) => {
-    const cleanValue = value.replace(/\D/g, '');
-    return cleanValue ? parseInt(cleanValue, 10) : null;
-  };
-
-  useEffect(() => {
-    setMinPrice(formatNumber(searchParams.get('minPrice') || ''));
-    setMaxPrice(formatNumber(searchParams.get('maxPrice') || ''));
-  }, [searchParams]);
+  const [minPrice, setMinPrice] = useState(initialMinPrice);
+  const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -37,7 +42,8 @@ export function PriceRangeFilter() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsString);
+    params.delete('page');
     let minValue = parseFormattedNumber(minPrice);
     let maxValue = parseFormattedNumber(maxPrice);
 
@@ -99,5 +105,23 @@ export function PriceRangeFilter() {
         Terapkan Harga
       </button>
     </form>
+  );
+}
+
+export function PriceRangeFilter() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const initialMinPrice = formatNumber(searchParams.get('minPrice') || '');
+  const initialMaxPrice = formatNumber(searchParams.get('maxPrice') || '');
+
+  return (
+    <PriceRangeFilterForm
+      key={`${searchParamsString}|${initialMinPrice}|${initialMaxPrice}`}
+      pathname={pathname}
+      searchParamsString={searchParamsString}
+      initialMinPrice={initialMinPrice}
+      initialMaxPrice={initialMaxPrice}
+    />
   );
 }

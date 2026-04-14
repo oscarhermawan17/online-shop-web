@@ -1,20 +1,24 @@
 export interface ApiResponse<T = unknown> {
   success: boolean;
+  statusCode?: number;
   message: string;
   data?: T;
   error?: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface PaginatedResponse<T> {
   success: boolean;
+  statusCode?: number;
   message: string;
   data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: PaginationMeta;
 }
 
 export interface LoginPayload {

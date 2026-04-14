@@ -6,22 +6,32 @@ import {
   PromoCarousel,
 } from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
-import type { CarouselSlide, ProductListItem } from '@/types';
+import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts } from '@/lib/products';
+import type { CarouselSlide } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-async function getProducts(): Promise<ProductListItem[]> {
-  try {
-    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
-    const res = await fetch(`${baseUrl}/products`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
-    const data = await res.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
+interface HomePageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
+
+const getSingleQueryValue = (value?: string | string[]) => (
+  Array.isArray(value) ? value[0] : value
+);
+
+const parseOptionalNumberQuery = (value?: string) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : null;
+};
+
+const parsePageQuery = (value?: string) => {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : 1;
+};
 
 async function getCategories(): Promise<{ id: string; name: string; icon?: string | null }[]> {
   try {
@@ -59,9 +69,53 @@ function ProductGridSkeleton() {
   );
 }
 
-export default async function HomePage() {
-  const [products, categories, carouselSlides] = await Promise.all([
-    getProducts(),
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const q = getSingleQueryValue(resolvedSearchParams.q)?.trim() ?? '';
+  const category = getSingleQueryValue(resolvedSearchParams.category)?.trim() ?? undefined;
+  const minPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.minPrice));
+  const maxPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.maxPrice));
+  const page = parsePageQuery(getSingleQueryValue(resolvedSearchParams.page));
+
+  const [productsResponse, promoProductsResponse, categories, carouselSlides] = await Promise.all([
+    fetchPublicProducts({
+      q,
+      category,
+      minPrice,
+      maxPrice,
+      page,
+      limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+    }).catch((error) => {
+      console.error('Error fetching products:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch products',
+        data: [],
+        pagination: {
+          page: 1,
+          limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }),
+    fetchPublicProducts({
+      promoOnly: true,
+      limit: 5,
+    }).catch((error) => {
+      console.error('Error fetching promo products:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch promo products',
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 5,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }),
     getCategories(),
     getCarouselSlides(),
   ]);
@@ -83,30 +137,20 @@ export default async function HomePage() {
 
           {/* Promo Products Section */}
           <section>
-            <PromoProductsSection serverProducts={products} />
+            <PromoProductsSection serverProducts={promoProductsResponse.data} />
           </section>
 
           {/* All Products Grid */}
           <section id="products" className="flex flex-col gap-4">
             <h3 className="px-2 text-[#2d3432] font-bold text-lg uppercase tracking-tight">Katalog Produk</h3>
             <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductGridClient serverProducts={products} />
+              <ProductGridClient
+                serverProducts={productsResponse.data}
+                serverPagination={productsResponse.pagination}
+                paginationAnchorId="products"
+              />
             </Suspense>
           </section>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button className="p-2 rounded-lg text-[#64748b] hover:bg-[#f1f5f9] transition-colors leading-none">‹</button>
-            <button className="bg-[#166534] text-white font-bold w-10 h-10 rounded-lg flex items-center justify-center">1</button>
-            {[2, 3].map((n) => (
-              <button key={n} className="text-[#64748b] font-medium w-10 h-10 rounded-lg flex items-center justify-center hover:bg-[#f1f5f9] transition-colors">
-                {n}
-              </button>
-            ))}
-            <span className="text-[#94a3b8] w-10 h-10 flex items-center justify-center">...</span>
-            <button className="text-[#64748b] font-medium w-10 h-10 rounded-lg flex items-center justify-center hover:bg-[#f1f5f9] transition-colors">10</button>
-            <button className="p-2 rounded-lg text-[#64748b] hover:bg-[#f1f5f9] transition-colors leading-none">›</button>
-          </div>
         </div>
       </div>
     </div>

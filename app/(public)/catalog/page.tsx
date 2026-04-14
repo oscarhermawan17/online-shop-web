@@ -4,8 +4,8 @@ import {
   CategoryFilterSidebar,
   PriceRangeFilter,
 } from '@/components/public';
+import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts } from '@/lib/products';
 import { ProductGridClient } from '../product-grid-client';
-import type { ProductListItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,27 +16,6 @@ interface CatalogPageProps {
 const getSingleQueryValue = (value?: string | string[]) => (
   Array.isArray(value) ? value[0] : value
 );
-
-async function getProducts(query?: string): Promise<ProductListItem[]> {
-  try {
-    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
-    const params = new URLSearchParams();
-
-    if (query?.trim()) {
-      params.set('q', query.trim());
-    }
-
-    const queryString = params.toString();
-    const url = queryString ? `${baseUrl}/products?${queryString}` : `${baseUrl}/products`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
-    const data = await res.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
-}
 
 async function getCategories(): Promise<{ id: string; name: string; icon?: string | null }[]> {
   try {
@@ -61,10 +40,51 @@ function ProductGridSkeleton() {
   );
 }
 
+const parseOptionalNumberQuery = (value?: string) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : null;
+};
+
+const parsePageQuery = (value?: string) => {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : 1;
+};
+
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const searchQuery = getSingleQueryValue(resolvedSearchParams.q)?.trim() ?? '';
-  const [products, categories] = await Promise.all([getProducts(searchQuery), getCategories()]);
+  const selectedCategory = getSingleQueryValue(resolvedSearchParams.category)?.trim() ?? undefined;
+  const minPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.minPrice));
+  const maxPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.maxPrice));
+  const page = parsePageQuery(getSingleQueryValue(resolvedSearchParams.page));
+  const [productsResponse, categories] = await Promise.all([
+    fetchPublicProducts({
+      q: searchQuery,
+      category: selectedCategory,
+      minPrice,
+      maxPrice,
+      page,
+      limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+    }).catch((error) => {
+      console.error('Error fetching products:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch products',
+        data: [],
+        pagination: {
+          page: 1,
+          limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }),
+    getCategories(),
+  ]);
 
   return (
     <div className="bg-[#f8faf8]">
@@ -90,7 +110,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
               ) : null}
             </div>
             <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductGridClient serverProducts={products} />
+              <ProductGridClient
+                serverProducts={productsResponse.data}
+                serverPagination={productsResponse.pagination}
+              />
             </Suspense>
           </section>
         </div>

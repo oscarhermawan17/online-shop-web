@@ -101,12 +101,12 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Content */}
-        <div className="p-4 flex flex-col gap-2 z-1 flex-1">
-          <h3 className="text-[#2d3432] text-sm font-medium leading-5 line-clamp-2 min-h-[40px]">
-            {product.name}
-          </h3>
+        <div className="p-4 flex flex-col gap-3 z-1 flex-1">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-[#2d3432] text-sm font-medium leading-5 line-clamp-2 min-h-[40px]">
+              {product.name}
+            </h3>
 
-          <div className="flex flex-col gap-2 mt-auto">
             <div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <p className="text-[#006f1d] text-lg font-extrabold leading-7">{getPriceDisplay()}</p>
@@ -123,7 +123,9 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
               <p className="text-[#757c7a] text-[10px] leading-[15px]">/ {product.unit?.name || 'pcs'}</p>
             </div>
+          </div>
 
+          <div className="flex flex-col gap-2 mt-auto">
             <div className="flex items-center justify-between pb-1">
               <p className="text-[#59615f] text-[10px] font-medium">
                 Tersedia:{' '}

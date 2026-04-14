@@ -20,6 +20,7 @@ export function CategoryFilterSidebar({ categories }: CategoryFilterSidebarProps
 
   const buildHref = (categoryName?: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
 
     if (categoryName) {
       params.set('category', categoryName);

@@ -1,36 +1,23 @@
 import useSWR from 'swr';
-import { fetcher } from '@/lib/api';
-import type { ProductListItem, Product } from '@/types';
-
-const buildProductsUrl = (storeId?: string, query?: string) => {
-  const params = new URLSearchParams();
-
-  if (storeId) {
-    params.set('storeId', storeId);
-  }
-
-  if (query?.trim()) {
-    params.set('q', query.trim());
-  }
-
-  const queryString = params.toString();
-  return queryString ? `/products?${queryString}` : '/products';
-};
+import { fetcher, responseFetcher } from '@/lib/api';
+import { buildPublicProductsUrl, type PublicProductsParams } from '@/lib/products';
+import type { PaginatedResponse, ProductListItem, Product } from '@/types';
 
 // Hook for fetching all products (public)
-export function useProducts(storeId?: string, query?: string) {
-  const url = buildProductsUrl(storeId, query);
-  
-  const { data, error, isLoading, mutate } = useSWR<ProductListItem[]>(
+export function useProducts(params: PublicProductsParams = {}) {
+  const url = buildPublicProductsUrl(params);
+
+  const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<ProductListItem>>(
     url,
-    fetcher,
+    responseFetcher,
     {
       revalidateOnFocus: false,
     }
   );
 
   return {
-    products: data || [],
+    products: data?.data || [],
+    pagination: data?.pagination,
     isLoading,
     isError: !!error,
     error,

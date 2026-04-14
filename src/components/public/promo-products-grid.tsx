@@ -1,33 +1,43 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useProducts } from '@/hooks/use-products';
 import { useHasMounted } from '@/hooks/use-has-mounted';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
-import type { ProductListItem } from '@/types';
+import type { PaginationMeta, ProductListItem } from '@/types';
 import { ProductCard } from './product-card';
+import { CatalogPagination } from './catalog-pagination';
 
 interface PromoProductsGridProps {
   serverProducts: ProductListItem[];
+  serverPagination: PaginationMeta;
 }
 
-export function PromoProductsGrid({ serverProducts }: PromoProductsGridProps) {
+const parsePageParam = (value: string | null) => {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : 1;
+};
+
+export function PromoProductsGrid({ serverProducts, serverPagination }: PromoProductsGridProps) {
   const hasMounted = useHasMounted();
   const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
-  const { products: clientProducts } = useProducts();
-  const canUseClientProducts = hasMounted && isAuthenticated && clientProducts.length > 0;
+  const searchParams = useSearchParams();
+  const page = parsePageParam(searchParams.get('page'));
+  const { products: clientProducts, pagination: clientPagination } = useProducts({
+    promoOnly: true,
+    page,
+    limit: serverPagination.limit,
+  });
+  const canUseClientData = hasMounted && isAuthenticated && !!clientPagination;
 
-  const products = canUseClientProducts
+  const products = canUseClientData
     ? clientProducts
     : serverProducts;
-
-  const promoProducts = useMemo(
-    () =>
-      products.filter((product) => product.discount && (
-        product.discount.normalDiscountActive || product.discount.retailDiscountActive
-      )),
-    [products],
-  );
+  const pagination = canUseClientData
+    ? clientPagination
+    : serverPagination;
+  const promoProducts = useMemo(() => products, [products]);
 
   if (promoProducts.length === 0) {
     return (
@@ -38,10 +48,13 @@ export function PromoProductsGrid({ serverProducts }: PromoProductsGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-5">
-      {promoProducts.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-5">
+        {promoProducts.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+      <CatalogPagination pagination={pagination} />
     </div>
   );
 }

@@ -1,21 +1,21 @@
 import { Suspense } from 'react';
 import { ProductCardSkeleton, PromoProductsGrid } from '@/components/public';
-import type { ProductListItem } from '@/types';
+import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-async function getProducts(): Promise<ProductListItem[]> {
-  try {
-    const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
-    const res = await fetch(`${baseUrl}/products`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
-    const data = await res.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
+interface PromoPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
+
+const getSingleQueryValue = (value?: string | string[]) => (
+  Array.isArray(value) ? value[0] : value
+);
+
+const parsePageQuery = (value?: string) => {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : 1;
+};
 
 function ProductGridSkeleton() {
   return (
@@ -27,8 +27,27 @@ function ProductGridSkeleton() {
   );
 }
 
-export default async function PromoPage() {
-  const products = await getProducts();
+export default async function PromoPage({ searchParams }: PromoPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const page = parsePageQuery(getSingleQueryValue(resolvedSearchParams.page));
+  const productsResponse = await fetchPublicProducts({
+    promoOnly: true,
+    page,
+    limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+  }).catch((error) => {
+    console.error('Error fetching promo products:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch promo products',
+      data: [],
+      pagination: {
+        page: 1,
+        limit: DEFAULT_PRODUCT_PAGE_LIMIT,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  });
 
   return (
     <div className="bg-[#f8faf8]">
@@ -38,7 +57,10 @@ export default async function PromoPage() {
             Semua Produk Promo
           </h1>
           <Suspense fallback={<ProductGridSkeleton />}>
-            <PromoProductsGrid serverProducts={products} />
+            <PromoProductsGrid
+              serverProducts={productsResponse.data}
+              serverPagination={productsResponse.pagination}
+            />
           </Suspense>
         </section>
       </div>
