@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import api from '@/lib/api';
+import { responseFetcher } from '@/lib/api';
 import type { Category } from '@/types';
 
 interface CategoriesResponse {
@@ -9,10 +9,7 @@ interface CategoriesResponse {
 export function useAdminCategories() {
   const { data, error, isLoading, mutate } = useSWR<CategoriesResponse>(
     '/admin/categories',
-    async (url) => {
-      const res = await api.get(url);
-      return res.data;
-    }
+    responseFetcher
   );
 
   return {

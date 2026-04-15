@@ -42,7 +42,7 @@ export function PromoCarousel({ slides }: PromoCarouselProps) {
         className="flex transition-transform duration-500 ease-out h-full"
         style={{ transform: `translateX(-${safeCurrent * 100}%)` }}
       >
-        {slides.map((slide) => (
+        {slides.map((slide, index) => (
           <div
             key={slide.id}
             className="relative flex h-full w-full shrink-0 items-center overflow-hidden"
