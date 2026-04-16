@@ -1,19 +1,34 @@
 import useSWR from 'swr';
-import { fetcher } from '@/lib/api';
-import type { CustomerCreditListItem, CustomerListItem } from '@/types';
+import { fetcher, responseFetcher } from '@/lib/api';
+import type { CustomerCreditListItem, CustomerListItem, PaginatedResponse } from '@/types';
 
-export function useAdminCustomers() {
-  const { data, error, isLoading, mutate } = useSWR<CustomerListItem[]>(
-    '/admin/customers',
-    fetcher,
-    { revalidateOnFocus: false },
+export interface CustomerListParams {
+  page: number;
+  limit: number;
+  search: string;
+  status: '' | 'active' | 'inactive';
+}
+
+export function useAdminCustomers(params: CustomerListParams) {
+  const qs = new URLSearchParams({
+    page:  String(params.page),
+    limit: String(params.limit),
+    ...(params.search ? { search: params.search } : {}),
+    ...(params.status ? { status: params.status } : {}),
+  }).toString();
+
+  const { data, error, isLoading, isValidating, mutate } = useSWR<PaginatedResponse<CustomerListItem>>(
+    `/admin/customers?${qs}`,
+    responseFetcher,
+    { revalidateOnFocus: false, keepPreviousData: true },
   );
 
   return {
-    customers: data || [],
-    isLoading,
+    customers:    data?.data ?? [],
+    pagination:   data?.pagination ?? null,
+    isLoading,      // true only on the very first fetch (no data yet)
+    isValidating,   // true whenever a request is in-flight (filter/page change)
     isError: !!error,
-    error,
     mutate,
   };
 }
