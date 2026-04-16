@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUpload } from '@/components/admin/image-upload';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,7 @@ export function VariantForm({
     resolver: zodResolver(variantSchema),
     defaultValues: {
       name: '',
+      imageUrl: null,
       priceOverride: null,
       wholesalePriceOverride: null,
       stock: 0,
@@ -61,7 +64,13 @@ export function VariantForm({
 
   const openAddDialog = () => {
     setEditingVariant(null);
-    reset({ name: '', priceOverride: null, wholesalePriceOverride: null, stock: 0 });
+    reset({
+      name: '',
+      imageUrl: null,
+      priceOverride: null,
+      wholesalePriceOverride: null,
+      stock: 0,
+    });
     setIsOpen(true);
   };
 
@@ -69,6 +78,7 @@ export function VariantForm({
     setEditingVariant(variant);
     reset({
       name: variant.name ?? undefined,
+      imageUrl: variant.imageUrl ?? null,
       priceOverride: variant.priceOverride,
       wholesalePriceOverride: variant.wholesalePriceOverride,
       stock: variant.stock,
@@ -81,6 +91,7 @@ export function VariantForm({
     try {
       const payload = {
         name: data.name,
+        imageUrl: data.imageUrl ?? null,
         priceOverride: data.priceOverride || null,
         wholesalePriceOverride: data.wholesalePriceOverride || null,
         stock: data.stock,
@@ -163,6 +174,34 @@ export function VariantForm({
                   <p className="text-sm text-destructive">{errors.name.message}</p>
                 )}
               </div>
+
+              <Controller
+                name="imageUrl"
+                control={control}
+                render={({ field }) => (
+                  <div className="space-y-2">
+                    <Label>Gambar Varian</Label>
+                    <ImageUpload
+                      images={
+                        field.value
+                          ? [
+                              {
+                                imageUrl: field.value,
+                                altText: editingVariant?.name || 'Variant image',
+                                sortOrder: 0,
+                              },
+                            ]
+                          : []
+                      }
+                      maxImages={1}
+                      onImagesChange={(images) => field.onChange(images[0]?.imageUrl ?? null)}
+                    />
+                    {errors.imageUrl && (
+                      <p className="text-sm text-destructive">{errors.imageUrl.message}</p>
+                    )}
+                  </div>
+                )}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="priceOverride">
@@ -259,7 +298,17 @@ export function VariantForm({
                 key={variant.id}
                 className="flex items-center justify-between rounded-lg border p-3"
               >
-                <div>
+                <div className="flex items-center gap-3">
+                  {variant.imageUrl ? (
+                    <Image
+                      src={variant.imageUrl}
+                      alt={variant.name ?? 'Variant'}
+                      width={56}
+                      height={56}
+                      className="h-14 w-14 rounded-md object-cover border"
+                    />
+                  ) : null}
+                  <div>
                   <p className="font-medium">{variant.name ?? '—'}</p>
                   <p className="text-sm text-muted-foreground">
                     Normal: {variant.priceOverride
@@ -272,6 +321,7 @@ export function VariantForm({
                     {' • '}
                     Stok: {variant.stock}
                   </p>
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button

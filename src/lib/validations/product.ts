@@ -32,6 +32,7 @@ export type ProductFormData = z.infer<typeof productSchema>;
 
 export const createProductVariantSchema = z.object({
   name: z.string().max(100, 'Nama varian maksimal 100 karakter').optional(),
+  imageUrl: z.string().url('URL gambar varian tidak valid').nullable().optional(),
   basePrice: priceSchema,
   wholesalePrice: nullablePriceSchema,
   stock: stockSchema,
@@ -74,6 +75,11 @@ export const variantSchema = z.object({
     .string()
     .min(1, 'Nama variant harus diisi')
     .max(100, 'Nama variant maksimal 100 karakter'),
+  imageUrl: z
+    .string()
+    .url('URL gambar varian tidak valid')
+    .nullable()
+    .optional(),
   priceOverride: nullablePriceSchema,
   wholesalePriceOverride: nullablePriceSchema,
   stock: stockSchema,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ImageUpload } from '@/components/admin/image-upload';
 import { createProductSchema, type CreateProductFormData } from '@/lib/validations';
 import { useAdminCategories, useAdminUnits } from '@/hooks';
 
@@ -20,6 +21,7 @@ interface CreateProductFormProps {
 
 const emptyVariant = {
   name: '',
+  imageUrl: null as string | null,
   basePrice: 0,
   wholesalePrice: null as number | null,
   stock: 0,
@@ -36,6 +38,7 @@ export function CreateProductForm({
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductSchema),
@@ -49,6 +52,10 @@ export function CreateProductForm({
   });
 
   const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'variants',
+  });
+  const variants = useWatch({
     control,
     name: 'variants',
   });
@@ -228,6 +235,36 @@ export function CreateProductForm({
                     {variantErrors?.name && (
                       <p className="text-sm text-destructive">
                         {variantErrors.name.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Gambar Varian</Label>
+                    <ImageUpload
+                      images={
+                        variants?.[index]?.imageUrl
+                          ? [
+                              {
+                                imageUrl: variants[index].imageUrl!,
+                                altText: variants[index].name || `Varian ${index + 1}`,
+                                sortOrder: 0,
+                              },
+                            ]
+                          : []
+                      }
+                      maxImages={1}
+                      onImagesChange={(images) => {
+                        const imageUrl = images[0]?.imageUrl ?? null;
+                        setValue(`variants.${index}.imageUrl`, imageUrl, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                    {variantErrors?.imageUrl && (
+                      <p className="text-sm text-destructive">
+                        {variantErrors.imageUrl.message}
                       </p>
                     )}
                   </div>

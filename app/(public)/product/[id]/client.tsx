@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { VariantSelector, AddToCartButton } from '@/components/public';
+import { ProductGallery, VariantSelector, AddToCartButton } from '@/components/public';
 import { useHasMounted } from '@/hooks/use-has-mounted';
 import { formatRupiah } from '@/lib/utils';
 import { useProduct } from '@/hooks/use-products';
@@ -23,9 +23,13 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
   const product = clientProduct ?? serverProduct;
 
   const hasVariants = product.variants.length > 0;
+  const effectiveSelectedVariantId = hasVariants
+    ? product.variants.some((variant) => variant.id === selectedVariantId)
+      ? selectedVariantId
+      : product.variants[0]?.id ?? null
+    : null;
   const selectedVariant = hasVariants
-    ? product.variants.find((v) => v.id === selectedVariantId)
-      || (product.variants.length === 1 ? product.variants[0] : null)
+    ? product.variants.find((variant) => variant.id === effectiveSelectedVariantId) ?? null
     : null;
   const shouldShowVariantSelector = product.variants.length > 1;
 
@@ -34,36 +38,49 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
 
   return (
     <>
-      {/* Price */}
-      <div className="space-y-1">
-        <p className="text-3xl font-bold text-primary">
-          {formatRupiah(currentPrice)}
-          <span className="text-lg font-normal text-muted-foreground ml-2">
-            / {product.unit?.name || 'pcs'}
-          </span>
-        </p>
-        {selectedVariant?.price && selectedVariant.price !== product.basePrice && (
-          <p className="text-sm text-muted-foreground line-through">
-            {formatRupiah(product.basePrice)}
-          </p>
-        )}
-      </div>
-
-      {/* Variant Selector */}
-      {shouldShowVariantSelector && (
-        <VariantSelector
-          variants={product.variants}
-          basePrice={product.basePrice}
-          selectedVariantId={selectedVariantId}
-          onSelect={setSelectedVariantId}
-        />
-      )}
-
-      {/* Add to Cart */}
-      <AddToCartButton
-        product={product}
-        selectedVariant={selectedVariant}
+      <ProductGallery
+        images={product.images}
+        productName={product.name}
+        selectedImageUrl={selectedVariant?.imageUrl ?? null}
+        selectedImageAlt={selectedVariant?.name ?? product.name}
       />
+
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold md:text-3xl">{product.name}</h1>
+          {product.description && (
+            <p className="mt-4 text-muted-foreground">{product.description}</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-3xl font-bold text-primary">
+            {formatRupiah(currentPrice)}
+            <span className="ml-2 text-lg font-normal text-muted-foreground">
+              / {product.unit?.name || 'pcs'}
+            </span>
+          </p>
+          {selectedVariant?.price && selectedVariant.price !== product.basePrice && (
+            <p className="text-sm text-muted-foreground line-through">
+              {formatRupiah(product.basePrice)}
+            </p>
+          )}
+        </div>
+
+        {shouldShowVariantSelector && (
+          <VariantSelector
+            variants={product.variants}
+            basePrice={product.basePrice}
+            selectedVariantId={effectiveSelectedVariantId}
+            onSelect={setSelectedVariantId}
+          />
+        )}
+
+        <AddToCartButton
+          product={product}
+          selectedVariant={selectedVariant}
+        />
+      </div>
     </>
   );
 }
