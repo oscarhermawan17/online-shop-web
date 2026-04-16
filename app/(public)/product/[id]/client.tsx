@@ -31,10 +31,14 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
   const selectedVariant = hasVariants
     ? product.variants.find((variant) => variant.id === effectiveSelectedVariantId) ?? null
     : null;
-  const shouldShowVariantSelector = product.variants.length > 1;
+  // const shouldShowVariantSelector = product.variants.length > 1;
 
   // Use resolved price from public API (already accounts for variant override, wholesale, discount)
   const currentPrice = selectedVariant?.price ?? product.basePrice;
+  const originalPrice =
+    selectedVariant?.price && selectedVariant.price !== product.basePrice
+      ? formatRupiah(product.basePrice)
+      : null;
 
   return (
     <>
@@ -53,28 +57,27 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
           )}
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 min-h-18">
           <p className="text-3xl font-bold text-primary">
             {formatRupiah(currentPrice)}
             <span className="ml-2 text-lg font-normal text-muted-foreground">
               / {product.unit?.name || 'pcs'}
             </span>
           </p>
-          {selectedVariant?.price && selectedVariant.price !== product.basePrice && (
-            <p className="text-sm text-muted-foreground line-through">
-              {formatRupiah(product.basePrice)}
-            </p>
-          )}
+          <p
+            className={`text-sm leading-5 ${originalPrice ? 'text-muted-foreground line-through' : 'invisible'}`}
+            aria-hidden={!originalPrice}
+          >
+            {originalPrice ?? formatRupiah(product.basePrice)}
+          </p>
         </div>
 
-        {shouldShowVariantSelector && (
           <VariantSelector
             variants={product.variants}
             basePrice={product.basePrice}
             selectedVariantId={effectiveSelectedVariantId}
             onSelect={setSelectedVariantId}
           />
-        )}
 
         <AddToCartButton
           product={product}

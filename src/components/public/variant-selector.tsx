@@ -24,7 +24,7 @@ export function VariantSelector({
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium">Pilih Varian:</label>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mt-3">
         {variants.map((variant) => {
           const price = getEffectivePrice(basePrice, variant.priceOverride);
           const isSelected = selectedVariantId === variant.id;
