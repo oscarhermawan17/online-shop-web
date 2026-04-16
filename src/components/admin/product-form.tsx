@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
   const { categories, isLoading: isLoadingCategories } = useAdminCategories();
   const { units, isLoading: isLoadingUnits } = useAdminUnits();
   const hasRealVariants = product?.variants.some((v) => !v.isDefault) ?? false;
+  const isVariantManagedProduct = Boolean(product && hasRealVariants);
 
   const {
     register,
@@ -55,7 +57,13 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{product ? 'Edit Produk' : 'Tambah Produk Baru'}</CardTitle>
+        <CardTitle>
+          {product
+            ? isVariantManagedProduct
+              ? 'Informasi Produk'
+              : 'Edit Produk'
+            : 'Tambah Produk Baru'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -166,67 +174,80 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
             )}
           </div>
 
-          {/* Retail Price */}
-          <div className="space-y-2">
-            <Label htmlFor="basePrice">Harga Normal (Rp) *</Label>
-            <Input
-              id="basePrice"
-              type="number"
-              placeholder="0"
-              {...register('basePrice', { valueAsNumber: true })}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              Harga untuk semua customer (termasuk guest / tidak login)
-            </p>
-            {errors.basePrice && (
-              <p className="text-sm text-destructive">
-                {errors.basePrice.message}
-              </p>
-            )}
-          </div>
-
-          {/* Wholesale Price */}
-          <div className="space-y-2">
-            <Label htmlFor="wholesalePrice">Harga Retail (Rp)</Label>
-            <Input
-              id="wholesalePrice"
-              type="number"
-              placeholder="Kosongkan jika sama dengan harga normal"
-              {...register('wholesalePrice', {
-                setValueAs: (v: string) => {
-                  if (v === '' || v === undefined || v === null) return null;
-                  const n = Number(v);
-                  return isNaN(n) ? null : n;
-                },
-              })}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              Harga untuk customer ritel (login). Kosongkan jika sama dengan harga normal.
-            </p>
-            {errors.wholesalePrice && (
-              <p className="text-sm text-destructive">
-                {errors.wholesalePrice.message}
-              </p>
-            )}
-          </div>
-
-          {/* Stock — hidden when real variants exist */}
-          {!hasRealVariants && (
+          {isVariantManagedProduct ? (
             <div className="space-y-2">
-              <Label htmlFor="stock">Stok *</Label>
-              <Input
-                id="stock"
-                type="number"
-                placeholder="0"
-                {...register('stock', { valueAsNumber: true })}
-                disabled={isSubmitting}
-              />
-              {errors.stock && (
-                <p className="text-sm text-destructive">{errors.stock.message}</p>
-              )}
+              <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
+                Harga normal, harga retail, dan stok untuk produk ini dikelola per varian.
+                Gunakan panel <span className="font-medium text-foreground">Varian Produk</span>
+                {' '}untuk memperbarui harga dan stok.
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="basePrice">Harga Normal (Rp) *</Label>
+                <Controller
+                  name="basePrice"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      id="basePrice"
+                      placeholder="Rp 0"
+                      value={field.value}
+                      onValueChange={(value) => field.onChange(value ?? 0)}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Harga untuk semua customer (termasuk guest / tidak login)
+                </p>
+                {errors.basePrice && (
+                  <p className="text-sm text-destructive">
+                    {errors.basePrice.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="wholesalePrice">Harga Retail (Rp)</Label>
+                <Controller
+                  name="wholesalePrice"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      id="wholesalePrice"
+                      placeholder="Kosongkan jika sama dengan harga normal"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Harga untuk customer ritel (login). Kosongkan jika sama dengan harga normal.
+                </p>
+                {errors.wholesalePrice && (
+                  <p className="text-sm text-destructive">
+                    {errors.wholesalePrice.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stok *</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  placeholder="0"
+                  {...register('stock', { valueAsNumber: true })}
+                  disabled={isSubmitting}
+                />
+                {errors.stock && (
+                  <p className="text-sm text-destructive">{errors.stock.message}</p>
+                )}
+              </div>
+            </>
           )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -236,7 +257,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
                 Menyimpan...
               </>
             ) : product ? (
-              'Simpan Perubahan'
+              isVariantManagedProduct ? 'Simpan Informasi Produk' : 'Simpan Perubahan'
             ) : (
               'Tambah Produk'
             )}

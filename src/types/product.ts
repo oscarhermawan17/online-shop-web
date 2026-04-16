@@ -82,9 +82,15 @@ export interface CreateProductPayload {
   unitId?: string | null;
   name: string;
   description?: string;
-  basePrice: number;
-  wholesalePrice?: number;
-  stock: number;
+  basePrice?: number;
+  wholesalePrice?: number | null;
+  stock?: number;
+  variants?: Array<{
+    name?: string;
+    basePrice: number;
+    wholesalePrice?: number | null;
+    stock: number;
+  }>;
 }
 
 export interface UpdateProductPayload {

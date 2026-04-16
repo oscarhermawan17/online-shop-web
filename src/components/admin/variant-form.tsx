@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Edit2, Trash2, Loader2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -40,9 +41,11 @@ export function VariantForm({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const realVariants = variants.filter((v) => !v.isDefault);
+  const isVariantManagedProduct = realVariants.length > 0;
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -124,7 +127,16 @@ export function VariantForm({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Varian Produk</CardTitle>
+        <div className="space-y-1">
+          <CardTitle className="text-lg">
+            {isVariantManagedProduct ? 'Harga dan Stok per Varian' : 'Varian Produk'}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {isVariantManagedProduct
+              ? 'Kelola harga normal, harga retail, dan stok langsung di setiap varian.'
+              : 'Tambahkan varian jika produk ini memiliki pilihan seperti warna, ukuran, atau isi.'}
+          </p>
+        </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button size="sm" onClick={openAddDialog}>
@@ -156,14 +168,18 @@ export function VariantForm({
                 <Label htmlFor="priceOverride">
                   Harga Normal Varian (Kosongkan untuk pakai harga normal produk)
                 </Label>
-                <Input
-                  id="priceOverride"
-                  type="number"
-                  placeholder={`Harga normal: ${formatRupiah(basePrice)}`}
-                  {...register('priceOverride', {
-                    setValueAs: (v) => (v === '' ? null : Number(v)),
-                  })}
-                  disabled={isSubmitting}
+                <Controller
+                  name="priceOverride"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      id="priceOverride"
+                      placeholder={`Harga normal: ${formatRupiah(basePrice)}`}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    />
+                  )}
                 />
                 {errors.priceOverride && (
                   <p className="text-sm text-destructive">
@@ -176,14 +192,18 @@ export function VariantForm({
                 <Label htmlFor="wholesalePriceOverride">
                   Harga Retail Varian (Kosongkan untuk pakai harga retail produk)
                 </Label>
-                <Input
-                  id="wholesalePriceOverride"
-                  type="number"
-                  placeholder="Kosongkan jika sama dengan harga retail produk"
-                  {...register('wholesalePriceOverride', {
-                    setValueAs: (v) => (v === '' ? null : Number(v)),
-                  })}
-                  disabled={isSubmitting}
+                <Controller
+                  name="wholesalePriceOverride"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      id="wholesalePriceOverride"
+                      placeholder="Kosongkan jika sama dengan harga retail produk"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    />
+                  )}
                 />
                 {errors.wholesalePriceOverride && (
                   <p className="text-sm text-destructive">
@@ -230,8 +250,7 @@ export function VariantForm({
       <CardContent>
         {realVariants.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-4">
-            Belum ada varian. Tambahkan varian jika produk ini memiliki pilihan
-            seperti warna, ukuran, dll.
+            Belum ada varian. Produk ini masih memakai harga dan stok utama.
           </p>
         ) : (
           <div className="space-y-2">

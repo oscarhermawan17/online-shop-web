@@ -24,8 +24,10 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
 
   const hasVariants = product.variants.length > 0;
   const selectedVariant = hasVariants
-    ? product.variants.find((v) => v.id === selectedVariantId) || null
+    ? product.variants.find((v) => v.id === selectedVariantId)
+      || (product.variants.length === 1 ? product.variants[0] : null)
     : null;
+  const shouldShowVariantSelector = product.variants.length > 1;
 
   // Use resolved price from public API (already accounts for variant override, wholesale, discount)
   const currentPrice = selectedVariant?.price ?? product.basePrice;
@@ -48,7 +50,7 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
       </div>
 
       {/* Variant Selector */}
-      {hasVariants && (
+      {shouldShowVariantSelector && (
         <VariantSelector
           variants={product.variants}
           basePrice={product.basePrice}

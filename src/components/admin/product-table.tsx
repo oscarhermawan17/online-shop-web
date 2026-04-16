@@ -77,8 +77,10 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
               ? getThumbnailUrl(product.images[0].imageUrl, 80)
               : getPlaceholderImage(80, 80);
 
-            const totalStock = product.variants.length > 0
-              ? product.variants.reduce((sum, v) => sum + v.stock, 0)
+            const realVariants = product.variants.filter((variant) => !variant.isDefault);
+            const sellableVariants = realVariants.length > 0 ? realVariants : product.variants;
+            const totalStock = sellableVariants.length > 0
+              ? sellableVariants.reduce((sum, variant) => sum + variant.stock, 0)
               : product.stock;
 
             return (
@@ -156,9 +158,9 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                   }
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  {product.variants.length > 0 ? (
+                  {sellableVariants.length > 0 ? (
                     <Badge variant="secondary">
-                      {product.variants.length} varian
+                      {sellableVariants.length} varian
                     </Badge>
                   ) : (
                     <span className="text-muted-foreground">-</span>

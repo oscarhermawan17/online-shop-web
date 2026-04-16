@@ -26,6 +26,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const hasRealVariants = product?.variants.some((variant) => !variant.isDefault) ?? false;
 
   if (isLoading) {
     return <LoadingPage />;
@@ -121,7 +122,14 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Edit Produk</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Edit Produk</h1>
+            {hasRealVariants && (
+              <p className="text-sm text-muted-foreground">
+                Produk ini memakai model harga dan stok per varian.
+              </p>
+            )}
+          </div>
         </div>
         <Button
           variant="destructive"
