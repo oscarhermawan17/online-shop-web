@@ -5,7 +5,7 @@ import { Loader2, Save } from 'lucide-react';
 import { useAdminCredits } from '@/hooks';
 import { LoadingPage, ErrorMessage, EmptyState } from '@/components/shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -23,7 +23,7 @@ import type { CustomerCreditListItem } from '@/types';
 
 export default function AdminCreditPage() {
   const { credits, isLoading, isError, mutate } = useAdminCredits();
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useState<Record<string, number | null>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const totals = useMemo(() => {
@@ -37,34 +37,27 @@ export default function AdminCreditPage() {
     );
   }, [credits]);
 
-  const getDraftValue = (item: CustomerCreditListItem) => {
+  const getCreditLimitInputValue = (item: CustomerCreditListItem): number | null => {
     if (drafts[item.id] !== undefined) {
       return drafts[item.id];
     }
 
-    return item.creditLimit > 0 ? String(item.creditLimit) : '';
-  };
-
-  const handleDraftChange = (customerId: string, value: string) => {
-    const digits = value.replace(/\D/g, '');
-    setDrafts((prev) => ({
-      ...prev,
-      [customerId]: digits,
-    }));
+    return item.creditLimit > 0 ? item.creditLimit : null;
   };
 
   const handleSave = async (item: CustomerCreditListItem) => {
-    const rawValue = drafts[item.id] ?? String(item.creditLimit);
-    const creditLimit = rawValue === '' ? 0 : Number(rawValue);
+    const creditLimit =
+      drafts[item.id] !== undefined ? (drafts[item.id] ?? 0) : item.creditLimit;
 
     setSavingId(item.id);
     try {
       await api.put(`/admin/credit/${item.id}`, { creditLimit });
       toast.success(`Limit credit untuk ${item.name || item.phone} berhasil disimpan`);
-      setDrafts((prev) => ({
-        ...prev,
-        [item.id]: String(creditLimit),
-      }));
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
       mutate();
     } catch (error: unknown) {
       console.error('Save credit error:', error);
@@ -150,9 +143,11 @@ export default function AdminCreditPage() {
             </TableHeader>
             <TableBody>
               {credits.map((item) => {
-                const draftValue = getDraftValue(item);
+                const inputValue = getCreditLimitInputValue(item);
                 const isSaving = savingId === item.id;
-                const isChanged = Number(draftValue || 0) !== item.creditLimit;
+                const effectiveLimit =
+                  drafts[item.id] !== undefined ? (drafts[item.id] ?? 0) : item.creditLimit;
+                const isChanged = effectiveLimit !== item.creditLimit;
 
                 return (
                   <TableRow key={item.id}>
@@ -184,12 +179,18 @@ export default function AdminCreditPage() {
                     </TableCell>
                     <TableCell className="align-top">
                       <div className="flex gap-2">
-                        <Input
+                        <CurrencyInput
                           inputMode="numeric"
                           placeholder="0"
-                          value={draftValue}
-                          onChange={(e) => handleDraftChange(item.id, e.target.value)}
+                          value={inputValue}
+                          onValueChange={(value) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [item.id]: value,
+                            }))
+                          }
                           disabled={isSaving}
+                          className="min-w-[140px]"
                         />
                         <Button
                           type="button"

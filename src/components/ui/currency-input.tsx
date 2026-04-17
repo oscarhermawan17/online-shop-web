@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
+import { formatRupiah } from '@/lib/utils';
 
 interface CurrencyInputProps
   extends Omit<
@@ -12,14 +13,12 @@ interface CurrencyInputProps
   onValueChange?: (value: number | null) => void;
 }
 
-const numberFormatter = new Intl.NumberFormat('id-ID');
-
 function formatCurrencyValue(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return '';
   }
 
-  return `Rp ${numberFormatter.format(value)}`;
+  return formatRupiah(value);
 }
 
 function parseCurrencyValue(value: string) {

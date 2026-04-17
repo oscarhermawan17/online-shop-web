@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
 import { Loader2, Upload, Store, CreditCard, Truck, MapPin, Building, Banknote, QrCode, Info, Save, Images } from 'lucide-react';
 import { CarouselManager } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,20 +34,6 @@ const AddressMap = dynamic(
   }
 );
 
-const preventNegativeNumberKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (['-', '+', 'e', 'E'].includes(e.key)) {
-    e.preventDefault();
-  }
-};
-
-const sanitizeNonNegativeNumberInput = (e: React.FormEvent<HTMLInputElement>) => {
-  const target = e.currentTarget;
-
-  if (target.value.startsWith('-')) {
-    target.value = target.value.replace(/^-+/, '');
-  }
-};
-
 export default function AdminStorePage() {
   const { store, isLoading, isError, mutate } = useAdminStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +42,7 @@ export default function AdminStorePage() {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -434,19 +422,19 @@ export default function AdminStorePage() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="deliveryRetailMinimumOrder">Customer Retail</Label>
-                      <Input
-                        id="deliveryRetailMinimumOrder"
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        placeholder="Kosongkan jika tidak ada minimal"
-                        {...register('deliveryRetailMinimumOrder', {
-                          setValueAs: (v: string) => (v === '' ? null : Number(v)),
-                        })}
-                        onKeyDown={preventNegativeNumberKey}
-                        onInput={sanitizeNonNegativeNumberInput}
-                        disabled={isSubmitting}
+                      <Controller
+                        name="deliveryRetailMinimumOrder"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            id="deliveryRetailMinimumOrder"
+                            inputMode="numeric"
+                            placeholder="Kosongkan jika tidak ada minimal"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isSubmitting}
+                          />
+                        )}
                       />
                       <p className="text-xs text-muted-foreground">
                         Customer umum yang checkout tanpa login.
@@ -463,19 +451,19 @@ export default function AdminStorePage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="deliveryStoreMinimumOrder">Customer Toko</Label>
-                      <Input
-                        id="deliveryStoreMinimumOrder"
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        placeholder="Kosongkan jika tidak ada minimal"
-                        {...register('deliveryStoreMinimumOrder', {
-                          setValueAs: (v: string) => (v === '' ? null : Number(v)),
-                        })}
-                        onKeyDown={preventNegativeNumberKey}
-                        onInput={sanitizeNonNegativeNumberInput}
-                        disabled={isSubmitting}
+                      <Controller
+                        name="deliveryStoreMinimumOrder"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            id="deliveryStoreMinimumOrder"
+                            inputMode="numeric"
+                            placeholder="Kosongkan jika tidak ada minimal"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isSubmitting}
+                          />
+                        )}
                       />
                       <p className="text-xs text-muted-foreground">
                         Customer login / mitra toko.
@@ -506,19 +494,19 @@ export default function AdminStorePage() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="deliveryRetailFreeShippingMinimumOrder">Customer Retail</Label>
-                      <Input
-                        id="deliveryRetailFreeShippingMinimumOrder"
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        placeholder="Kosongkan jika tidak ada free ongkir"
-                        {...register('deliveryRetailFreeShippingMinimumOrder', {
-                          setValueAs: (v: string) => (v === '' ? null : Number(v)),
-                        })}
-                        onKeyDown={preventNegativeNumberKey}
-                        onInput={sanitizeNonNegativeNumberInput}
-                        disabled={isSubmitting}
+                      <Controller
+                        name="deliveryRetailFreeShippingMinimumOrder"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            id="deliveryRetailFreeShippingMinimumOrder"
+                            inputMode="numeric"
+                            placeholder="Kosongkan jika tidak ada free ongkir"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isSubmitting}
+                          />
+                        )}
                       />
                       <p className="text-xs text-muted-foreground">
                         Customer umum yang checkout tanpa login.
@@ -535,19 +523,19 @@ export default function AdminStorePage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="deliveryStoreFreeShippingMinimumOrder">Customer Toko</Label>
-                      <Input
-                        id="deliveryStoreFreeShippingMinimumOrder"
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        placeholder="Kosongkan jika tidak ada free ongkir"
-                        {...register('deliveryStoreFreeShippingMinimumOrder', {
-                          setValueAs: (v: string) => (v === '' ? null : Number(v)),
-                        })}
-                        onKeyDown={preventNegativeNumberKey}
-                        onInput={sanitizeNonNegativeNumberInput}
-                        disabled={isSubmitting}
+                      <Controller
+                        name="deliveryStoreFreeShippingMinimumOrder"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            id="deliveryStoreFreeShippingMinimumOrder"
+                            inputMode="numeric"
+                            placeholder="Kosongkan jika tidak ada free ongkir"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isSubmitting}
+                          />
+                        )}
                       />
                       <p className="text-xs text-muted-foreground">
                         Customer login / mitra toko.

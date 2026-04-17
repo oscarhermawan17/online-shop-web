@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -94,34 +94,6 @@ export default function ShippingZonesPage() {
     return false;
   }, [localCosts, zones]);
 
-  // String-based cost input to allow clearing the field
-  const [costInput, setCostInput] = useState('');
-  const prevDistrictRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (selectedDistrict && selectedDistrict !== prevDistrictRef.current) {
-      const cost = localCosts[selectedDistrict]?.cost ?? 0;
-      setCostInput(cost > 0 ? cost.toLocaleString('id-ID') : '');
-    }
-    prevDistrictRef.current = selectedDistrict;
-  }, [selectedDistrict, localCosts]);
-
-  const handleCostChange = useCallback(
-    (value: string) => {
-      if (!selectedDistrict) return;
-      const digits = value.replace(/\D/g, '');
-      if (digits === '') {
-        setCostInput('');
-        updateCost(selectedDistrict, 0);
-      } else {
-        const num = parseInt(digits, 10);
-        setCostInput(num.toLocaleString('id-ID'));
-        updateCost(selectedDistrict, num);
-      }
-    },
-    [selectedDistrict, updateCost],
-  );
-
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -202,19 +174,14 @@ export default function ShippingZonesPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Ongkos Kirim</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      Rp
-                    </span>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      className="pl-9"
-                      placeholder="0"
-                      value={costInput}
-                      onChange={(e) => handleCostChange(e.target.value)}
-                    />
-                  </div>
+                  <CurrencyInput
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={selected.cost > 0 ? selected.cost : null}
+                    onValueChange={(v) =>
+                      selectedDistrict && updateCost(selectedDistrict, v ?? 0)
+                    }
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>Aktif</Label>
