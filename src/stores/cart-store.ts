@@ -18,6 +18,7 @@ interface CartStore {
   
   // Actions
   setStoreId: (storeId: string) => void;
+  setItems: (items: CartItem[]) => void;
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   updateQuantity: (productId: string, variantId: string | null | undefined, quantity: number) => void;
   removeItem: (productId: string, variantId?: string | null) => void;
@@ -36,6 +37,7 @@ export const useCartStore = create<CartStore>()(
       storeId: null,
 
       setStoreId: (storeId) => set({ storeId }),
+      setItems: (items) => set({ items }),
 
       addItem: (item) => {
         const { items } = get();

@@ -42,8 +42,9 @@ export default function AddCustomerPage() {
         phone: `62${data.phone}`,
         email: data.email || undefined,
         password: data.password,
+        type: 'wholesale',
       });
-      toast.success('Pelanggan berhasil ditambahkan');
+      toast.success('User wholesale berhasil ditambahkan');
       router.push('/admin/customers');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -66,7 +67,7 @@ export default function AddCustomerPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Tambah Pelanggan Baru</h1>
           <p className="text-muted-foreground mt-0.5">
-            Lengkapi data pelanggan untuk mendaftarkan akun baru.
+            Lengkapi data pelanggan untuk mendaftarkan akun wholesale baru.
           </p>
         </div>
         <Link
@@ -88,6 +89,11 @@ export default function AddCustomerPage() {
               <div className="flex items-center gap-3">
                 <div className="h-7 w-1 bg-primary rounded-full" />
                 <h2 className="font-bold text-foreground tracking-tight">Informasi Pelanggan</h2>
+              </div>
+
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+                Akun yang dibuat dari halaman ini akan disimpan sebagai <span className="font-semibold text-foreground">user wholesale</span>.
+                User base mendaftar sendiri dari halaman login.
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -182,7 +188,7 @@ export default function AddCustomerPage() {
                   <p className="text-xs text-destructive">{errors.password.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Pelanggan akan menggunakan nomor HP dan password ini untuk login.
+                  User wholesale akan menggunakan nomor HP dan password ini untuk login.
                 </p>
               </div>
             </div>
@@ -201,7 +207,7 @@ export default function AddCustomerPage() {
                 className="px-8 py-2.5 rounded-lg bg-gradient-to-br from-primary to-[#006118] text-[#eaffe2] font-bold shadow-lg shadow-green-900/20 hover:shadow-green-900/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 <Save className="h-4 w-4" />
-                {isSubmitting ? 'Menyimpan...' : 'Simpan Pelanggan'}
+                {isSubmitting ? 'Menyimpan...' : 'Simpan User Wholesale'}
               </button>
             </div>
           </div>

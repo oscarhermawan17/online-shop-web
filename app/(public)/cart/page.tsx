@@ -6,15 +6,44 @@ import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CartItem, CartSummary } from '@/components/public';
 import { EmptyState } from '@/components/shared';
-import { useCartStore } from '@/stores';
+import { useCartStore, useCustomerAuthStore } from '@/stores';
+import { syncCartItemsWithServer } from '@/lib/cart';
+import { toast } from 'sonner';
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
   const items = useCartStore((state) => state.items);
+  const setItems = useCartStore((state) => state.setItems);
+  const customerToken = useCustomerAuthStore((state) => state.token);
+  const customerType = useCustomerAuthStore((state) => state.customer?.type);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || items.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const syncCart = async () => {
+      const result = await syncCartItemsWithServer(items);
+      if (isCancelled || !result.changed) {
+        return;
+      }
+
+      setItems(result.items);
+      toast.info('Keranjang diperbarui dengan harga dan stok terbaru.');
+    };
+
+    void syncCart();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mounted, customerToken, customerType, setItems]);
 
   if (!mounted) {
     return (

@@ -34,7 +34,7 @@ export default function AdminCustomersPage() {
         <Button asChild>
           <Link href="/admin/customers/add">
             <Plus className="mr-2 h-4 w-4" />
-            Tambah Pelanggan
+            Tambah User Wholesale
           </Link>
         </Button>
       </div>
@@ -43,8 +43,8 @@ export default function AdminCustomersPage() {
         <EmptyState
           type="default"
           title="Belum Ada Pelanggan"
-          description="Mulai dengan menambahkan pelanggan pertama Anda."
-          actionLabel="Tambah Pelanggan"
+          description="Mulai dengan menambahkan user wholesale pertama Anda atau tunggu user base mendaftar sendiri."
+          actionLabel="Tambah User Wholesale"
           actionHref="/admin/customers/add"
         />
       ) : (

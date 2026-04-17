@@ -38,6 +38,8 @@ export interface LoginResponse {
   };
 }
 
+export type CustomerType = 'base' | 'wholesale';
+
 export interface AdminUser {
   id: string;
   name: string;
@@ -52,6 +54,7 @@ export interface CustomerUser {
   name: string | null;
   phone: string;
   email: string | null;
+  type: CustomerType;
 }
 
 export interface CustomerListItem {
@@ -59,6 +62,7 @@ export interface CustomerListItem {
   name: string | null;
   phone: string;
   email: string | null;
+  type: CustomerType;
   isActive: boolean;
   createdAt: string;
 }
@@ -68,6 +72,7 @@ export interface CustomerCreditListItem {
   name: string | null;
   phone: string;
   email: string | null;
+  type: CustomerType;
   isActive: boolean;
   hasAccount: boolean;
   createdAt: string;

@@ -13,12 +13,14 @@ interface PromoProductsSectionProps {
 
 export function PromoProductsSection({ serverProducts }: PromoProductsSectionProps) {
   const hasMounted = useHasMounted();
-  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+  const customerToken = useCustomerAuthStore((s) => s.token);
+  const customerType = useCustomerAuthStore((s) => s.customer?.type);
+  const pricingKey = customerToken ? `customer:${customerType ?? 'unknown'}` : 'guest';
   const { products: clientProducts, pagination } = useProducts({
     promoOnly: true,
     limit: 5,
-  });
-  const canUseClientProducts = hasMounted && isAuthenticated && !!pagination;
+  }, pricingKey);
+  const canUseClientProducts = hasMounted && !!customerToken && !!pagination;
 
   const products = canUseClientProducts
     ? clientProducts

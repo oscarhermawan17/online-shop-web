@@ -15,11 +15,16 @@ interface ProductDetailClientProps {
 export function ProductDetailClient({ product: serverProduct }: ProductDetailClientProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const hasMounted = useHasMounted();
-  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
-  const shouldFetchCustomerProduct = hasMounted && isAuthenticated;
+  const customerToken = useCustomerAuthStore((s) => s.token);
+  const customerType = useCustomerAuthStore((s) => s.customer?.type);
+  const pricingKey = customerToken ? `customer:${customerType ?? 'unknown'}` : 'guest';
+  const shouldFetchCustomerProduct = hasMounted && !!customerToken;
 
-  // Re-fetch with customer auth to get wholesale prices when logged in
-  const { product: clientProduct } = useProduct(shouldFetchCustomerProduct ? serverProduct.id : null);
+  // Re-fetch with customer auth to get wholesale prices for wholesale users.
+  const { product: clientProduct } = useProduct(
+    shouldFetchCustomerProduct ? serverProduct.id : null,
+    pricingKey,
+  );
   const product = clientProduct ?? serverProduct;
 
   const hasVariants = product.variants.length > 0;
@@ -35,10 +40,13 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
 
   // Use resolved price from public API (already accounts for variant override, wholesale, discount)
   const currentPrice = selectedVariant?.price ?? product.basePrice;
-  const originalPrice =
-    selectedVariant?.price && selectedVariant.price !== product.basePrice
-      ? formatRupiah(product.basePrice)
-      : null;
+  const activeDiscountPercent = customerType === 'wholesale'
+    ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
+    : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
+
+  const originalPrice = activeDiscountPercent && activeDiscountPercent > 0 && activeDiscountPercent < 100
+    ? formatRupiah(Math.round((currentPrice * 100) / (100 - activeDiscountPercent)))
+    : null;
 
   return (
     <>

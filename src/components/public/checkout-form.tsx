@@ -57,6 +57,7 @@ export function CheckoutForm({
   const customer = useCustomerAuthStore((state) => state.customer);
   const token = useCustomerAuthStore((state) => state.token);
   const isLoggedIn = !!token && !!customer;
+  const isWholesaleCustomer = isLoggedIn && customer?.type === 'wholesale';
 
   // Fetch saved addresses for logged-in customers
   const { data: savedAddresses } = useSWR<CustomerAddress[]>(
@@ -64,7 +65,7 @@ export function CheckoutForm({
     fetcher,
   );
   const { data: creditSummary } = useSWR<CustomerCreditSummary>(
-    isLoggedIn ? '/customer/credit' : null,
+    isWholesaleCustomer ? '/customer/credit' : null,
     fetcher,
   );
 
@@ -132,10 +133,10 @@ export function CheckoutForm({
   }, [customer, deliveryMethod, paymentMethod, reset]);
 
   useEffect(() => {
-    if (!isLoggedIn && paymentMethod !== 'bank_transfer') {
+    if (!isWholesaleCustomer && paymentMethod !== 'bank_transfer') {
       setValue('paymentMethod', 'bank_transfer');
     }
-  }, [isLoggedIn, paymentMethod, setValue]);
+  }, [isWholesaleCustomer, paymentMethod, setValue]);
 
   // Notify parent when address changes (only in manual mode)
   useEffect(() => {
@@ -154,7 +155,7 @@ export function CheckoutForm({
   };
 
   const setPaymentMethod = (method: PaymentMethod) => {
-    if (!isLoggedIn && method === 'credit') {
+    if (!isWholesaleCustomer && method === 'credit') {
       return;
     }
 
@@ -215,7 +216,7 @@ export function CheckoutForm({
           {/* Payment Method */}
           <div className="space-y-3">
             <Label>Metode Pembayaran *</Label>
-            <div className={`grid gap-3 ${isLoggedIn ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-3 ${isWholesaleCustomer ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
               <button
                 type="button"
                 onClick={() => setPaymentMethod('bank_transfer')}
@@ -237,7 +238,7 @@ export function CheckoutForm({
                 </div>
               </button>
 
-              {isLoggedIn && (
+              {isWholesaleCustomer && (
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('credit')}
@@ -270,11 +271,15 @@ export function CheckoutForm({
 
             {!isLoggedIn ? (
               <p className="text-xs text-muted-foreground">
-                Login pelanggan untuk menggunakan pembayaran credit.
+                Login sebagai user wholesale untuk menggunakan pembayaran credit.
+              </p>
+            ) : !isWholesaleCustomer ? (
+              <p className="text-xs text-muted-foreground">
+                Pembayaran credit hanya tersedia untuk user wholesale yang diaktifkan admin.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Pelanggan login dapat memilih transfer bank atau memakai sisa limit credit.
+                User wholesale dapat memilih transfer bank atau memakai sisa limit credit.
               </p>
             )}
           </div>

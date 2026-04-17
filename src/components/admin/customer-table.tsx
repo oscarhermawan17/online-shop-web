@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Loader2, UserCheck, UserX } from 'lucide-react';
+import { MoreHorizontal, Loader2, UserCheck, UserX, RefreshCcw } from 'lucide-react';
 import { useState } from 'react';
 import {
   Table,
@@ -28,13 +28,13 @@ interface CustomerTableProps {
 }
 
 export function CustomerTable({ customers, onStatusChange }: CustomerTableProps) {
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
   const handleToggleStatus = async (customer: CustomerListItem) => {
     const action = customer.isActive ? 'Nonaktifkan' : 'Aktifkan';
     if (!confirm(`Yakin ingin ${action.toLowerCase()} pelanggan "${customer.name || customer.phone}"?`)) return;
 
-    setTogglingId(customer.id);
+    setLoadingActionId(customer.id);
     try {
       await api.patch(`/admin/customers/${customer.id}/toggle-status`);
       toast.success(`Pelanggan berhasil di${customer.isActive ? 'nonaktifkan' : 'aktifkan'}`);
@@ -43,7 +43,24 @@ export function CustomerTable({ customers, onStatusChange }: CustomerTableProps)
       console.error('Toggle status error:', error);
       toast.error('Gagal mengubah status pelanggan');
     } finally {
-      setTogglingId(null);
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleChangeType = async (customer: CustomerListItem) => {
+    const nextType = customer.type === 'wholesale' ? 'base' : 'wholesale';
+    if (!confirm(`Ubah kategori "${customer.name || customer.phone}" menjadi ${nextType}?`)) return;
+
+    setLoadingActionId(customer.id);
+    try {
+      await api.patch(`/admin/customers/${customer.id}/type`, { type: nextType });
+      toast.success(`Kategori pelanggan berhasil diubah menjadi ${nextType}`);
+      onStatusChange();
+    } catch (error: unknown) {
+      console.error('Change type error:', error);
+      toast.error('Gagal mengubah kategori pelanggan');
+    } finally {
+      setLoadingActionId(null);
     }
   };
 
@@ -63,6 +80,7 @@ export function CustomerTable({ customers, onStatusChange }: CustomerTableProps)
             <TableHead>Nama</TableHead>
             <TableHead>No. HP</TableHead>
             <TableHead className="hidden md:table-cell">Email</TableHead>
+            <TableHead>Kategori</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden md:table-cell">Tgl. Daftar</TableHead>
             <TableHead className="w-16">Aksi</TableHead>
@@ -81,6 +99,11 @@ export function CustomerTable({ customers, onStatusChange }: CustomerTableProps)
                 <p className="text-sm text-muted-foreground">{customer.email || '—'}</p>
               </TableCell>
               <TableCell>
+                <Badge variant={customer.type === 'wholesale' ? 'default' : 'outline'}>
+                  {customer.type === 'wholesale' ? 'Wholesale' : 'Base'}
+                </Badge>
+              </TableCell>
+              <TableCell>
                 <Badge variant={customer.isActive ? 'default' : 'secondary'}>
                   {customer.isActive ? 'Aktif' : 'Nonaktif'}
                 </Badge>
@@ -94,9 +117,9 @@ export function CustomerTable({ customers, onStatusChange }: CustomerTableProps)
                     <Button
                       variant="ghost"
                       size="icon"
-                      disabled={togglingId === customer.id}
+                      disabled={loadingActionId === customer.id}
                     >
-                      {togglingId === customer.id ? (
+                      {loadingActionId === customer.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <MoreHorizontal className="h-4 w-4" />
@@ -104,6 +127,10 @@ export function CustomerTable({ customers, onStatusChange }: CustomerTableProps)
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleChangeType(customer)}>
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Ubah ke {customer.type === 'wholesale' ? 'Base' : 'Wholesale'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleToggleStatus(customer)}
                       className={customer.isActive ? 'text-destructive focus:text-destructive' : ''}

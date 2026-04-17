@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -68,7 +69,7 @@ export default function CustomerLoginPage() {
               <Label htmlFor="identifier">Email atau Nomor HP</Label>
               <Input
                 id="identifier"
-                placeholder="email@example.com atau 08xx"
+                placeholder="email@example.com atau 628xx"
                 {...register('identifier')}
                 disabled={isLoading}
               />
@@ -105,6 +106,13 @@ export default function CustomerLoginPage() {
                 'Masuk'
               )}
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Belum punya akun?{' '}
+              <Link href="/register" className="font-medium text-primary hover:underline">
+                Daftar
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>
