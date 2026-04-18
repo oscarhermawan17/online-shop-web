@@ -20,12 +20,14 @@ interface ImageUploadProps {
   images: ImageItem[];
   onImagesChange: (images: ImageItem[]) => void;
   maxImages?: number;
+  disabled?: boolean;
 }
 
 export function ImageUpload({
   images,
   onImagesChange,
   maxImages = 10,
+  disabled = false,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,8 @@ export function ImageUpload({
   };
 
   const handleRemoveImage = (index: number) => {
+    if (disabled) return;
+
     const newImages = images.filter((_, i) => i !== index);
     // Update sort orders
     const reorderedImages = newImages.map((img, i) => ({
@@ -79,6 +83,8 @@ export function ImageUpload({
   };
 
   const handleMoveImage = (index: number, direction: 'up' | 'down') => {
+    if (disabled) return;
+
     const newImages = [...images];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
 
@@ -118,7 +124,7 @@ export function ImageUpload({
                 size="icon"
                 className="h-8 w-8 text-white hover:text-white"
                 onClick={() => handleMoveImage(index, 'up')}
-                disabled={index === 0}
+                disabled={disabled || index === 0}
               >
                 <GripVertical className="h-4 w-4 rotate-90" />
               </Button>
@@ -127,6 +133,7 @@ export function ImageUpload({
                 size="icon"
                 className="h-8 w-8 text-white hover:text-red-400"
                 onClick={() => handleRemoveImage(index)}
+                disabled={disabled}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -144,7 +151,7 @@ export function ImageUpload({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || disabled}
             className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors hover:border-primary hover:bg-muted/50"
           >
             {isUploading ? (
@@ -168,7 +175,7 @@ export function ImageUpload({
         multiple
         onChange={handleFileSelect}
         className="hidden"
-        disabled={isUploading}
+        disabled={isUploading || disabled}
       />
 
       <p className="text-xs text-muted-foreground">

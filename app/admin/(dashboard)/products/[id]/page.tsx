@@ -26,6 +26,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const [isSyncingImages, setIsSyncingImages] = useState(false);
   const hasRealVariants = product?.variants.some((variant) => !variant.isDefault) ?? false;
 
   if (isLoading) {
@@ -92,24 +93,70 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     }
   };
 
-  const handleImagesChange = async (images: { imageUrl: string; altText?: string; sortOrder: number; isNew?: boolean }[]) => {
-    // For simplicity, we'll handle new images by adding them via API
-    // In a real app, you'd want more sophisticated handling
-    const newImages = images.filter((img) => img.isNew);
+  const handleImagesChange = async (
+    images: { id?: string; imageUrl: string; altText?: string; sortOrder: number; isNew?: boolean }[]
+  ) => {
+    if (isSyncingImages) return;
 
-    for (const img of newImages) {
-      try {
-        await api.post(`/admin/products/${id}/images`, {
-          imageUrl: img.imageUrl,
-          altText: img.altText,
-          sortOrder: img.sortOrder,
-        });
-      } catch (error) {
-        console.error('Add image error:', error);
+    setIsSyncingImages(true);
+
+    try {
+      const existingImages = product.images;
+      const existingIds = existingImages.map((img) => img.id);
+      const nextExistingIds = images
+        .map((img) => img.id)
+        .filter((imgId): imgId is string => Boolean(imgId));
+
+      const sameExistingSet =
+        existingIds.length === nextExistingIds.length &&
+        existingIds.every((imgId) => nextExistingIds.includes(imgId));
+      const isReordered =
+        sameExistingSet && existingIds.some((imgId, index) => nextExistingIds[index] !== imgId);
+
+      // Backend belum punya endpoint update order, jadi reorder disimpan dengan recreate.
+      if (isReordered) {
+        for (const existingImage of existingImages) {
+          await api.delete(`/admin/products/${id}/images/${existingImage.id}`);
+        }
+
+        for (const image of images) {
+          await api.post(`/admin/products/${id}/images`, {
+            imageUrl: image.imageUrl,
+          });
+        }
+
+        toast.success('Urutan gambar berhasil diperbarui');
+        await mutate();
+        return;
       }
-    }
 
-    mutate();
+      const nextExistingIdSet = new Set(nextExistingIds);
+      const removedImages = existingImages.filter((img) => !nextExistingIdSet.has(img.id));
+      const newImages = images.filter((img) => !img.id || img.isNew);
+
+      for (const removedImage of removedImages) {
+        await api.delete(`/admin/products/${id}/images/${removedImage.id}`);
+      }
+
+      for (const newImage of newImages) {
+        await api.post(`/admin/products/${id}/images`, {
+          imageUrl: newImage.imageUrl,
+        });
+      }
+
+      if (removedImages.length > 0 || newImages.length > 0) {
+        toast.success('Gambar produk berhasil diperbarui');
+      }
+
+      await mutate();
+    } catch (error: unknown) {
+      console.error('Sync images error:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal memperbarui gambar produk');
+      await mutate();
+    } finally {
+      setIsSyncingImages(false);
+    }
   };
 
   return (
@@ -202,6 +249,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   sortOrder: img.sortOrder,
                 }))}
                 onImagesChange={handleImagesChange}
+                disabled={isSyncingImages}
               />
             </CardContent>
           </Card>
