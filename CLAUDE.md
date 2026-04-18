@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Deployment
+
+- **Prod**: `ghcr.io/oscarhermawan17/online-shop-web:latest` — `tokotimika.my.id`
+- **Stg**: `ghcr.io/oscarhermawan17/online-shop-web:staging` — `stg.tokotimika.my.id`
+- CI/CD: push to `main` → `:latest`, push to `stg` → `:staging`, auto-deploys to VPS
+- `NEXT_PUBLIC_API_URL=/api` (relative) — works for both prod and stg domains via nginx
+- `API_URL=http://api:4000/api` hardcoded in Dockerfile (server-side SSR, prod only)
+- Cloudinary: browser uploads directly — `NEXT_PUBLIC_CLOUDINARY_*` baked in at build time
+- **Planned**: replace Cloudinary with MinIO for stg when local stack is ready
+
+---
+
 ## Commands
 
 ```bash
