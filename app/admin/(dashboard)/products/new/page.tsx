@@ -8,18 +8,32 @@ import { Button } from '@/components/ui/button';
 import { CreateProductForm } from '@/components/admin';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import type { CreateProductFormData } from '@/lib/validations';
+import type { CreateProductFormSubmitData } from '@/components/admin/create-product-form';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: CreateProductFormData) => {
+  const handleSubmit = async (data: CreateProductFormSubmitData) => {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post<{ data: { id: string } }>('/admin/products', data);
+      const { productImages, ...payload } = data;
+      const response = await api.post<{ data: { id: string } }>('/admin/products', payload);
       const productId = response.data.data.id;
+
+      if (productImages.length > 0) {
+        try {
+          for (const image of productImages) {
+            await api.post(`/admin/products/${productId}/images`, {
+              imageUrl: image.imageUrl,
+            });
+          }
+        } catch (imageError: unknown) {
+          console.error('Create product images error:', imageError);
+          toast.error('Produk dibuat, tetapi sebagian gambar gagal ditambahkan');
+        }
+      }
 
       toast.success('Produk berhasil ditambahkan');
       router.push(`/admin/products/${productId}`);
