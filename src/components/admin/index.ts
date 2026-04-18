@@ -3,6 +3,7 @@ export { AdminBottomNav } from './bottom-nav';
 export { CarouselManager } from './carousel-manager';
 export { StatsCard } from './stats-card';
 export { ImageUpload } from './image-upload';
+export { CreateProductForm } from './create-product-form';
 export { ProductForm } from './product-form';
 export { VariantForm } from './variant-form';
 export { ProductTable } from './product-table';

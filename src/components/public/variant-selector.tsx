@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { cn, formatRupiah, getEffectivePrice } from '@/lib/utils';
 import type { ProductVariant } from '@/types';
 
@@ -23,7 +24,7 @@ export function VariantSelector({
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium">Pilih Varian:</label>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mt-3">
         {variants.map((variant) => {
           const price = getEffectivePrice(basePrice, variant.priceOverride);
           const isSelected = selectedVariantId === variant.id;
@@ -35,21 +36,36 @@ export function VariantSelector({
               onClick={() => onSelect(isSelected ? null : variant.id)}
               disabled={isOutOfStock}
               className={cn(
-                'rounded-lg border-2 px-4 py-2 text-sm transition-all',
+                'flex min-w-28 flex-col items-center gap-2 rounded-lg border-2 px-3 py-3 text-sm transition-all',
                 isSelected
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border hover:border-primary/50',
                 isOutOfStock && 'cursor-not-allowed opacity-50 line-through'
               )}
             >
-              <span className="font-medium">{variant.name}</span>
+              <div className="relative h-14 w-14 overflow-hidden rounded-md bg-muted">
+                {variant.imageUrl ? (
+                  <Image
+                    src={variant.imageUrl}
+                    alt={variant.name || 'Variant'}
+                    fill
+                    className="object-cover"
+                    sizes="56px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                    No Image
+                  </div>
+                )}
+              </div>
+              <span className="font-medium">{variant.name || 'Varian'}</span>
               {variant.priceOverride && variant.priceOverride !== basePrice && (
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({formatRupiah(price)})
+                <span className="text-xs text-muted-foreground">
+                  {formatRupiah(price)}
                 </span>
               )}
               {isOutOfStock && (
-                <span className="ml-1 text-xs text-destructive">(Habis)</span>
+                <span className="text-xs text-destructive">Habis</span>
               )}
             </button>
           );

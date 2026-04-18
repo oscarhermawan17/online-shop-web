@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared';
 import { useCartStore, useCustomerAuthStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { syncCartItemsWithServer } from '@/lib/cart';
 import { fetchShippingZones, type ShippingArea } from '@/lib/shipping';
 import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
@@ -38,6 +39,7 @@ export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const storeId = useCartStore((state) => state.storeId);
   const clearCart = useCartStore((state) => state.clearCart);
+  const setItems = useCartStore((state) => state.setItems);
   const subtotal = useCartStore((state) => state.getTotalPrice());
   const customer = useCustomerAuthStore((state) => state.customer);
   const customerToken = useCustomerAuthStore((state) => state.token);
@@ -45,6 +47,30 @@ export default function CheckoutPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || items.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const syncCart = async () => {
+      const result = await syncCartItemsWithServer(items);
+      if (isCancelled || !result.changed) {
+        return;
+      }
+
+      setItems(result.items);
+      toast.info('Checkout diperbarui dengan harga dan stok terbaru.');
+    };
+
+    void syncCart();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mounted, customerToken, customer?.type, setItems]);
 
   // Fetch store info and shipping zones
   useEffect(() => {
@@ -77,13 +103,13 @@ export default function CheckoutPage() {
     return null;
   }, [deliveryMethod, detectedDistrict, shippingZones]);
 
-  const isStoreCustomer = !!customerToken && !!customer;
+  const isWholesaleCustomer = !!customerToken && customer?.type === 'wholesale';
 
-  const minimumOrder = isStoreCustomer
+  const minimumOrder = isWholesaleCustomer
     ? (store?.deliveryStoreMinimumOrder ?? null)
     : (store?.deliveryRetailMinimumOrder ?? null);
 
-  const freeShippingMinimumOrder = isStoreCustomer
+  const freeShippingMinimumOrder = isWholesaleCustomer
     ? (store?.deliveryStoreFreeShippingMinimumOrder ?? null)
     : (store?.deliveryRetailFreeShippingMinimumOrder ?? null);
 
@@ -132,13 +158,35 @@ export default function CheckoutPage() {
       return;
     }
 
+    const syncedCart = await syncCartItemsWithServer(items);
+
+    if (syncedCart.changed) {
+      setItems(syncedCart.items);
+      toast.info('Harga atau stok berubah. Periksa ulang keranjang lalu checkout lagi.');
+      return;
+    }
+
+    if (syncedCart.items.length === 0) {
+      setItems([]);
+      toast.error('Semua item di keranjang sudah tidak tersedia.');
+      return;
+    }
+
+    const syncedSubtotal = syncedCart.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const syncedIsFreeShippingApplied = data.deliveryMethod === 'delivery'
+      && freeShippingMinimumOrder !== null
+      && syncedSubtotal >= freeShippingMinimumOrder;
+    const syncedShippingCost = data.deliveryMethod === 'pickup'
+      ? 0
+      : (syncedIsFreeShippingApplied ? 0 : (effectiveShippingCost ?? 0));
+
     if (
       data.deliveryMethod === 'delivery'
       && minimumOrder !== null
-      && subtotal < minimumOrder
+      && syncedSubtotal < minimumOrder
     ) {
       toast.error(
-        `Minimal belanja untuk pengiriman ${isStoreCustomer ? 'toko' : 'retail'} adalah ${formatRupiah(minimumOrder)}`
+        `Minimal belanja untuk pengiriman ${isWholesaleCustomer ? 'wholesale' : 'base'} adalah ${formatRupiah(minimumOrder)}`
       );
       return;
     }
@@ -155,8 +203,8 @@ export default function CheckoutPage() {
         deliveryMethod: data.deliveryMethod as DeliveryMethod,
         paymentMethod: data.paymentMethod,
         notes: data.notes || undefined,
-        shippingCost: isPickup ? 0 : (effectiveShippingCost ?? 0),
-        items: items.map((item) => ({
+        shippingCost: syncedShippingCost,
+        items: syncedCart.items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || undefined,
           quantity: item.quantity,
@@ -217,7 +265,7 @@ export default function CheckoutPage() {
             minimumOrder={minimumOrder}
             freeShippingMinimumOrder={freeShippingMinimumOrder}
             subtotal={subtotal}
-            isStoreCustomer={isStoreCustomer}
+            isWholesaleCustomer={isWholesaleCustomer}
             isFreeShippingApplied={isFreeShippingApplied}
           />
         </div>

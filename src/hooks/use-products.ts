@@ -4,11 +4,11 @@ import { buildPublicProductsUrl, type PublicProductsParams } from '@/lib/product
 import type { PaginatedResponse, ProductListItem, Product } from '@/types';
 
 // Hook for fetching all products (public)
-export function useProducts(params: PublicProductsParams = {}) {
+export function useProducts(params: PublicProductsParams = {}, pricingKey: string = 'guest') {
   const url = buildPublicProductsUrl(params);
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<ProductListItem>>(
-    url,
+    [url, pricingKey],
     responseFetcher,
     {
       revalidateOnFocus: false,
@@ -26,9 +26,9 @@ export function useProducts(params: PublicProductsParams = {}) {
 }
 
 // Hook for fetching single product (public)
-export function useProduct(productId: string | null) {
+export function useProduct(productId: string | null, pricingKey: string = 'guest') {
   const { data, error, isLoading, mutate } = useSWR<Product>(
-    productId ? `/products/${productId}` : null,
+    productId ? [`/products/${productId}`, pricingKey] as const : null,
     fetcher,
     {
       revalidateOnFocus: false,

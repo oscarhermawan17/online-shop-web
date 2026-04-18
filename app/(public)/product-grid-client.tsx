@@ -34,7 +34,9 @@ export function ProductGridClient({
   paginationAnchorId,
 }: ProductGridClientProps) {
   const hasMounted = useHasMounted();
-  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+  const customerToken = useCustomerAuthStore((s) => s.token);
+  const customerType = useCustomerAuthStore((s) => s.customer?.type);
+  const pricingKey = customerToken ? `customer:${customerType ?? 'unknown'}` : 'guest';
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q')?.trim() ?? '';
   const selectedCategory = searchParams.get('category')?.trim() ?? undefined;
@@ -42,7 +44,7 @@ export function ProductGridClient({
   const maxPrice = parseOptionalNumberParam(searchParams.get('maxPrice'));
   const page = parsePageParam(searchParams.get('page'));
 
-  // Logged-in customers re-fetch the same page to get wholesale-aware pricing and totals.
+  // Logged-in customers re-fetch so pricing follows the latest customer type from the backend.
   const { products: clientProducts, pagination: clientPagination } = useProducts({
     q: searchQuery,
     category: selectedCategory,
@@ -50,8 +52,8 @@ export function ProductGridClient({
     maxPrice,
     page,
     limit: serverPagination.limit,
-  });
-  const canUseClientData = hasMounted && isAuthenticated && !!clientPagination;
+  }, pricingKey);
+  const canUseClientData = hasMounted && !!customerToken && !!clientPagination;
   const products = canUseClientData
     ? clientProducts
     : serverProducts;

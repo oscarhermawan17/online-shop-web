@@ -13,7 +13,7 @@ export default function AdminCustomersPage() {
   const [limit, setLimit] = useState(25)
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
-  const [status, setStatus] = useState<"" | "active" | "inactive">("")
+  const [status, setStatus] = useState<"all" | "active" | "inactive">("all")
 
   // Debounce search: reset to page 1 when search changes
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function AdminCustomersPage() {
   }, [searchInput])
 
   // Reset to page 1 when status or limit changes
-  const handleStatusChange = (value: "" | "active" | "inactive") => {
+  const handleStatusChangeFilter = (value: "all" | "active" | "inactive") => {
     setStatus(value)
     setPage(1)
   }
@@ -70,7 +70,7 @@ export default function AdminCustomersPage() {
         <Button asChild>
           <Link href="/admin/customers/add">
             <Plus className="mr-2 h-4 w-4" />
-            Tambah Pelanggan
+            Tambah User Wholesale
           </Link>
         </Button>
       </div>
@@ -79,8 +79,8 @@ export default function AdminCustomersPage() {
         <EmptyState
           type="default"
           title="Belum Ada Pelanggan"
-          description="Mulai dengan menambahkan pelanggan pertama Anda."
-          actionLabel="Tambah Pelanggan"
+          description="Mulai dengan menambahkan user wholesale pertama Anda atau tunggu user base mendaftar sendiri."
+          actionLabel="Tambah User Wholesale"
           actionHref="/admin/customers/add"
         />
       ) : (
@@ -91,7 +91,8 @@ export default function AdminCustomersPage() {
           searchInput={searchInput}
           onSearchChange={setSearchInput}
           status={status}
-          onStatusChange={handleStatusChange}
+          onStatusChange={() => mutate()}
+          onStatusChangeFilter={handleStatusChangeFilter}
           limit={limit}
           onLimitChange={handleLimitChange}
           page={page}

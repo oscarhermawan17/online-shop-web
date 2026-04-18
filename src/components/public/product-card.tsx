@@ -16,14 +16,14 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const hasVariants = product.variants && product.variants.length > 0;
   const hasMounted = useHasMounted();
-  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+  const customerType = useCustomerAuthStore((s) => s.customer?.type);
   const primaryImage = product.images?.[0]?.imageUrl;
   const imageUrl = primaryImage
     ? getThumbnailUrl(primaryImage, 400)
     : getPlaceholderImage(400, 400);
-  const canUseCustomerPricing = hasMounted && isAuthenticated;
+  const canUseWholesalePricing = hasMounted && customerType === 'wholesale';
 
-  const activeDiscountPercent = canUseCustomerPricing
+  const activeDiscountPercent = canUseWholesalePricing
     ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
     : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
 

@@ -21,15 +21,17 @@ const parsePageParam = (value: string | null) => {
 
 export function PromoProductsGrid({ serverProducts, serverPagination }: PromoProductsGridProps) {
   const hasMounted = useHasMounted();
-  const isAuthenticated = useCustomerAuthStore((s) => s.isAuthenticated());
+  const customerToken = useCustomerAuthStore((s) => s.token);
+  const customerType = useCustomerAuthStore((s) => s.customer?.type);
+  const pricingKey = customerToken ? `customer:${customerType ?? 'unknown'}` : 'guest';
   const searchParams = useSearchParams();
   const page = parsePageParam(searchParams.get('page'));
   const { products: clientProducts, pagination: clientPagination } = useProducts({
     promoOnly: true,
     page,
     limit: serverPagination.limit,
-  });
-  const canUseClientData = hasMounted && isAuthenticated && !!clientPagination;
+  }, pricingKey);
+  const canUseClientData = hasMounted && !!customerToken && !!clientPagination;
 
   const products = canUseClientData
     ? clientProducts

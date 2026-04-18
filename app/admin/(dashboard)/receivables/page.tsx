@@ -24,12 +24,12 @@ import {
 
 const today = new Date().toISOString().slice(0, 10);
 
-const formatCurrencyInput = (value: string) => {
-  if (!value) {
+const formatPaymentAmountInput = (digits: string) => {
+  if (!digits) {
     return '';
   }
 
-  return new Intl.NumberFormat('id-ID').format(Number(value));
+  return formatRupiah(Number(digits));
 };
 
 export default function AdminReceivablesPage() {
@@ -280,7 +280,7 @@ export default function AdminReceivablesPage() {
                                   <Input
                                     inputMode="numeric"
                                     placeholder="0"
-                                    value={formatCurrencyInput(draft.amount)}
+                                    value={formatPaymentAmountInput(draft.amount)}
                                     onChange={(e) => updateDraft(invoice.id, {
                                       amount: e.target.value.replace(/\D/g, ''),
                                     })}

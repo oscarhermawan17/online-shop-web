@@ -50,8 +50,10 @@ export function Header({ storeName }: HeaderProps) {
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const items = useCartStore((state) => state.items);
+  const customerToken = useCustomerAuthStore((state) => state.token);
   const isCustomerLoggedIn = useCustomerAuthStore((state) => state.isAuthenticated);
   const customerName = useCustomerAuthStore((state) => state.customer?.name);
+  const setAuth = useCustomerAuthStore((state) => state.setAuth);
   const logout = useCustomerAuthStore((state) => state.logout);
   const activeQuery = searchParams.get('q') ?? '';
 
@@ -122,6 +124,48 @@ export function Header({ storeName }: HeaderProps) {
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!customerToken) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const syncCurrentCustomer = async () => {
+      try {
+        const response = await api.get<{ data: { customer: Parameters<typeof setAuth>[1] } }>('/customer-auth/me');
+
+        if (!isCancelled) {
+          setAuth(customerToken, response.data.data.customer);
+        }
+      } catch (error) {
+        const axiosError = error as AxiosError;
+
+        if (!isCancelled && axiosError.response?.status === 401) {
+          logout();
+        }
+      }
+    };
+
+    void syncCurrentCustomer();
+
+    const intervalId = window.setInterval(() => {
+      void syncCurrentCustomer();
+    }, 15000);
+
+    const handleFocus = () => {
+      void syncCurrentCustomer();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [customerToken, logout, setAuth]);
 
   const totalItems = mounted ? items.length : 0;
   const loggedIn = mounted && isCustomerLoggedIn();

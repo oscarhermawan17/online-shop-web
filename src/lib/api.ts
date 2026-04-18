@@ -57,14 +57,17 @@ api.interceptors.response.use(
   }
 );
 
+const resolveSwrUrl = (key: string | readonly [string, ...unknown[]]): string =>
+  typeof key === 'string' ? key : key[0];
+
 // SWR fetcher using axios
-export const fetcher = async <T>(url: string): Promise<T> => {
-  const response = await api.get(url);
+export const fetcher = async <T>(key: string | readonly [string, ...unknown[]]): Promise<T> => {
+  const response = await api.get(resolveSwrUrl(key));
   return response.data.data;
 };
 
-export const responseFetcher = async <T>(url: string): Promise<T> => {
-  const response = await api.get<T>(url);
+export const responseFetcher = async <T>(key: string | readonly [string, ...unknown[]]): Promise<T> => {
+  const response = await api.get<T>(resolveSwrUrl(key));
   return response.data;
 };
 

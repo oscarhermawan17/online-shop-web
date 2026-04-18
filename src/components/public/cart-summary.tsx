@@ -18,7 +18,7 @@ interface CartSummaryProps {
   minimumOrder?: number | null;
   freeShippingMinimumOrder?: number | null;
   subtotal?: number;
-  isStoreCustomer?: boolean;
+  isWholesaleCustomer?: boolean;
   isFreeShippingApplied?: boolean;
 }
 
@@ -31,7 +31,7 @@ export function CartSummary({
   minimumOrder,
   freeShippingMinimumOrder,
   subtotal,
-  isStoreCustomer = false,
+  isWholesaleCustomer = false,
   isFreeShippingApplied = false,
 }: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
@@ -83,13 +83,13 @@ export function CartSummary({
 
         {isDelivery && typeof minimumOrder === 'number' && (
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Minimal belanja kirim untuk {isStoreCustomer ? 'toko' : 'retail'}: {formatRupiah(minimumOrder)}
+            Minimal belanja kirim untuk {isWholesaleCustomer ? 'wholesale' : 'base'}: {formatRupiah(minimumOrder)}
           </div>
         )}
 
         {isDelivery && typeof freeShippingMinimumOrder === 'number' && (
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Free ongkir {isStoreCustomer ? 'toko' : 'retail'} mulai {formatRupiah(freeShippingMinimumOrder)}
+            Free ongkir {isWholesaleCustomer ? 'wholesale' : 'base'} mulai {formatRupiah(freeShippingMinimumOrder)}
           </div>
         )}
 

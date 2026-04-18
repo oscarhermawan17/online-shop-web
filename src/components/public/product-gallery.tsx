@@ -8,16 +8,24 @@ import type { ProductImage } from '@/types';
 interface ProductGalleryProps {
   images: ProductImage[];
   productName: string;
+  selectedImageUrl?: string | null;
+  selectedImageAlt?: string | null;
 }
 
-export function ProductGallery({ images, productName }: ProductGalleryProps) {
+export function ProductGallery({
+  images,
+  productName,
+  selectedImageUrl,
+  selectedImageAlt,
+}: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const sortedImages = [...images].sort((a, b) => a.sortOrder - b.sortOrder);
   const hasImages = sortedImages.length > 0;
+  const mainImageUrl = selectedImageUrl || sortedImages[selectedIndex]?.imageUrl;
 
-  const mainImage = hasImages
-    ? getOptimizedImageUrl(sortedImages[selectedIndex].imageUrl, 800)
+  const mainImage = mainImageUrl
+    ? getOptimizedImageUrl(mainImageUrl, 800)
     : getPlaceholderImage(800, 800);
 
   return (
@@ -26,7 +34,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
         <Image
           src={mainImage}
-          alt={sortedImages[selectedIndex]?.altText || productName}
+          alt={selectedImageAlt || sortedImages[selectedIndex]?.altText || productName}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 50vw"
@@ -35,7 +43,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       </div>
 
       {/* Thumbnails */}
-      {hasImages && sortedImages.length > 1 && (
+      {!selectedImageUrl && hasImages && sortedImages.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {sortedImages.map((image, index) => (
             <button

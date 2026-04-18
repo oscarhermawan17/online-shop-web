@@ -6,7 +6,7 @@ export interface CustomerListParams {
   page: number;
   limit: number;
   search: string;
-  status: '' | 'active' | 'inactive';
+  status: 'all' | 'active' | 'inactive';
 }
 
 export function useAdminCustomers(params: CustomerListParams) {

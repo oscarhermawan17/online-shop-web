@@ -1,5 +1,5 @@
 import useSWR from "swr"
-import api from "@/lib/api"
+import { responseFetcher } from "@/lib/api"
 import type { Unit } from "@/types"
 
 interface UnitsResponse {
@@ -9,10 +9,7 @@ interface UnitsResponse {
 export function useAdminUnits() {
   const { data, error, isLoading, mutate } = useSWR<UnitsResponse>(
     "/admin/units",
-    async (url: string) => {
-      const res = await api.get(url)
-      return res.data
-    },
+    responseFetcher,
   )
 
   return {

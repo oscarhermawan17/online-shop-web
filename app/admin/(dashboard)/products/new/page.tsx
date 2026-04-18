@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ProductForm } from '@/components/admin';
+import { CreateProductForm } from '@/components/admin';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import type { ProductFormData } from '@/lib/validations';
+import type { CreateProductFormData } from '@/lib/validations';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (data: ProductFormData) => {
+  const handleSubmit = async (data: CreateProductFormData) => {
     setIsSubmitting(true);
 
     try {
@@ -43,8 +43,8 @@ export default function NewProductPage() {
         <h1 className="text-2xl font-bold">Tambah Produk Baru</h1>
       </div>
 
-      <div className="max-w-2xl">
-        <ProductForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      <div className="max-w-4xl">
+        <CreateProductForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 import type { Product, ProductVariant } from '@/types';
 
 interface AddToCartButtonProps {
@@ -21,7 +22,6 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
   const needsVariantSelection = hasVariants && !selectedVariant;
 
   const stock = selectedVariant?.stock ?? product.stock;
-  const price = selectedVariant?.price ?? product.basePrice;
   const isOutOfStock = stock === 0;
 
   const handleQuantityChange = (delta: number) => {
@@ -31,7 +31,7 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (needsVariantSelection) {
       toast.error('Silakan pilih varian terlebih dahulu');
       return;
@@ -45,19 +45,48 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
     // Set store ID for checkout
     setStoreId(product.storeId);
 
+    let latestProduct = product;
+
+    try {
+      const response = await api.get<{ data: Product }>(`/products/${product.id}`);
+      latestProduct = response.data.data;
+    } catch {
+      toast.error('Gagal memuat harga terbaru produk');
+      return;
+    }
+
+    const latestVariant = selectedVariant
+      ? latestProduct.variants.find((variant) => variant.id === selectedVariant.id) ?? null
+      : null;
+
+    if (selectedVariant && !latestVariant) {
+      toast.error('Varian produk sudah tidak tersedia');
+      return;
+    }
+
+    const latestStock = latestVariant?.stock ?? latestProduct.stock;
+    const latestPrice = latestVariant?.price ?? latestProduct.basePrice;
+
+    if (latestStock === 0) {
+      toast.error('Stok produk habis');
+      return;
+    }
+
+    const nextQuantity = Math.min(quantity, latestStock);
+
     addItem({
-      productId: product.id,
-      variantId: selectedVariant?.id || null,
-      name: product.name,
-      variantName: selectedVariant?.name || null,
-      price,
-      quantity,
-      image: product.images?.[0]?.imageUrl || null,
-      stock,
+      productId: latestProduct.id,
+      variantId: latestVariant?.id || null,
+      name: latestProduct.name,
+      variantName: latestVariant?.name || null,
+      price: latestPrice,
+      quantity: nextQuantity,
+      image: latestVariant?.imageUrl ?? latestProduct.images?.[0]?.imageUrl ?? null,
+      stock: latestStock,
     });
 
     toast.success('Produk ditambahkan ke keranjang', {
-      description: `${quantity}x ${product.name}${selectedVariant ? ` - ${selectedVariant.name}` : ''}`,
+      description: `${nextQuantity}x ${latestProduct.name}${latestVariant ? ` - ${latestVariant.name}` : ''}`,
     });
 
     setQuantity(1);

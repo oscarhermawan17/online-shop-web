@@ -1,9 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ProductGallery, VariantSelector, AddToCartButton } from '@/components/public';
-import { formatRupiah, getEffectivePrice } from '@/lib/utils';
-import type { Product } from '@/types';
 import { ProductDetailClient } from './client';
+import type { Product } from '@/types';
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
@@ -60,21 +58,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Image Gallery */}
-        <ProductGallery images={product.images} productName={product.name} />
-
-        {/* Product Info */}
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold md:text-3xl">{product.name}</h1>
-            {product.description && (
-              <p className="mt-4 text-muted-foreground">{product.description}</p>
-            )}
-          </div>
-
-          {/* Client-side interactive part */}
-          <ProductDetailClient product={product} />
-        </div>
+        <ProductDetailClient product={product} />
       </div>
     </div>
   );

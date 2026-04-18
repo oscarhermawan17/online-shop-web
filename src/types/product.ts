@@ -25,6 +25,7 @@ export interface ProductVariant {
   id: string;
   name: string | null;
   isDefault: boolean;
+  imageUrl?: string | null;
   priceOverride?: number | null;
   wholesalePriceOverride?: number | null;
   price?: number;       // resolved price from public API (already accounts for wholesale + discount)
@@ -82,9 +83,16 @@ export interface CreateProductPayload {
   unitId?: string | null;
   name: string;
   description?: string;
-  basePrice: number;
-  wholesalePrice?: number;
-  stock: number;
+  basePrice?: number;
+  wholesalePrice?: number | null;
+  stock?: number;
+  variants?: Array<{
+    name?: string;
+    imageUrl?: string | null;
+    basePrice: number;
+    wholesalePrice?: number | null;
+    stock: number;
+  }>;
 }
 
 export interface UpdateProductPayload {
@@ -100,6 +108,7 @@ export interface UpdateProductPayload {
 
 export interface CreateVariantPayload {
   name: string;
+  imageUrl?: string | null;
   priceOverride?: number | null;
   wholesalePriceOverride?: number | null;
   stock: number;
@@ -107,6 +116,7 @@ export interface CreateVariantPayload {
 
 export interface UpdateVariantPayload {
   name?: string;
+  imageUrl?: string | null;
   priceOverride?: number | null;
   wholesalePriceOverride?: number | null;
   stock?: number;

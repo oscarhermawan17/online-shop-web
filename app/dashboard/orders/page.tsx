@@ -31,7 +31,7 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 pb-24 pt-4 md:px-0 md:pb-0 md:pt-0">
         <h1 className="text-lg font-semibold">Riwayat Pesanan</h1>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -46,7 +46,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 pb-24 pt-4 md:px-0 md:pb-0 md:pt-0">
       <div>
         <h1 className="text-lg font-semibold">Riwayat Pesanan</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -57,7 +57,7 @@ export default function OrdersPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList
           variant="pill"
-          className="w-full justify-start overflow-x-auto"
+          className="-mx-1 w-[calc(100%+0.5rem)] justify-start overflow-x-auto px-1"
         >
           {tabItems.map((tab) => (
             <TabsTrigger

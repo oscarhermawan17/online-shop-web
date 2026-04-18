@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  RefreshCcw
 } from "lucide-react"
 import { useState } from "react"
 import {
@@ -44,8 +45,9 @@ interface CustomerTableProps {
   isLoading: boolean
   searchInput: string
   onSearchChange: (value: string) => void
-  status: "" | "active" | "inactive"
-  onStatusChange: (value: "" | "active" | "inactive") => void
+  status: "all" | "active" | "inactive"
+  onStatusChangeFilter: (value: "all" | "active" | "inactive") => void
+  onStatusChange: () => void
   limit: number
   onLimitChange: (value: number) => void
   page: number
@@ -84,6 +86,7 @@ export function CustomerTable({
   searchInput,
   onSearchChange,
   status,
+  onStatusChangeFilter,
   onStatusChange,
   limit,
   onLimitChange,
@@ -91,7 +94,7 @@ export function CustomerTable({
   onPageChange,
   onToggleStatus,
 }: CustomerTableProps) {
-  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
   const handleToggleStatus = async (customer: CustomerListItem) => {
     const action = customer.isActive ? "Nonaktifkan" : "Aktifkan"
@@ -99,10 +102,11 @@ export function CustomerTable({
       !confirm(
         `Yakin ingin ${action.toLowerCase()} pelanggan "${customer.name || customer.phone}"?`,
       )
-    )
+    ) {
       return
+    }
 
-    setTogglingId(customer.id)
+    setLoadingActionId(customer.id);
     try {
       await api.patch(`/admin/customers/${customer.id}/toggle-status`)
       toast.success(
@@ -113,7 +117,24 @@ export function CustomerTable({
       console.error("Toggle status error:", error)
       toast.error("Gagal mengubah status pelanggan")
     } finally {
-      setTogglingId(null)
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleChangeType = async (customer: CustomerListItem) => {
+    const nextType = customer.type === 'wholesale' ? 'base' : 'wholesale';
+    if (!confirm(`Ubah kategori "${customer.name || customer.phone}" menjadi ${nextType}?`)) return;
+
+    setLoadingActionId(customer.id);
+    try {
+      await api.patch(`/admin/customers/${customer.id}/type`, { type: nextType });
+      toast.success(`Kategori pelanggan berhasil diubah menjadi ${nextType}`);
+      onStatusChange();
+    } catch (error: unknown) {
+      console.error('Change type error:', error);
+      toast.error('Gagal mengubah kategori pelanggan');
+    } finally {
+      setLoadingActionId(null);
     }
   }
 
@@ -148,11 +169,9 @@ export function CustomerTable({
 
         {/* Status filter */}
         <Select
-          value={status === "" ? "all" : status}
-          onValueChange={(value) =>
-            onStatusChange(
-              value === "all" ? "" : (value as "active" | "inactive"),
-            )
+          value={status ?? "all"}
+          onValueChange={(value: "all" | "active" | "inactive") =>
+            onStatusChangeFilter(value)
           }
         >
           <SelectTrigger className="w-44 h-11! text-base">
@@ -179,6 +198,9 @@ export function CustomerTable({
               </TableHead>
               <TableHead className="text-base font-semibold py-4 text-foreground hidden md:table-cell">
                 Email
+              </TableHead>
+              <TableHead className="text-base font-semibold py-4 text-foreground hidden md:table-cell">
+                Kategori
               </TableHead>
               <TableHead className="text-base font-semibold py-4 text-foreground">
                 Status
@@ -229,6 +251,13 @@ export function CustomerTable({
                       {customer.email || "—"}
                     </p>
                   </TableCell>
+
+                   <TableCell className="hidden md:table-cell">
+                    <Badge variant={customer.type === 'wholesale' ? 'default' : 'outline'}>
+                      {customer.type === 'wholesale' ? 'Wholesale' : 'Base'}
+                    </Badge>
+                  </TableCell>
+
                   <TableCell>
                     <Badge
                       variant={customer.isActive ? "default" : "secondary"}
@@ -241,15 +270,16 @@ export function CustomerTable({
                       {formatDate(customer.createdAt)}
                     </p>
                   </TableCell>
+
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          disabled={togglingId === customer.id}
+                          disabled={loadingActionId === customer.id}
                         >
-                          {togglingId === customer.id ? (
+                          {loadingActionId === customer.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <MoreHorizontal className="h-4 w-4" />
@@ -257,13 +287,13 @@ export function CustomerTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleChangeType(customer)}>
+                          <RefreshCcw className="mr-2 h-4 w-4" />
+                          Ubah ke {customer.type === 'wholesale' ? 'Base' : 'Wholesale'}
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleToggleStatus(customer)}
-                          className={
-                            customer.isActive
-                              ? "text-destructive focus:text-destructive"
-                              : ""
-                          }
+                          className={customer.isActive ? 'text-destructive focus:text-destructive' : ''}
                         >
                           {customer.isActive ? (
                             <>
