@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -168,7 +168,7 @@ export function CreateProductForm({
                           </Select>
 
                           {selectedCategoryIds.length > 0 ? (
-                            <div className="space-y-2 pt-1">
+                            <div className="flex flex-wrap gap-2 pt-1">
                               {selectedCategoryIds.map((categoryId) => {
                                 const selectedCategory = categories.find((c) => c.id === categoryId);
 
@@ -179,19 +179,21 @@ export function CreateProductForm({
                                 return (
                                   <div
                                     key={categoryId}
-                                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                                    className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-xs"
                                   >
                                     <span>{selectedCategory.name}</span>
                                     <Button
                                       type="button"
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
+                                      className="h-5 w-5 rounded-full"
+                                      aria-label={`Hapus kategori ${selectedCategory.name}`}
                                       onClick={() =>
                                         field.onChange(selectedCategoryIds.filter((id) => id !== categoryId))
                                       }
                                       disabled={isSubmitting}
                                     >
-                                      Hapus
+                                      <X className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 );
