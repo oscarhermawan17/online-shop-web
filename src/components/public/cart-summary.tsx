@@ -7,7 +7,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/stores';
 import { formatRupiah } from '@/lib/utils';
-import type { DeliveryMethod } from '@/types';
+import type { DeliveryMethod, VariantDiscountCustomerType } from '@/types';
+import { getCartSubtotal, resolveCartItemPricing } from '@/lib/variant-discount';
 
 interface CartSummaryProps {
   showCheckoutButton?: boolean;
@@ -20,6 +21,7 @@ interface CartSummaryProps {
   subtotal?: number;
   isWholesaleCustomer?: boolean;
   isFreeShippingApplied?: boolean;
+  customerType?: VariantDiscountCustomerType;
 }
 
 export function CartSummary({
@@ -33,14 +35,14 @@ export function CartSummary({
   subtotal,
   isWholesaleCustomer = false,
   isFreeShippingApplied = false,
+  customerType = 'base',
 }: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
   const clearCart = useCartStore((state) => state.clearCart);
 
   const totalItems = getTotalItems();
-  const totalPrice = getTotalPrice();
+  const totalPrice = getCartSubtotal(items, customerType);
   const activeSubtotal = subtotal ?? totalPrice;
 
   const isDelivery = deliveryMethod === 'delivery';
@@ -56,14 +58,14 @@ export function CartSummary({
         <div className="space-y-2">
           {items.map((item) => {
             const qty = Number(item.quantity) || 0;
-            const price = Number(item.price) || 0;
+            const pricing = resolveCartItemPricing(item, customerType);
             return (
               <div key={`${item.productId}-${item.variantId}`} className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
                   {item.name}
                   {item.variantName && ` (${item.variantName})`} x {qty}
                 </span>
-                <span>{formatRupiah(price * qty)}</span>
+                <span>{formatRupiah(pricing.lineTotal)}</span>
               </div>
             );
           })}

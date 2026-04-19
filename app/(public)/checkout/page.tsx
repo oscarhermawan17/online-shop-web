@@ -16,6 +16,7 @@ import type { CheckoutFormData } from '@/lib/validations';
 import type { CheckoutResponse, DeliveryMethod } from '@/types';
 import type { Store } from '@/types';
 import { formatRupiah } from '@/lib/utils';
+import { getCartSubtotal } from '@/lib/variant-discount';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -40,9 +41,10 @@ export default function CheckoutPage() {
   const storeId = useCartStore((state) => state.storeId);
   const clearCart = useCartStore((state) => state.clearCart);
   const setItems = useCartStore((state) => state.setItems);
-  const subtotal = useCartStore((state) => state.getTotalPrice());
   const customer = useCustomerAuthStore((state) => state.customer);
   const customerToken = useCustomerAuthStore((state) => state.token);
+  const customerType = customer?.type ?? 'base';
+  const subtotal = getCartSubtotal(items, customerType);
 
   useEffect(() => {
     setMounted(true);
@@ -172,7 +174,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    const syncedSubtotal = syncedCart.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const pricingCustomerType = customer?.type ?? 'base';
+    const syncedSubtotal = getCartSubtotal(syncedCart.items, pricingCustomerType);
     const syncedIsFreeShippingApplied = data.deliveryMethod === 'delivery'
       && freeShippingMinimumOrder !== null
       && syncedSubtotal >= freeShippingMinimumOrder;
@@ -267,6 +270,7 @@ export default function CheckoutPage() {
             subtotal={subtotal}
             isWholesaleCustomer={isWholesaleCustomer}
             isFreeShippingApplied={isFreeShippingApplied}
+            customerType={customerType}
           />
         </div>
       </div>

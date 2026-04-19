@@ -60,6 +60,12 @@ const getTotalStock = (product: ProductListItem) => {
     : product.stock;
 };
 
+const getActiveVariantDiscountRuleCount = (product: ProductListItem) =>
+  getSellableVariants(product).reduce((count, variant) => {
+    const activeRuleCount = variant.discountRules?.filter((rule) => rule.isActive).length ?? 0;
+    return count + activeRuleCount;
+  }, 0);
+
 export function ProductTable({ products, onDelete }: ProductTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -475,12 +481,16 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                     <div className="flex items-center gap-2">
                       <p className="font-medium line-clamp-1">{product.name}</p>
                       {(() => {
+                        const activeVariantRuleCount = getActiveVariantDiscountRuleCount(product);
                         const d = product.discount;
                         const hasNormal = d?.normalDiscountActive && d.normalDiscount;
                         const hasRetail = d?.retailDiscountActive && d.retailDiscount;
-                        if (!hasNormal && !hasRetail) return null;
+                        if (activeVariantRuleCount === 0 && !hasNormal && !hasRetail) return null;
 
                         const lines: string[] = [];
+                        if (activeVariantRuleCount > 0) {
+                          lines.push(`${activeVariantRuleCount} rule diskon varian aktif`);
+                        }
                         if (hasNormal) lines.push(`Diskon ${d!.normalDiscount}% untuk Harga Normal`);
                         if (hasRetail) lines.push(`Diskon ${d!.retailDiscount}% untuk Harga Retail`);
 

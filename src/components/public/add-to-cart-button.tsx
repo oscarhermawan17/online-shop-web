@@ -7,6 +7,7 @@ import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Product, ProductVariant } from '@/types';
+import { inferVariantRawUnitPrice } from '@/lib/variant-discount';
 
 interface AddToCartButtonProps {
   product: Product;
@@ -66,6 +67,13 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
 
     const latestStock = latestVariant?.stock ?? latestProduct.stock;
     const latestPrice = latestVariant?.price ?? latestProduct.basePrice;
+    const latestDiscountRules = latestVariant?.discountRules ?? [];
+    const activeDiscountRuleId = latestVariant?.activeDiscountRuleId ?? null;
+    const baseUnitPrice = latestVariant?.rawPrice ?? inferVariantRawUnitPrice(
+      latestPrice,
+      latestDiscountRules,
+      activeDiscountRuleId,
+    );
 
     if (latestStock === 0) {
       toast.error('Stok produk habis');
@@ -79,6 +87,9 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
       variantId: latestVariant?.id || null,
       name: latestProduct.name,
       variantName: latestVariant?.name || null,
+      baseUnitPrice,
+      discountRules: latestDiscountRules,
+      activeDiscountRuleId,
       price: latestPrice,
       quantity: nextQuantity,
       image: latestVariant?.imageUrl ?? latestProduct.images?.[0]?.imageUrl ?? null,

@@ -5,6 +5,8 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore, type CartItem as CartItemType } from '@/stores';
 import { formatRupiah, getPlaceholderImage, getThumbnailUrl } from '@/lib/utils';
+import { useCustomerAuthStore } from '@/stores/customer-auth-store';
+import { resolveCartItemPricing } from '@/lib/variant-discount';
 
 interface CartItemProps {
   item: CartItemType;
@@ -13,11 +15,14 @@ interface CartItemProps {
 export function CartItem({ item }: CartItemProps) {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const customerType = useCustomerAuthStore((state) => state.customer?.type ?? 'base');
 
   // Ensure values are valid numbers
   const quantity = Number(item.quantity) || 1;
-  const price = Number(item.price) || 0;
   const stock = Number(item.stock) || 1;
+  const pricing = resolveCartItemPricing(item, customerType);
+  const unitPrice = pricing.unitPrice;
+  const lineTotal = pricing.lineTotal;
 
   const imageUrl = item.image
     ? getThumbnailUrl(item.image, 100)
@@ -55,7 +60,7 @@ export function CartItem({ item }: CartItemProps) {
             </p>
           )}
           <p className="text-sm font-semibold text-primary">
-            {formatRupiah(price)}
+            {formatRupiah(unitPrice)}
           </p>
         </div>
 
@@ -99,7 +104,7 @@ export function CartItem({ item }: CartItemProps) {
       {/* Subtotal (Desktop) */}
       <div className="hidden flex-shrink-0 text-right sm:block">
         <p className="text-sm text-muted-foreground">Subtotal</p>
-        <p className="font-semibold">{formatRupiah(price * quantity)}</p>
+        <p className="font-semibold">{formatRupiah(lineTotal)}</p>
       </div>
     </div>
   );

@@ -95,7 +95,10 @@ export default function CartPage() {
 
         {/* Summary */}
         <div className="lg:sticky lg:top-24">
-          <CartSummary showCheckoutButton />
+          <CartSummary
+            showCheckoutButton
+            customerType={customerType ?? 'base'}
+          />
         </div>
       </div>
     </div>
