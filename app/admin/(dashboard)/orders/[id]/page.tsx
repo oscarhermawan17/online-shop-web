@@ -58,6 +58,18 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       />
     );
   }
+  const productSubtotalAfterDiscount = Math.max(0, order.totalAmount - (order.shippingCost || 0));
+  const totalProductDiscount = order.items.reduce((sum, item) => {
+    const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
+      ? item.originalPrice
+      : item.price;
+    const computedLineDiscount = Math.max(0, (originalUnitPrice - item.price) * item.quantity);
+    const lineDiscount = typeof item.discountAmount === 'number'
+      ? item.discountAmount
+      : computedLineDiscount;
+    return sum + lineDiscount;
+  }, 0);
+  const productSubtotalBeforeDiscount = productSubtotalAfterDiscount + totalProductDiscount;
 
   const handleConfirmPayment = async () => {
     setIsUpdating(true);
@@ -278,32 +290,85 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {order.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-medium">{item.productName}</p>
-                      {item.variantDescription && (
-                        <p className="text-sm text-muted-foreground">
-                          Varian: {item.variantDescription}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {formatRupiah(item.price)} x {item.quantity}
-                      </p>
+                {order.items.map((item) => {
+                  const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
+                    ? item.originalPrice
+                    : item.price;
+                  const lineSubtotal = originalUnitPrice * item.quantity;
+                  const lineTotal = item.price * item.quantity;
+                  const computedLineDiscount = Math.max(0, lineSubtotal - lineTotal);
+                  const lineDiscount = typeof item.discountAmount === 'number'
+                    ? item.discountAmount
+                    : computedLineDiscount;
+                  const hasDiscount = lineDiscount > 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex justify-between border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium">{item.productName}</p>
+                        {item.variantDescription && (
+                          <p className="text-sm text-muted-foreground">
+                            Varian: {item.variantDescription}
+                          </p>
+                        )}
+                        {hasDiscount ? (
+                          <>
+                            <p className="text-sm text-muted-foreground line-through">
+                              {formatRupiah(originalUnitPrice)} x {item.quantity}
+                            </p>
+                            <p className="text-sm text-green-600">
+                              {formatRupiah(item.price)} x {item.quantity}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              Diskon: -{formatRupiah(lineDiscount)}
+                              {item.discountRuleName ? ` (${item.discountRuleName})` : ''}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {formatRupiah(item.price)} x {item.quantity}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {hasDiscount ? (
+                          <>
+                            <p className="text-sm text-muted-foreground line-through">
+                              {formatRupiah(lineSubtotal)}
+                            </p>
+                            <p className="font-semibold">{formatRupiah(lineTotal)}</p>
+                          </>
+                        ) : (
+                          <p className="font-semibold">{formatRupiah(lineTotal)}</p>
+                        )}
+                      </div>
                     </div>
-                    <p className="font-semibold">{formatRupiah(item.price * item.quantity)}</p>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <Separator />
 
                 <div className="space-y-2">
+                  {totalProductDiscount > 0 ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal Awal</span>
+                        <span>{formatRupiah(productSubtotalBeforeDiscount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Diskon Produk</span>
+                        <span className="font-medium text-green-600">
+                          -{formatRupiah(totalProductDiscount)}
+                        </span>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal Produk</span>
-                    <span>{formatRupiah(order.totalAmount - (order.shippingCost || 0))}</span>
+                    <span>{formatRupiah(productSubtotalAfterDiscount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Ongkos Kirim</span>

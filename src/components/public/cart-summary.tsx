@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Trash2 } from 'lucide-react';
+import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -178,6 +178,12 @@ export function CartSummary({
             <Link href="/checkout">
               Checkout
               <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full gap-2">
+            <Link href="/">
+              <Plus className="h-4 w-4" />
+              Tambah Produk
             </Link>
           </Button>
           <Button
