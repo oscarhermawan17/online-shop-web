@@ -44,6 +44,16 @@ export function CartSummary({
   const totalItems = getTotalItems();
   const totalPrice = getCartSubtotal(items, customerType);
   const activeSubtotal = subtotal ?? totalPrice;
+  const itemSummaries = items.map((item) => ({
+    item,
+    qty: Number(item.quantity) || 0,
+    pricing: resolveCartItemPricing(item, customerType),
+  }));
+  const totalProductDiscount = itemSummaries.reduce(
+    (sum, entry) => sum + entry.pricing.lineDiscount,
+    0,
+  );
+  const preDiscountSubtotal = activeSubtotal + totalProductDiscount;
 
   const isDelivery = deliveryMethod === 'delivery';
   const resolvedShipping = isDelivery ? (shippingCost ?? null) : null;
@@ -56,16 +66,30 @@ export function CartSummary({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          {items.map((item) => {
-            const qty = Number(item.quantity) || 0;
-            const pricing = resolveCartItemPricing(item, customerType);
+          {itemSummaries.map(({ item, qty, pricing }) => {
             return (
-              <div key={`${item.productId}-${item.variantId}`} className="flex justify-between text-sm">
+              <div key={`${item.productId}-${item.variantId}`} className="flex justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">
                   {item.name}
                   {item.variantName && ` (${item.variantName})`} x {qty}
                 </span>
-                <span>{formatRupiah(pricing.lineTotal)}</span>
+                <span className="text-right">
+                  {pricing.lineDiscount > 0 ? (
+                    <>
+                      <span className="block text-xs text-muted-foreground line-through">
+                        {formatRupiah(pricing.lineSubtotal)}
+                      </span>
+                      <span className="block">{formatRupiah(pricing.lineTotal)}</span>
+                      {pricing.appliedRule?.name ? (
+                        <span className="block text-[11px] text-green-600">
+                          {pricing.appliedRule.name}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    formatRupiah(pricing.lineTotal)
+                  )}
+                </span>
               </div>
             );
           })}
@@ -77,6 +101,19 @@ export function CartSummary({
           <span>Total Item</span>
           <span>{totalItems} item</span>
         </div>
+
+        {totalProductDiscount > 0 ? (
+          <>
+            <div className="flex justify-between text-sm">
+              <span>Subtotal Awal</span>
+              <span>{formatRupiah(preDiscountSubtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Diskon Produk</span>
+              <span className="font-medium text-green-600">-{formatRupiah(totalProductDiscount)}</span>
+            </div>
+          </>
+        ) : null}
 
         <div className="flex justify-between text-sm">
           <span>Subtotal Produk</span>

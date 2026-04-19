@@ -205,7 +205,9 @@ export const resolveCartItemPricing = (
   });
 
   return {
+    appliedRule: pricing.rule,
     unitPrice: pricing.effectiveUnitPrice,
+    lineSubtotal: pricing.lineSubtotal,
     lineTotal: pricing.effectiveLineTotal,
     lineDiscount: pricing.lineDiscount,
   };
