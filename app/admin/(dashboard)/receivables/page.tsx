@@ -1,9 +1,10 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2, PlusCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Loader2, PlusCircle } from 'lucide-react';
 
 import api from '@/lib/api';
+import { downloadAdminReport } from '@/lib/report-download';
 import { useAdminReceivables } from '@/hooks';
 import { formatDate, formatDateOnly, formatRupiah } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ export default function AdminReceivablesPage() {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { amount: string; receivedAt: string }>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const totals = useMemo(() => {
     return receivables.reduce((acc, item) => {
@@ -104,6 +106,23 @@ export default function AdminReceivablesPage() {
     }
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await downloadAdminReport(
+        '/admin/receivables/export',
+        {},
+        `receivables-report-${today}.xls`,
+      );
+      toast.success('Laporan piutang berhasil diunduh');
+    } catch (error) {
+      console.error('Export receivables report error:', error);
+      toast.error('Gagal mengunduh laporan piutang');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) {
     return <LoadingPage />;
   }
@@ -130,11 +149,26 @@ export default function AdminReceivablesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Piutang</h1>
-        <p className="text-muted-foreground">
-          Pantau invoice kredit, sisa tagihan, dan catat pembayaran cicilan per invoice.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Piutang</h1>
+          <p className="text-muted-foreground">
+            Pantau invoice kredit, sisa tagihan, dan catat pembayaran cicilan per invoice.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          Export XLS
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
