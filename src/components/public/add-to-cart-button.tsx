@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -23,17 +24,25 @@ export function AddToCartButton({
   onQuantityChange,
 }: AddToCartButtonProps) {
   const [localQuantity, setLocalQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState('1');
   const addItem = useCartStore((state) => state.addItem);
   const setStoreId = useCartStore((state) => state.setStoreId);
   const currentQuantity = quantity ?? localQuantity;
+  const isQuantityEmpty = quantityInput.trim() === '';
+
+  useEffect(() => {
+    setQuantityInput(String(currentQuantity));
+  }, [currentQuantity]);
 
   const setQuantity = (nextQuantity: number) => {
     if (onQuantityChange) {
       onQuantityChange(nextQuantity);
+      setQuantityInput(String(nextQuantity));
       return;
     }
 
     setLocalQuantity(nextQuantity);
+    setQuantityInput(String(nextQuantity));
   };
 
   const hasVariants = product.variants.length > 0;
@@ -41,6 +50,7 @@ export function AddToCartButton({
 
   const stock = selectedVariant?.stock ?? product.stock;
   const isOutOfStock = stock === 0;
+  const clampQuantity = (value: number) => Math.min(Math.max(1, value), stock);
 
   const handleQuantityChange = (delta: number) => {
     const newQuantity = currentQuantity + delta;
@@ -49,9 +59,42 @@ export function AddToCartButton({
     }
   };
 
+  const handleQuantityInput = (value: string) => {
+    if (value === '') {
+      setQuantityInput('');
+      return;
+    }
+
+    if (!/^\d+$/.test(value)) return;
+
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return;
+
+    const clamped = clampQuantity(parsed);
+    setQuantity(clamped);
+  };
+
+  const handleQuantityBlur = () => {
+    if (quantityInput.trim() === '') return;
+
+    const parsed = Number.parseInt(quantityInput, 10);
+    if (!Number.isFinite(parsed)) {
+      setQuantityInput(String(currentQuantity));
+      return;
+    }
+
+    const clamped = clampQuantity(parsed);
+    setQuantity(clamped);
+  };
+
   const handleAddToCart = async () => {
     if (needsVariantSelection) {
       toast.error('Silakan pilih varian terlebih dahulu');
+      return;
+    }
+
+    if (isQuantityEmpty) {
+      toast.error('Masukkan jumlah pesanan');
       return;
     }
 
@@ -135,7 +178,17 @@ export function AddToCartButton({
           >
             <Minus className="h-4 w-4" />
           </Button>
-          <span className="w-12 text-center font-medium">{currentQuantity}</span>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={stock}
+            value={quantityInput}
+            onChange={(event) => handleQuantityInput(event.target.value)}
+            onBlur={handleQuantityBlur}
+            disabled={isOutOfStock || needsVariantSelection}
+            className="h-8 w-16 text-center font-medium [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
           <Button
             variant="outline"
             size="icon"
@@ -156,7 +209,7 @@ export function AddToCartButton({
       {/* Add to Cart Button */}
       <Button
         onClick={handleAddToCart}
-        disabled={isOutOfStock || needsVariantSelection}
+        disabled={isOutOfStock || needsVariantSelection || isQuantityEmpty}
         className="w-full gap-2"
         size="lg"
       >
