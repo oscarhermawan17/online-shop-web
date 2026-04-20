@@ -70,6 +70,8 @@ export function VariantSelector({
   }
 
   const hasVariantPromo = variants.some((variant) => getSortedActiveRules(variant).length > 0);
+  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) ?? null;
+  const selectedVariantActiveRules = selectedVariant ? getSortedActiveRules(selectedVariant) : [];
 
   return (
     <div className="space-y-3">
@@ -78,7 +80,7 @@ export function VariantSelector({
         {hasVariantPromo ? (
           <p className="text-xs text-muted-foreground">
             Varian dengan badge <span className="font-semibold text-destructive">PROMO</span> punya rule diskon.
-            Hover pada variannya untuk lihat syarat diskon.
+            Tap/pilih variannya untuk lihat syarat diskon.
           </p>
         ) : null}
       </div>
@@ -92,8 +94,9 @@ export function VariantSelector({
             const hasDiscountRules = activeRules.length > 0;
 
             const tile = (
-              <div key={variant.id} className="flex w-28 flex-col items-center gap-2">
+              <div className="flex w-28 flex-col items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => onSelect(isSelected ? null : variant.id)}
                   disabled={isOutOfStock}
                   className={cn(
@@ -149,7 +152,7 @@ export function VariantSelector({
             );
 
             if (!hasDiscountRules) {
-              return tile;
+              return <div key={variant.id}>{tile}</div>;
             }
 
             return (
@@ -187,6 +190,31 @@ export function VariantSelector({
           })}
         </div>
       </TooltipProvider>
+      {selectedVariant && selectedVariantActiveRules.length > 0 ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs">
+          <p className="font-semibold text-destructive">
+            Promo {selectedVariant.name || 'Varian'} ({selectedVariantActiveRules.length} rule)
+          </p>
+          <div className="mt-2 space-y-2">
+            {selectedVariantActiveRules.map((rule, index) => (
+              <div key={rule.id} className="space-y-0.5">
+                <p className="font-medium text-foreground">
+                  {rule.name?.trim() || `Rule ${index + 1}`}
+                </p>
+                <p className="text-muted-foreground">
+                  Trigger: {rule.triggerType === 'quantity' ? 'Qty item' : 'Subtotal item'} {getThresholdLabel(rule)}
+                </p>
+                <p className="text-muted-foreground">
+                  Diskon: {getDiscountValueLabel(rule)} ({getApplyModeLabel(rule.applyMode)})
+                </p>
+                {/* <p className="text-muted-foreground">
+                  Target: {getCustomerTypeLabel(rule.customerType)}
+                </p> */}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
