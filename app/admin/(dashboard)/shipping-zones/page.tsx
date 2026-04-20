@@ -58,6 +58,8 @@ export default function ShippingZonesPage() {
 
   // Initialize localCosts from server data
   useEffect(() => {
+    if (isLoading) return;
+
     const map: ZoneCostMap = {};
     for (const name of ALL_DISTRICTS) {
       const existing = zones.find((z) => z.name === name);
@@ -66,8 +68,18 @@ export default function ShippingZonesPage() {
         isActive: existing?.isActive ?? true,
       };
     }
-    setLocalCosts(map);
-  }, [zones]);
+
+    setLocalCosts((prev) => {
+      for (const name of ALL_DISTRICTS) {
+        const next = map[name];
+        const current = prev[name];
+        if (!current || current.cost !== next.cost || current.isActive !== next.isActive) {
+          return map;
+        }
+      }
+      return prev;
+    });
+  }, [zones, isLoading]);
 
   const updateCost = useCallback((name: string, cost: number) => {
     setLocalCosts((prev) => ({

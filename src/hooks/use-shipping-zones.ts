@@ -1,6 +1,8 @@
 import useSWR from 'swr';
 import { fetcher } from '@/lib/api';
 
+const EMPTY_ZONES: ShippingZone[] = [];
+
 export interface ShippingZone {
   id: string;
   storeId: string;
@@ -19,7 +21,7 @@ export function useAdminShippingZones() {
   );
 
   return {
-    zones: data || [],
+    zones: data ?? EMPTY_ZONES,
     isLoading,
     isError: !!error,
     error,
