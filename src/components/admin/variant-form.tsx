@@ -6,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ import {
 import { variantSchema, type VariantFormData } from '@/lib/validations';
 import { formatRupiah } from '@/lib/utils';
 import type { ProductVariant } from '@/types';
+import { VariantDiscountRulesForm } from './variant-discount-rules-form';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -286,69 +288,103 @@ export function VariantForm({
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
-        {realVariants.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-4">
-            Belum ada varian. Produk ini masih memakai harga dan stok utama.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {realVariants.map((variant) => (
-              <div
-                key={variant.id}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <div className="flex items-center gap-3">
-                  {variant.imageUrl ? (
-                    <Image
-                      src={variant.imageUrl}
-                      alt={variant.name ?? 'Variant'}
-                      width={56}
-                      height={56}
-                      className="h-14 w-14 rounded-md object-cover border"
+      <CardContent className="space-y-6">
+        <div>
+          {realVariants.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-4">
+              Belum ada varian. Produk ini masih memakai harga dan stok utama.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {realVariants.map((variant, index) => {
+                const ruleCount = variant.discountRules?.length ?? 0;
+
+                return (
+                <div
+                  key={variant.id}
+                  className="space-y-3 rounded-xl border-2 border-border/80 bg-background p-3 shadow-sm"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">Varian {index + 1}</p>
+                      {variant.name?.trim() ? (
+                        <Badge variant="outline" className="font-normal">
+                          {variant.name}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <Badge variant={ruleCount > 0 ? 'default' : 'secondary'}>
+                      {ruleCount > 0 ? `${ruleCount} rule` : 'Tanpa rule'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {variant.imageUrl ? (
+                        <Image
+                          src={variant.imageUrl}
+                          alt={variant.name ?? 'Variant'}
+                          width={56}
+                          height={56}
+                          className="h-14 w-14 rounded-md object-cover border"
+                        />
+                      ) : null}
+                      <div>
+                      <p className="font-medium">{variant.name ?? '—'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Normal: {variant.priceOverride
+                          ? formatRupiah(variant.priceOverride)
+                          : `${formatRupiah(basePrice)} (dasar)`}
+                        {' • '}
+                        Retail: {variant.wholesalePriceOverride
+                          ? formatRupiah(variant.wholesalePriceOverride)
+                          : '(dasar)'}
+                        {' • '}
+                        Stok: {variant.stock}
+                      </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(variant)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(variant.id)}
+                        disabled={deletingId === variant.id}
+                      >
+                        {deletingId === variant.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <VariantDiscountRulesForm
+                      productId={productId}
+                      variants={variants}
+                      onRulesChange={onVariantsChange}
+                      embedded
+                      hideHeading
+                      inlineForVariant
+                      onlyVariantId={variant.id}
                     />
-                  ) : null}
-                  <div>
-                  <p className="font-medium">{variant.name ?? '—'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Normal: {variant.priceOverride
-                      ? formatRupiah(variant.priceOverride)
-                      : `${formatRupiah(basePrice)} (dasar)`}
-                    {' • '}
-                    Retail: {variant.wholesalePriceOverride
-                      ? formatRupiah(variant.wholesalePriceOverride)
-                      : '(dasar)'}
-                    {' • '}
-                    Stok: {variant.stock}
-                  </p>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditDialog(variant)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(variant.id)}
-                    disabled={deletingId === variant.id}
-                  >
-                    {deletingId === variant.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              )})}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -5,6 +5,8 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore, type CartItem as CartItemType } from '@/stores';
 import { formatRupiah, getPlaceholderImage, getThumbnailUrl } from '@/lib/utils';
+import { useCustomerAuthStore } from '@/stores/customer-auth-store';
+import { resolveCartItemPricing } from '@/lib/variant-discount';
 
 interface CartItemProps {
   item: CartItemType;
@@ -13,11 +15,23 @@ interface CartItemProps {
 export function CartItem({ item }: CartItemProps) {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const customerType = useCustomerAuthStore((state) => state.customer?.type ?? 'base');
 
   // Ensure values are valid numbers
   const quantity = Number(item.quantity) || 1;
-  const price = Number(item.price) || 0;
   const stock = Number(item.stock) || 1;
+  const pricing = resolveCartItemPricing(item, customerType);
+  const unitPrice = pricing.unitPrice;
+  const lineTotal = pricing.lineTotal;
+  const lineSubtotal = pricing.lineSubtotal;
+  const lineDiscount = pricing.lineDiscount;
+  const originalUnitPrice = quantity > 0 ? Math.round(lineSubtotal / quantity) : unitPrice;
+  const appliedRule = pricing.appliedRule;
+  const ruleTriggerText = appliedRule
+    ? appliedRule.triggerType === 'quantity'
+      ? `Min ${appliedRule.minThreshold} qty`
+      : `Min subtotal ${formatRupiah(appliedRule.minThreshold)}`
+    : null;
 
   const imageUrl = item.image
     ? getThumbnailUrl(item.image, 100)
@@ -54,9 +68,23 @@ export function CartItem({ item }: CartItemProps) {
               Varian: {item.variantName}
             </p>
           )}
-          <p className="text-sm font-semibold text-primary">
-            {formatRupiah(price)}
-          </p>
+          {lineDiscount > 0 ? (
+            <div className="space-y-0.5">
+              <p className="text-xs text-muted-foreground line-through">
+                {formatRupiah(originalUnitPrice)}
+              </p>
+              <p className="text-sm font-semibold text-primary">{formatRupiah(unitPrice)}</p>
+              <p className="text-xs text-green-600">
+                Hemat {formatRupiah(lineDiscount)}
+                {appliedRule?.name ? ` • ${appliedRule.name}` : ''}
+              </p>
+              {ruleTriggerText ? (
+                <p className="text-[11px] text-muted-foreground">{ruleTriggerText}</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm font-semibold text-primary">{formatRupiah(unitPrice)}</p>
+          )}
         </div>
 
         {/* Quantity & Actions */}
@@ -99,7 +127,16 @@ export function CartItem({ item }: CartItemProps) {
       {/* Subtotal (Desktop) */}
       <div className="hidden flex-shrink-0 text-right sm:block">
         <p className="text-sm text-muted-foreground">Subtotal</p>
-        <p className="font-semibold">{formatRupiah(price * quantity)}</p>
+        {lineDiscount > 0 ? (
+          <div>
+            <p className="text-xs text-muted-foreground line-through">
+              {formatRupiah(lineSubtotal)}
+            </p>
+            <p className="font-semibold">{formatRupiah(lineTotal)}</p>
+          </div>
+        ) : (
+          <p className="font-semibold">{formatRupiah(lineTotal)}</p>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ProductGallery, VariantSelector, AddToCartButton } from '@/components/public';
 import { useHasMounted } from '@/hooks/use-has-mounted';
 import { formatRupiah } from '@/lib/utils';
 import { useProduct } from '@/hooks/use-products';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { Product } from '@/types';
+import { inferVariantRawUnitPrice, resolveVariantDiscount } from '@/lib/variant-discount';
 
 interface ProductDetailClientProps {
   product: Product;
@@ -14,6 +15,7 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ product: serverProduct }: ProductDetailClientProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const hasMounted = useHasMounted();
   const customerToken = useCustomerAuthStore((s) => s.token);
   const customerType = useCustomerAuthStore((s) => s.customer?.type);
@@ -36,17 +38,30 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
   const selectedVariant = hasVariants
     ? product.variants.find((variant) => variant.id === effectiveSelectedVariantId) ?? null
     : null;
-  // const shouldShowVariantSelector = product.variants.length > 1;
+  const stock = selectedVariant?.stock ?? product.stock;
+  const pricingCustomerType = customerType === 'wholesale' ? 'wholesale' : 'base';
+  const resolvedUnitPriceQtyOne = selectedVariant?.price ?? product.basePrice;
+  const variantRules = selectedVariant?.discountRules ?? [];
+  const activeDiscountRuleId = selectedVariant?.activeDiscountRuleId ?? null;
+  const baseUnitPrice = selectedVariant?.rawPrice ?? inferVariantRawUnitPrice(
+    resolvedUnitPriceQtyOne,
+    variantRules,
+    activeDiscountRuleId,
+  );
+  const resolvedPricing = resolveVariantDiscount(variantRules, {
+    quantity,
+    unitPrice: baseUnitPrice,
+    customerType: pricingCustomerType,
+  });
+  const currentPrice = resolvedPricing.effectiveUnitPrice;
+  const originalPrice = resolvedPricing.lineDiscount > 0 ? formatRupiah(baseUnitPrice) : null;
 
-  // Use resolved price from public API (already accounts for variant override, wholesale, discount)
-  const currentPrice = selectedVariant?.price ?? product.basePrice;
-  const activeDiscountPercent = customerType === 'wholesale'
-    ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
-    : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
-
-  const originalPrice = activeDiscountPercent && activeDiscountPercent > 0 && activeDiscountPercent < 100
-    ? formatRupiah(Math.round((currentPrice * 100) / (100 - activeDiscountPercent)))
-    : null;
+  useEffect(() => {
+    setQuantity((prev) => {
+      if (stock <= 0) return 1;
+      return Math.max(1, Math.min(prev, stock));
+    });
+  }, [stock, effectiveSelectedVariantId]);
 
   return (
     <>
@@ -76,7 +91,10 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
             className={`text-sm leading-5 ${originalPrice ? 'text-muted-foreground line-through' : 'invisible'}`}
             aria-hidden={!originalPrice}
           >
-            {originalPrice ?? formatRupiah(product.basePrice)}
+            {originalPrice ?? formatRupiah(baseUnitPrice)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Total {quantity} item: {formatRupiah(resolvedPricing.effectiveLineTotal)}
           </p>
         </div>
 
@@ -90,6 +108,8 @@ export function ProductDetailClient({ product: serverProduct }: ProductDetailCli
         <AddToCartButton
           product={product}
           selectedVariant={selectedVariant}
+          quantity={quantity}
+          onQuantityChange={setQuantity}
         />
       </div>
     </>

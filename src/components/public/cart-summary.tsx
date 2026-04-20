@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Trash2 } from 'lucide-react';
+import { ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '@/stores';
 import { formatRupiah } from '@/lib/utils';
-import type { DeliveryMethod } from '@/types';
+import type { DeliveryMethod, VariantDiscountCustomerType } from '@/types';
+import { getCartSubtotal, resolveCartItemPricing } from '@/lib/variant-discount';
 
 interface CartSummaryProps {
   showCheckoutButton?: boolean;
@@ -20,6 +21,7 @@ interface CartSummaryProps {
   subtotal?: number;
   isWholesaleCustomer?: boolean;
   isFreeShippingApplied?: boolean;
+  customerType?: VariantDiscountCustomerType;
 }
 
 export function CartSummary({
@@ -33,15 +35,25 @@ export function CartSummary({
   subtotal,
   isWholesaleCustomer = false,
   isFreeShippingApplied = false,
+  customerType = 'base',
 }: CartSummaryProps) {
   const items = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
   const clearCart = useCartStore((state) => state.clearCart);
 
   const totalItems = getTotalItems();
-  const totalPrice = getTotalPrice();
+  const totalPrice = getCartSubtotal(items, customerType);
   const activeSubtotal = subtotal ?? totalPrice;
+  const itemSummaries = items.map((item) => ({
+    item,
+    qty: Number(item.quantity) || 0,
+    pricing: resolveCartItemPricing(item, customerType),
+  }));
+  const totalProductDiscount = itemSummaries.reduce(
+    (sum, entry) => sum + entry.pricing.lineDiscount,
+    0,
+  );
+  const preDiscountSubtotal = activeSubtotal + totalProductDiscount;
 
   const isDelivery = deliveryMethod === 'delivery';
   const resolvedShipping = isDelivery ? (shippingCost ?? null) : null;
@@ -54,16 +66,30 @@ export function CartSummary({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          {items.map((item) => {
-            const qty = Number(item.quantity) || 0;
-            const price = Number(item.price) || 0;
+          {itemSummaries.map(({ item, qty, pricing }) => {
             return (
-              <div key={`${item.productId}-${item.variantId}`} className="flex justify-between text-sm">
+              <div key={`${item.productId}-${item.variantId}`} className="flex justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">
                   {item.name}
                   {item.variantName && ` (${item.variantName})`} x {qty}
                 </span>
-                <span>{formatRupiah(price * qty)}</span>
+                <span className="text-right">
+                  {pricing.lineDiscount > 0 ? (
+                    <>
+                      <span className="block text-xs text-muted-foreground line-through">
+                        {formatRupiah(pricing.lineSubtotal)}
+                      </span>
+                      <span className="block">{formatRupiah(pricing.lineTotal)}</span>
+                      {pricing.appliedRule?.name ? (
+                        <span className="block text-[11px] text-green-600">
+                          {pricing.appliedRule.name}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    formatRupiah(pricing.lineTotal)
+                  )}
+                </span>
               </div>
             );
           })}
@@ -75,6 +101,19 @@ export function CartSummary({
           <span>Total Item</span>
           <span>{totalItems} item</span>
         </div>
+
+        {totalProductDiscount > 0 ? (
+          <>
+            <div className="flex justify-between text-sm">
+              <span>Subtotal Awal</span>
+              <span>{formatRupiah(preDiscountSubtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Diskon Produk</span>
+              <span className="font-medium text-green-600">-{formatRupiah(totalProductDiscount)}</span>
+            </div>
+          </>
+        ) : null}
 
         <div className="flex justify-between text-sm">
           <span>Subtotal Produk</span>
@@ -139,6 +178,12 @@ export function CartSummary({
             <Link href="/checkout">
               Checkout
               <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full gap-2">
+            <Link href="/">
+              <Plus className="h-4 w-4" />
+              Tambah Produk
             </Link>
           </Button>
           <Button

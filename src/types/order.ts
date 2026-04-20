@@ -9,10 +9,13 @@ export type OrderStatus =
 
 export interface OrderItem {
   id: string;
+  variantId?: string | null;
   productName: string;
   variantDescription?: string | null;
   imageUrl?: string | null;
   originalPrice?: number | null;
+  discountAmount?: number;
+  discountRuleName?: string | null;
   price: number;
   quantity: number;
 }

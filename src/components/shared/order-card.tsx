@@ -41,6 +41,18 @@ export function OrderCard({
   const visibleItems = order.items.slice(0, maxItemsPreview);
   const remainingCount = order.items.length - maxItemsPreview;
   const href = detailHref ?? `/order/${order.publicOrderId}`;
+  const productSubtotalAfterDiscount = Math.max(0, order.totalAmount - (order.shippingCost || 0));
+  const totalItemDiscount = order.items.reduce((sum, item) => {
+    const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
+      ? item.originalPrice
+      : item.price;
+    const computedLineDiscount = Math.max(0, (originalUnitPrice - item.price) * item.quantity);
+    const lineDiscount = typeof item.discountAmount === 'number'
+      ? item.discountAmount
+      : computedLineDiscount;
+    return sum + lineDiscount;
+  }, 0);
+  const productSubtotalBeforeDiscount = productSubtotalAfterDiscount + totalItemDiscount;
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md py-0 gap-0">
@@ -95,7 +107,19 @@ export function OrderCard({
           <div className="animate-in slide-in-from-top-2 fade-in duration-200">
             {/* Items Preview */}
             <div className="divide-y">
-              {visibleItems.map((item) => (
+              {visibleItems.map((item) => {
+                const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
+                  ? item.originalPrice
+                  : item.price;
+                const lineSubtotal = originalUnitPrice * item.quantity;
+                const lineTotal = item.price * item.quantity;
+                const computedLineDiscount = Math.max(0, lineSubtotal - lineTotal);
+                const lineDiscount = typeof item.discountAmount === 'number'
+                  ? item.discountAmount
+                  : computedLineDiscount;
+                const hasDiscount = lineDiscount > 0;
+
+                return (
                 <div key={item.id} className="flex items-center gap-4 px-4 py-3">
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
                     {item.imageUrl ? (
@@ -121,29 +145,43 @@ export function OrderCard({
                         Variasi: {item.variantDescription}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      x{item.quantity}
-                    </p>
+                    {hasDiscount ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatRupiah(originalUnitPrice)} {'->'} {formatRupiah(item.price)} x {item.quantity}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatRupiah(item.price)} x {item.quantity}
+                      </p>
+                    )}
+                    {item.discountRuleName && hasDiscount ? (
+                      <p className="text-[11px] text-green-600 mt-0.5">
+                        Rule: {item.discountRuleName}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="text-right shrink-0">
-                    {item.originalPrice && item.originalPrice > item.price ? (
+                    {hasDiscount ? (
                       <>
                         <p className="text-xs text-muted-foreground line-through">
-                          {formatRupiah(item.originalPrice)}
+                          {formatRupiah(lineSubtotal)}
                         </p>
                         <p className="text-sm font-semibold text-orange-600">
-                          {formatRupiah(item.price)}
+                          {formatRupiah(lineTotal)}
+                        </p>
+                        <p className="text-[11px] text-green-600">
+                          -{formatRupiah(lineDiscount)}
                         </p>
                       </>
                     ) : (
                       <p className="text-sm font-semibold">
-                        {formatRupiah(item.price)}
+                        {formatRupiah(lineTotal)}
                       </p>
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
 
               {remainingCount > 0 && (
                 <div className="px-4 py-2 text-center">
@@ -196,6 +234,16 @@ export function OrderCard({
                   {footerActions}
                 </div>
                 <div className="text-right sm:ml-auto">
+                  {totalItemDiscount > 0 ? (
+                    <>
+                      <p className="text-xs text-muted-foreground mb-0.5">
+                        Subtotal Awal: {formatRupiah(productSubtotalBeforeDiscount)}
+                      </p>
+                      <p className="text-xs text-green-600 mb-1">
+                        Diskon: -{formatRupiah(totalItemDiscount)}
+                      </p>
+                    </>
+                  ) : null}
                   <p className="text-xs text-muted-foreground mb-1">Total Pesanan</p>
                   <p className="text-lg font-bold text-primary">
                     {formatRupiah(order.totalAmount)}

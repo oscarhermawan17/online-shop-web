@@ -21,6 +21,29 @@ export interface ProductImage {
   createdAt: string;
 }
 
+export type DiscountTriggerType = 'quantity' | 'line_subtotal';
+export type DiscountValueType = 'percentage' | 'fixed_amount';
+export type DiscountApplyMode = 'per_item' | 'line_total';
+export type VariantDiscountCustomerType = 'base' | 'wholesale';
+
+export interface VariantDiscountRule {
+  id: string;
+  variantId: string;
+  storeId: string;
+  name: string | null;
+  triggerType: DiscountTriggerType;
+  minThreshold: number;
+  maxThreshold: number | null;
+  valueType: DiscountValueType;
+  value: number;
+  applyMode: DiscountApplyMode;
+  customerType: VariantDiscountCustomerType | null;
+  isActive: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductVariant {
   id: string;
   name: string | null;
@@ -28,9 +51,12 @@ export interface ProductVariant {
   imageUrl?: string | null;
   priceOverride?: number | null;
   wholesalePriceOverride?: number | null;
+  rawPrice?: number;
   price?: number;       // resolved price from public API (already accounts for wholesale + discount)
+  activeDiscountRuleId?: string | null;
   stock: number;
   createdAt: string;
+  discountRules?: VariantDiscountRule[];
 }
 
 export interface Product {

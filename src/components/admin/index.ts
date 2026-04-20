@@ -6,6 +6,7 @@ export { ImageUpload } from './image-upload';
 export { CreateProductForm } from './create-product-form';
 export { ProductForm } from './product-form';
 export { VariantForm } from './variant-form';
+export { VariantDiscountRulesForm } from './variant-discount-rules-form';
 export { ProductTable } from './product-table';
 export { OrderTable } from './order-table';
 export { CustomerTable } from './customer-table';

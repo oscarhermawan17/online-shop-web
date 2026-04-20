@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { VariantDiscountRule } from '@/types';
 
 export interface CartItem {
   productId: string;
   variantId?: string | null;
   name: string;
   variantName?: string | null;
+  baseUnitPrice?: number;
+  discountRules?: VariantDiscountRule[];
+  activeDiscountRuleId?: string | null;
   price: number;
   quantity: number;
   image?: string | null;
@@ -50,7 +54,11 @@ export const useCartStore = create<CartStore>()(
           const newItems = [...items];
           const newQuantity = newItems[existingIndex].quantity + (item.quantity || 1);
           // Don't exceed stock
-          newItems[existingIndex].quantity = Math.min(newQuantity, item.stock);
+          newItems[existingIndex] = {
+            ...newItems[existingIndex],
+            ...item,
+            quantity: Math.min(newQuantity, item.stock),
+          };
           set({ items: newItems });
         } else {
           // Add new item

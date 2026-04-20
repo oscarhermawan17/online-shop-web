@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, Plus, Bell, ShoppingCart, TrendingUp, Users } from 'lucide-react';
+import { Eye, Plus, Bell, ShoppingCart, TrendingUp, Users, Download, Loader2 } from 'lucide-react';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminProducts, useAdminOrders } from '@/hooks';
 import { useAdminStore } from '@/hooks/use-store';
 import { useAdminDashboard, DashboardPeriod } from '@/hooks/use-admin-dashboard';
+import { downloadAdminReport } from '@/lib/report-download';
 import { formatRupiah } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   BarChart,
   Bar,
@@ -72,6 +74,7 @@ export default function AdminDashboardPage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [rankingType, setRankingType] = useState<'count' | 'value'>('count');
+  const [isExportingSales, setIsExportingSales] = useState(false);
 
   const { data: dashboardData, isLoading: dashboardLoading, isError: dashboardError, mutate: mutateDashboard } = useAdminDashboard(period, startDate, endDate);
   const { products, isLoading: productsLoading, isError: productsError } = useAdminProducts();
@@ -116,6 +119,29 @@ export default function AdminDashboardPage() {
   };
 
   const rankings = rankingType === 'count' ? dashboardData?.topItemsByCount : dashboardData?.topItemsByValue;
+
+  const handleExportSales = async () => {
+    setIsExportingSales(true);
+    try {
+      const params: Record<string, string> = { period };
+      if (period === 'custom' && startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+
+      await downloadAdminReport(
+        '/admin/dashboard/export/sales',
+        params,
+        `sales-report-${new Date().toISOString().slice(0, 10)}.xls`,
+      );
+      toast.success('Laporan penjualan berhasil diunduh');
+    } catch (error) {
+      console.error('Export sales report error:', error);
+      toast.error('Gagal mengunduh laporan penjualan');
+    } finally {
+      setIsExportingSales(false);
+    }
+  };
 
   return (
     <>
@@ -181,6 +207,19 @@ export default function AdminDashboardPage() {
                   />
                 </div>
               )}
+              <button
+                type="button"
+                onClick={handleExportSales}
+                disabled={isExportingSales}
+                className="inline-flex items-center justify-center rounded-lg border border-[#cbd5d1] bg-white px-3 py-2 text-xs font-semibold text-[#2d3432] disabled:opacity-60"
+              >
+                {isExportingSales ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Export Penjualan (.xls)
+              </button>
             </div>
           </div>
 
@@ -426,6 +465,19 @@ export default function AdminDashboardPage() {
                 />
               </div>
             )}
+            <button
+              type="button"
+              onClick={handleExportSales}
+              disabled={isExportingSales}
+              className="inline-flex items-center justify-center rounded-lg border border-[#cbd5d1] bg-white px-3 py-1.5 text-xs font-semibold text-[#2d3432] disabled:opacity-60"
+            >
+              {isExportingSales ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Export Penjualan (.xls)
+            </button>
           </div>
         </div>
 

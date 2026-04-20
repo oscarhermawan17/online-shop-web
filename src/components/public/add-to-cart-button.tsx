@@ -7,16 +7,34 @@ import { useCartStore } from '@/stores';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Product, ProductVariant } from '@/types';
+import { inferVariantRawUnitPrice } from '@/lib/variant-discount';
 
 interface AddToCartButtonProps {
   product: Product;
   selectedVariant: ProductVariant | null;
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
 }
 
-export function AddToCartButton({ product, selectedVariant }: AddToCartButtonProps) {
-  const [quantity, setQuantity] = useState(1);
+export function AddToCartButton({
+  product,
+  selectedVariant,
+  quantity,
+  onQuantityChange,
+}: AddToCartButtonProps) {
+  const [localQuantity, setLocalQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
   const setStoreId = useCartStore((state) => state.setStoreId);
+  const currentQuantity = quantity ?? localQuantity;
+
+  const setQuantity = (nextQuantity: number) => {
+    if (onQuantityChange) {
+      onQuantityChange(nextQuantity);
+      return;
+    }
+
+    setLocalQuantity(nextQuantity);
+  };
 
   const hasVariants = product.variants.length > 0;
   const needsVariantSelection = hasVariants && !selectedVariant;
@@ -25,7 +43,7 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
   const isOutOfStock = stock === 0;
 
   const handleQuantityChange = (delta: number) => {
-    const newQuantity = quantity + delta;
+    const newQuantity = currentQuantity + delta;
     if (newQuantity >= 1 && newQuantity <= stock) {
       setQuantity(newQuantity);
     }
@@ -66,19 +84,29 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
 
     const latestStock = latestVariant?.stock ?? latestProduct.stock;
     const latestPrice = latestVariant?.price ?? latestProduct.basePrice;
+    const latestDiscountRules = latestVariant?.discountRules ?? [];
+    const activeDiscountRuleId = latestVariant?.activeDiscountRuleId ?? null;
+    const baseUnitPrice = latestVariant?.rawPrice ?? inferVariantRawUnitPrice(
+      latestPrice,
+      latestDiscountRules,
+      activeDiscountRuleId,
+    );
 
     if (latestStock === 0) {
       toast.error('Stok produk habis');
       return;
     }
 
-    const nextQuantity = Math.min(quantity, latestStock);
+    const nextQuantity = Math.min(currentQuantity, latestStock);
 
     addItem({
       productId: latestProduct.id,
       variantId: latestVariant?.id || null,
       name: latestProduct.name,
       variantName: latestVariant?.name || null,
+      baseUnitPrice,
+      discountRules: latestDiscountRules,
+      activeDiscountRuleId,
       price: latestPrice,
       quantity: nextQuantity,
       image: latestVariant?.imageUrl ?? latestProduct.images?.[0]?.imageUrl ?? null,
@@ -103,17 +131,17 @@ export function AddToCartButton({ product, selectedVariant }: AddToCartButtonPro
             size="icon"
             className="h-8 w-8"
             onClick={() => handleQuantityChange(-1)}
-            disabled={quantity <= 1 || isOutOfStock || needsVariantSelection}
+            disabled={currentQuantity <= 1 || isOutOfStock || needsVariantSelection}
           >
             <Minus className="h-4 w-4" />
           </Button>
-          <span className="w-12 text-center font-medium">{quantity}</span>
+          <span className="w-12 text-center font-medium">{currentQuantity}</span>
           <Button
             variant="outline"
             size="icon"
             className="h-8 w-8"
             onClick={() => handleQuantityChange(1)}
-            disabled={quantity >= stock || isOutOfStock || needsVariantSelection}
+            disabled={currentQuantity >= stock || isOutOfStock || needsVariantSelection}
           >
             <Plus className="h-4 w-4" />
           </Button>

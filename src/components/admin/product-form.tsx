@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -23,6 +24,9 @@ interface ProductFormProps {
 export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProps) {
   const { categories, isLoading: isLoadingCategories } = useAdminCategories();
   const { units, isLoading: isLoadingUnits } = useAdminUnits();
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryToAdd, setCategoryToAdd] = useState<string | undefined>(undefined);
+  const normalizedCategorySearch = categorySearch.trim().toLowerCase();
   const hasRealVariants = product?.variants.some((v) => !v.isDefault) ?? false;
   const isVariantManagedProduct = Boolean(product && hasRealVariants);
 
@@ -85,7 +89,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
             {/* Category */}
             <div className="space-y-2">
               <Label>Kategori</Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-md p-3 max-h-48 overflow-y-auto">
+              <div className="space-y-2 border rounded-md p-3">
                 {isLoadingCategories ? (
                   <p className="text-sm text-muted-foreground">Memuat kategori...</p>
                 ) : categories.length === 0 ? (
@@ -94,38 +98,102 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
                   <Controller
                     name="categoryIds"
                     control={control}
-                    render={({ field }) => (
-                      <>
-                        {categories.map((category) => {
-                          const isChecked = field.value?.includes(category.id);
-                          return (
-                            <label
-                              key={category.id}
-                              className="flex items-center space-x-2 text-sm cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                className="rounded border-gray-300 text-primary focus:ring-primary"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  const current = field.value || [];
-                                  if (e.target.checked) {
-                                    field.onChange([...current, category.id]);
-                                  } else {
-                                    field.onChange(current.filter((id) => id !== category.id));
-                                  }
-                                }}
-                                disabled={isSubmitting}
-                              />
-                              <span>{category.name}</span>
-                            </label>
-                          );
-                        })}
-                      </>
-                    )}
+                    render={({ field }) => {
+                      const selectedCategoryIds = field.value || [];
+                      const availableCategories = categories.filter(
+                        (category) => !selectedCategoryIds.includes(category.id)
+                      );
+                      const filteredAvailableCategories = availableCategories.filter((category) =>
+                        category.name.toLowerCase().includes(normalizedCategorySearch)
+                      );
+
+                      return (
+                        <div className="space-y-2">
+                          <Select
+                            disabled={isSubmitting}
+                            onOpenChange={(open) => {
+                              if (!open) {
+                                setCategorySearch('');
+                              }
+                            }}
+                            onValueChange={(value) => {
+                              if (!selectedCategoryIds.includes(value)) {
+                                field.onChange([...selectedCategoryIds, value]);
+                              }
+                              setCategorySearch('');
+                              setCategoryToAdd(undefined);
+                            }}
+                            value={categoryToAdd}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Pilih kategori" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="w-(--radix-select-trigger-width)">
+                              <div className="border-b p-2">
+                                <Input
+                                  placeholder="Cari kategori..."
+                                  value={categorySearch}
+                                  onChange={(e) => setCategorySearch(e.target.value)}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                  disabled={isSubmitting}
+                                />
+                              </div>
+                              {filteredAvailableCategories.length === 0 ? (
+                                <div className="px-2 py-3 text-sm text-muted-foreground">Kategori tidak ditemukan.</div>
+                              ) : (
+                                filteredAvailableCategories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+
+                          {selectedCategoryIds.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {selectedCategoryIds.map((categoryId) => {
+                                const selectedCategory = categories.find((c) => c.id === categoryId);
+
+                                if (!selectedCategory) {
+                                  return null;
+                                }
+
+                                return (
+                                  <div
+                                    key={categoryId}
+                                    className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-xs"
+                                  >
+                                    <span>{selectedCategory.name}</span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 rounded-full"
+                                      aria-label={`Hapus kategori ${selectedCategory.name}`}
+                                      onClick={() =>
+                                        field.onChange(selectedCategoryIds.filter((id) => id !== categoryId))
+                                      }
+                                      disabled={isSubmitting}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Belum ada kategori dipilih.</p>
+                          )}
+                        </div>
+                      );
+                    }}
                   />
                 )}
               </div>
+              {errors.categoryIds && (
+                <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
+              )}
             </div>
 
             {/* Unit */}
@@ -140,10 +208,10 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
                     onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
                     value={field.value || 'none'}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih satuan" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" className="w-(--radix-select-trigger-width)">
                       <SelectItem value="none">Tidak ada satuan</SelectItem>
                       {units.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
