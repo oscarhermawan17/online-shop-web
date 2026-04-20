@@ -7,10 +7,12 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
-  Search,
-  RefreshCcw
+  RefreshCcw,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   Table,
   TableBody,
@@ -55,6 +57,9 @@ interface CustomerTableProps {
   onToggleStatus: () => void
 }
 
+type SortField = "name" | "phone" | "email" | "type" | "status" | "createdAt"
+type SortDirection = "asc" | "desc"
+
 // ─── Pagination helper ─────────────────────────────────────────────────────────
 
 function getPageNumbers(current: number, total: number): (number | "...")[] {
@@ -94,7 +99,13 @@ export function CustomerTable({
   onPageChange,
   onToggleStatus,
 }: CustomerTableProps) {
-  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<SortField>("name")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
+  const [phoneFilter, setPhoneFilter] = useState("")
+  const [emailFilter, setEmailFilter] = useState("")
+  const [typeFilter, setTypeFilter] = useState<"all" | "wholesale" | "base">("all")
+  const [createdDateFilter, setCreatedDateFilter] = useState("")
 
   const handleToggleStatus = async (customer: CustomerListItem) => {
     const action = customer.isActive ? "Nonaktifkan" : "Aktifkan"
@@ -106,7 +117,7 @@ export function CustomerTable({
       return
     }
 
-    setLoadingActionId(customer.id);
+    setLoadingActionId(customer.id)
     try {
       await api.patch(`/admin/customers/${customer.id}/toggle-status`)
       toast.success(
@@ -117,25 +128,25 @@ export function CustomerTable({
       console.error("Toggle status error:", error)
       toast.error("Gagal mengubah status pelanggan")
     } finally {
-      setLoadingActionId(null);
+      setLoadingActionId(null)
     }
-  };
+  }
 
   const handleChangeType = async (customer: CustomerListItem) => {
     const nextType = customer.type === 'wholesale' ? 'base' : 'wholesale';
     const nextTypeLabel = nextType === 'wholesale' ? 'Toko' : 'Retail';
     if (!confirm(`Ubah kategori "${customer.name || customer.phone}" menjadi customer ${nextTypeLabel}?`)) return;
 
-    setLoadingActionId(customer.id);
+    setLoadingActionId(customer.id)
     try {
-      await api.patch(`/admin/customers/${customer.id}/type`, { type: nextType });
-      toast.success(`Kategori pelanggan berhasil diubah menjadi customer ${nextTypeLabel}`);
-      onStatusChange();
+      await api.patch(`/admin/customers/${customer.id}/type`, { type: nextType })
+      toast.success(`Kategori pelanggan berhasil diubah menjadi customer ${nextTypeLabel}`)
+      onStatusChange()
     } catch (error: unknown) {
-      console.error('Change type error:', error);
-      toast.error('Gagal mengubah kategori pelanggan');
+      console.error("Change type error:", error)
+      toast.error("Gagal mengubah kategori pelanggan")
     } finally {
-      setLoadingActionId(null);
+      setLoadingActionId(null)
     }
   }
 
@@ -153,64 +164,244 @@ export function CustomerTable({
   const endRow = Math.min(page * limit, total)
   const pageNumbers = getPageNumbers(page, totalPages)
 
-  return (
-    <div className="space-y-4">
-      {/* ── Controls (above table) ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {/* Search */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            placeholder="Cari nama, no. HP, atau email..."
-            value={searchInput}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 h-11 text-base"
-          />
-        </div>
+  const toDateInputValue = (dateStr: string) => {
+    const date = new Date(dateStr)
+    if (Number.isNaN(date.getTime())) {
+      return ""
+    }
 
-        {/* Status filter */}
-        <Select
-          value={status ?? "all"}
-          onValueChange={(value: "all" | "active" | "inactive") =>
-            onStatusChangeFilter(value)
-          }
-        >
-          <SelectTrigger className="w-44 h-11! text-base">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="active">Aktif</SelectItem>
-            <SelectItem value="inactive">Nonaktif</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const filteredCustomers = useMemo(() => {
+    const nameQuery = searchInput.trim().toLowerCase()
+    const phoneQuery = phoneFilter.trim().toLowerCase()
+    const emailQuery = emailFilter.trim().toLowerCase()
+
+    return customers.filter((customer) => {
+      const nameValue = (customer.name ?? "").toLowerCase()
+      const phoneValue = (customer.phone ?? "").toLowerCase()
+      const emailValue = (customer.email ?? "").toLowerCase()
+
+      if (nameQuery && !nameValue.includes(nameQuery)) {
+        return false
+      }
+
+      if (phoneQuery && !phoneValue.includes(phoneQuery)) {
+        return false
+      }
+
+      if (emailQuery && !emailValue.includes(emailQuery)) {
+        return false
+      }
+
+      if (typeFilter !== "all" && customer.type !== typeFilter) {
+        return false
+      }
+
+      if (status === "active" && !customer.isActive) {
+        return false
+      }
+
+      if (status === "inactive" && customer.isActive) {
+        return false
+      }
+
+      if (createdDateFilter && toDateInputValue(customer.createdAt) !== createdDateFilter) {
+        return false
+      }
+
+      return true
+    })
+  }, [customers, createdDateFilter, emailFilter, phoneFilter, searchInput, status, typeFilter])
+
+  const sortedCustomers = useMemo(() => {
+    const getSortValue = (customer: CustomerListItem) => {
+      switch (sortField) {
+        case "name":
+          return (customer.name ?? "").toLowerCase()
+        case "phone":
+          return customer.phone
+        case "email":
+          return (customer.email ?? "").toLowerCase()
+        case "type":
+          return customer.type === "wholesale" ? 1 : 0
+        case "status":
+          return customer.isActive ? 1 : 0
+        case "createdAt":
+          return new Date(customer.createdAt).getTime()
+        default:
+          return ""
+      }
+    }
+
+    return [...filteredCustomers].sort((a, b) => {
+      const aValue = getSortValue(a)
+      const bValue = getSortValue(b)
+
+      let result = 0
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        result = aValue - bValue
+      } else {
+        result = String(aValue).localeCompare(String(bValue))
+      }
+
+      return sortDirection === "asc" ? result : -result
+    })
+  }, [filteredCustomers, sortField, sortDirection])
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+      return
+    }
+
+    setSortField(field)
+    setSortDirection("asc")
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+    }
+
+    if (sortDirection === "asc") {
+      return <ArrowUp className="h-3.5 w-3.5" />
+    }
+
+    return <ArrowDown className="h-3.5 w-3.5" />
+  }
+
+  const clearFilters = () => {
+    onSearchChange("")
+    onStatusChangeFilter("all")
+    setPhoneFilter("")
+    setEmailFilter("")
+    setTypeFilter("all")
+    setCreatedDateFilter("")
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Menampilkan {sortedCustomers.length} dari {customers.length} pelanggan
+      </p>
 
       {/* ── Table ── */}
       <div className="rounded-md border">
         <Table>
-          <TableHeader className="bg-muted">
+          <TableHeader>
             <TableRow>
-              <TableHead className="text-base font-semibold py-4 text-foreground">
-                Nama
+              <TableHead>
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("name")}>
+                  Nama
+                  <SortIcon field="name" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground">
-                No. HP
+              <TableHead>
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("phone")}>
+                  No. HP
+                  <SortIcon field="phone" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground hidden md:table-cell">
-                Email
+              <TableHead className="hidden md:table-cell">
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("email")}>
+                  Email
+                  <SortIcon field="email" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground hidden md:table-cell">
-                Kategori
+              <TableHead className="hidden md:table-cell">
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("type")}>
+                  Kategori
+                  <SortIcon field="type" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground">
-                Status
+              <TableHead>
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("status")}>
+                  Status
+                  <SortIcon field="status" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground hidden md:table-cell">
-                Tgl. Daftar
+              <TableHead className="hidden md:table-cell">
+                <Button variant="ghost" className="h-8 px-2" onClick={() => toggleSort("createdAt")}>
+                  Tgl. Daftar
+                  <SortIcon field="createdAt" />
+                </Button>
               </TableHead>
-              <TableHead className="text-base font-semibold py-4 text-foreground w-16">
-                Aksi
+              <TableHead className="w-16">Aksi</TableHead>
+            </TableRow>
+            <TableRow>
+              <TableHead>
+                <Input
+                  placeholder="Filter nama"
+                  value={searchInput}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="h-8"
+                />
+              </TableHead>
+              <TableHead>
+                <Input
+                  placeholder="Filter no. HP"
+                  value={phoneFilter}
+                  onChange={(e) => setPhoneFilter(e.target.value)}
+                  className="h-8"
+                />
+              </TableHead>
+              <TableHead className="hidden md:table-cell">
+                <Input
+                  placeholder="Filter email"
+                  value={emailFilter}
+                  onChange={(e) => setEmailFilter(e.target.value)}
+                  className="h-8"
+                />
+              </TableHead>
+              <TableHead className="hidden md:table-cell">
+                <Select
+                  value={typeFilter}
+                  onValueChange={(value: "all" | "wholesale" | "base") => setTypeFilter(value)}
+                >
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua kategori</SelectItem>
+                    <SelectItem value="wholesale">Toko</SelectItem>
+                    <SelectItem value="base">Retail</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
+              <TableHead>
+                <Select
+                  value={status}
+                  onValueChange={(value: "all" | "active" | "inactive") =>
+                    onStatusChangeFilter(value)
+                  }
+                >
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="inactive">Nonaktif</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
+              <TableHead className="hidden md:table-cell">
+                <Input
+                  type="date"
+                  value={createdDateFilter}
+                  onChange={(e) => setCreatedDateFilter(e.target.value)}
+                  className="h-8"
+                />
+              </TableHead>
+              <TableHead className="w-16">
+                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={clearFilters}>
+                  Reset
+                </Button>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -218,24 +409,24 @@ export function CustomerTable({
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <TableCell key={j}>
                       <div className="h-4 w-full rounded bg-muted animate-pulse" />
                     </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : customers.length === 0 ? (
+            ) : sortedCustomers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-10 text-center text-muted-foreground"
                 >
                   Tidak ada pelanggan yang sesuai dengan filter.
                 </TableCell>
               </TableRow>
             ) : (
-              customers.map((customer) => (
+              sortedCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
                     <p className="font-medium">
