@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { isAxiosError } from 'axios';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
@@ -32,6 +33,32 @@ interface VariantFormProps {
   variants: ProductVariant[];
   onVariantsChange: () => void;
 }
+
+const resolveApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (isAxiosError(error)) {
+    const rawMessage = error.response?.data?.message;
+
+    if (typeof rawMessage === 'string' && rawMessage.trim()) {
+      return rawMessage;
+    }
+
+    if (Array.isArray(rawMessage)) {
+      const joinedMessage = rawMessage
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .join(', ');
+
+      if (joinedMessage) {
+        return joinedMessage;
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 export function VariantForm({
   productId,
@@ -115,7 +142,7 @@ export function VariantForm({
       onVariantsChange();
     } catch (error: unknown) {
       console.error('Variant error:', error);
-      toast.error('Gagal menyimpan varian');
+      toast.error(resolveApiErrorMessage(error, 'Gagal menyimpan varian'));
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +158,7 @@ export function VariantForm({
       onVariantsChange();
     } catch (error: unknown) {
       console.error('Delete error:', error);
-      toast.error('Gagal menghapus varian');
+      toast.error(resolveApiErrorMessage(error, 'Gagal menghapus varian'));
     } finally {
       setDeletingId(null);
     }
