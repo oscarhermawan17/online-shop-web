@@ -245,7 +245,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
           {isVariantManagedProduct ? (
             <div className="space-y-2">
               <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
-                Harga normal, harga retail, dan stok untuk produk ini dikelola per varian.
+                Harga normal, harga retail, dan stok awal untuk produk ini dikelola per varian.
                 Gunakan panel <span className="font-medium text-foreground">Varian Produk</span>
                 {' '}untuk memperbarui harga dan stok.
               </div>
@@ -303,7 +303,7 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="stock">Stok *</Label>
+                <Label htmlFor="stock">Stok Awal *</Label>
                 <Input
                   id="stock"
                   type="number"
@@ -311,6 +311,9 @@ export function ProductForm({ product, onSubmit, isSubmitting }: ProductFormProp
                   {...register('stock', { valueAsNumber: true })}
                   disabled={isSubmitting}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Stok awal hanya bisa diedit selama belum ada transaksi dan belum ada tambah stok.
+                </p>
                 {errors.stock && (
                   <p className="text-sm text-destructive">{errors.stock.message}</p>
                 )}

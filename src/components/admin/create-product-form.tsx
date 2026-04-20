@@ -280,7 +280,7 @@ export function CreateProductForm({
               <div>
                 <h2 className="text-lg font-semibold">Varian Produk</h2>
                 <p className="text-sm text-muted-foreground">
-                  Input harga normal, harga retail, dan stok langsung per varian.
+                  Input harga normal, harga retail, dan stok awal langsung per varian.
                 </p>
               </div>
               <Button
@@ -425,7 +425,7 @@ export function CreateProductForm({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`variants.${index}.stock`}>Stok *</Label>
+                      <Label htmlFor={`variants.${index}.stock`}>Stok Awal *</Label>
                       <Input
                         id={`variants.${index}.stock`}
                         type="number"
@@ -435,6 +435,9 @@ export function CreateProductForm({
                         })}
                         disabled={isSubmitting}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Stok awal hanya bisa diedit selama belum ada transaksi dan belum ada tambah stok.
+                      </p>
                       {variantErrors?.stock && (
                         <p className="text-sm text-destructive">
                           {variantErrors.stock.message}

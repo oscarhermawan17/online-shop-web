@@ -142,11 +142,11 @@ export function VariantForm({
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-1">
           <CardTitle className="text-lg">
-            {isVariantManagedProduct ? 'Harga dan Stok per Varian' : 'Varian Produk'}
+            {isVariantManagedProduct ? 'Harga dan Stok Awal per Varian' : 'Varian Produk'}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {isVariantManagedProduct
-              ? 'Kelola harga normal, harga retail, dan stok langsung di setiap varian.'
+              ? 'Kelola harga normal, harga retail, dan stok awal langsung di setiap varian.'
               : 'Tambahkan varian jika produk ini memiliki pilihan seperti warna, ukuran, atau isi.'}
           </p>
         </div>
@@ -254,7 +254,7 @@ export function VariantForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="variantStock">Stok *</Label>
+                <Label htmlFor="variantStock">Stok Awal *</Label>
                 <Input
                   id="variantStock"
                   type="number"
@@ -262,6 +262,9 @@ export function VariantForm({
                   {...register('stock', { valueAsNumber: true })}
                   disabled={isSubmitting}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Stok awal hanya bisa diedit selama belum ada transaksi dan belum ada tambah stok.
+                </p>
                 {errors.stock && (
                   <p className="text-sm text-destructive">{errors.stock.message}</p>
                 )}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Store, Users, WalletCards, HandCoins } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Store, Users, WalletCards, HandCoins, Boxes } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Beranda', icon: LayoutDashboard, exact: true },
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/customers', label: 'Pelanggan', icon: Users, exact: false },
   { href: '/admin/credit', label: 'Limit', icon: WalletCards, exact: false },
   { href: '/admin/receivables', label: 'Piutang', icon: HandCoins, exact: false },
+  { href: '/admin/inventory', label: 'Stok', icon: Boxes, exact: false },
   { href: '/admin/store', label: 'Toko', icon: Store, exact: false },
 ];
 

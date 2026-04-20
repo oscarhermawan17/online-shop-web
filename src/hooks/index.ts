@@ -10,4 +10,5 @@ export { useAdminShippingDrivers } from './use-shipping-drivers';
 export { useAdminCategories } from './use-categories';
 export { useAdminUnits } from './use-units';
 export { useAdminReceivables } from './use-receivables';
+export { useAdminInventoryMovements } from './use-inventory';
 export type { ShippingZone } from './use-shipping-zones';
