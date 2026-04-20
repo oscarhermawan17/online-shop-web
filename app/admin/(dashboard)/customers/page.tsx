@@ -70,7 +70,7 @@ export default function AdminCustomersPage() {
         <Button asChild>
           <Link href="/admin/customers/add">
             <Plus className="mr-2 h-4 w-4" />
-            Tambah User Wholesale
+            Tambah User Toko
           </Link>
         </Button>
       </div>
