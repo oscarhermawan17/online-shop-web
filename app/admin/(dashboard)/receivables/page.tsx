@@ -1,7 +1,15 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Download, Loader2, PlusCircle } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Download,
+  Loader2,
+  PlusCircle,
+} from 'lucide-react';
 
 import api from '@/lib/api';
 import { downloadAdminReport } from '@/lib/report-download';
@@ -15,6 +23,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,8 +37,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const today = new Date().toISOString().slice(0, 10);
+const toDateInputValue = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const today = toDateInputValue(new Date());
+const firstDayOfCurrentMonth = (() => {
+  const now = new Date();
+  return toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+})();
+
+type ReceivablesTab = 'unsettled' | 'settled';
 
 const formatPaymentAmountInput = (digits: string) => {
   if (!digits) {
@@ -33,8 +62,46 @@ const formatPaymentAmountInput = (digits: string) => {
   return formatRupiah(Number(digits));
 };
 
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+
+  const window = new Set([
+    1,
+    total,
+    current,
+    Math.max(2, current - 1),
+    Math.min(total - 1, current + 1),
+  ]);
+  const sorted = Array.from(window).sort((a, b) => a - b);
+
+  const result: (number | '...')[] = [];
+  for (let index = 0; index < sorted.length; index += 1) {
+    if (index > 0 && sorted[index] - sorted[index - 1] > 1) {
+      result.push('...');
+    }
+    result.push(sorted[index]);
+  }
+
+  return result;
+}
+
 export default function AdminReceivablesPage() {
-  const { receivables, isLoading, isError, mutate } = useAdminReceivables();
+  const [activeTab, setActiveTab] = useState<ReceivablesTab>('unsettled');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [startDate, setStartDate] = useState(firstDayOfCurrentMonth);
+  const [endDate, setEndDate] = useState(today);
+
+  const { receivables, pagination, isLoading, isValidating, isError, mutate } = useAdminReceivables({
+    page,
+    limit,
+    settled: activeTab,
+    startDate,
+    endDate,
+  });
+
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, { amount: string; receivedAt: string }>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -42,13 +109,68 @@ export default function AdminReceivablesPage() {
 
   const totals = useMemo(() => {
     return receivables.reduce((acc, item) => {
-      acc.invoice += 1;
       acc.total += item.totalAmount;
       acc.paid += item.paidAmount;
       acc.remaining += item.remainingAmount;
       return acc;
-    }, { invoice: 0, total: 0, paid: 0, remaining: 0 });
+    }, { total: 0, paid: 0, remaining: 0 });
   }, [receivables]);
+
+  const totalRows = pagination?.total ?? 0;
+  const totalPages = pagination?.totalPages ?? 1;
+  const startRow = totalRows === 0 ? 0 : (page - 1) * limit + 1;
+  const endRow = Math.min(page * limit, totalRows);
+  const pageNumbers = getPageNumbers(page, totalPages);
+
+  const resetExpandedRows = () => {
+    setExpandedRows({});
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as ReceivablesTab);
+    setPage(1);
+    resetExpandedRows();
+  };
+
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
+    if (value && endDate && value > endDate) {
+      setEndDate(value);
+    }
+    setPage(1);
+    resetExpandedRows();
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
+    if (value && startDate && value < startDate) {
+      setStartDate(value);
+    }
+    setPage(1);
+    resetExpandedRows();
+  };
+
+  const handleLimitChange = (value: string) => {
+    setLimit(Number(value));
+    setPage(1);
+    resetExpandedRows();
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages) {
+      return;
+    }
+    setPage(nextPage);
+    resetExpandedRows();
+  };
+
+  const handleResetFilters = () => {
+    setStartDate(firstDayOfCurrentMonth);
+    setEndDate(today);
+    setLimit(25);
+    setPage(1);
+    resetExpandedRows();
+  };
 
   const toggleExpand = (orderId: string) => {
     setExpandedRows((prev) => ({
@@ -109,9 +231,20 @@ export default function AdminReceivablesPage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
+      const params: Record<string, string> = {
+        settled: activeTab,
+      };
+
+      if (startDate) {
+        params.startDate = startDate;
+      }
+      if (endDate) {
+        params.endDate = endDate;
+      }
+
       await downloadAdminReport(
         '/admin/receivables/export',
-        {},
+        params,
         `receivables-report-${today}.xls`,
       );
       toast.success('Laporan piutang berhasil diunduh');
@@ -133,16 +266,6 @@ export default function AdminReceivablesPage() {
         title="Gagal Memuat Piutang"
         message="Tidak dapat memuat daftar invoice kredit"
         onRetry={() => mutate()}
-      />
-    );
-  }
-
-  if (receivables.length === 0) {
-    return (
-      <EmptyState
-        type="orders"
-        title="Belum Ada Piutang"
-        description="Invoice kredit akan muncul di sini setelah ada transaksi credit."
       />
     );
   }
@@ -171,28 +294,88 @@ export default function AdminReceivablesPage() {
         </Button>
       </div>
 
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        <TabsList className="grid w-full max-w-sm grid-cols-2">
+          <TabsTrigger value="unsettled">Belum Lunas</TabsTrigger>
+          <TabsTrigger value="settled">Lunas</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filter</CardTitle>
+          <CardDescription>
+            Default rentang tanggal adalah bulan berjalan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-1.5">
+              <label className="text-sm font-medium">Tanggal Mulai</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => handleStartDateChange(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-sm font-medium">Tanggal Akhir</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => handleEndDateChange(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-sm font-medium">Baris per Halaman</label>
+              <Select value={String(limit)} onValueChange={handleLimitChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResetFilters}
+              >
+                Reset Filter
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Invoice</CardDescription>
-            <CardTitle>{totals.invoice}</CardTitle>
+            <CardDescription>Total Invoice (Filter)</CardDescription>
+            <CardTitle>{totalRows}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Nilai Invoice</CardDescription>
+            <CardDescription>Nilai Invoice (Halaman Ini)</CardDescription>
             <CardTitle>{formatRupiah(totals.total)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Sudah Dibayar</CardDescription>
+            <CardDescription>Sudah Dibayar (Halaman Ini)</CardDescription>
             <CardTitle>{formatRupiah(totals.paid)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Sisa Piutang</CardDescription>
+            <CardDescription>Sisa Piutang (Halaman Ini)</CardDescription>
             <CardTitle>{formatRupiah(totals.remaining)}</CardTitle>
           </CardHeader>
         </Card>
@@ -200,177 +383,250 @@ export default function AdminReceivablesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Invoice Kredit</CardTitle>
+          <CardTitle>
+            Daftar Invoice Kredit {activeTab === 'settled' ? 'Lunas' : 'Belum Lunas'}
+          </CardTitle>
           <CardDescription>
             Setiap baris adalah invoice induk. Expand untuk melihat cicilan dan input pembayaran baru.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">Detail</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Pelanggan</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Dibayar</TableHead>
-                <TableHead>Sisa</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receivables.map((invoice) => {
-                const isExpanded = !!expandedRows[invoice.id];
-                const draft = getDraft(invoice);
-                const isSubmitting = submittingId === invoice.id;
+        <CardContent className="space-y-4">
+          {isValidating && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Memperbarui data...
+            </div>
+          )}
 
-                return (
-                  <Fragment key={invoice.id}>
-                    <TableRow key={invoice.id}>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => toggleExpand(invoice.id)}
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-mono text-sm font-medium">{invoice.publicOrderId}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(invoice.createdAt)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{invoice.customerName || '-'}</p>
-                          <p className="text-sm text-muted-foreground">{invoice.customerPhone || '-'}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatRupiah(invoice.totalAmount)}</TableCell>
-                      <TableCell>{formatRupiah(invoice.paidAmount)}</TableCell>
-                      <TableCell className="font-medium">{formatRupiah(invoice.remainingAmount)}</TableCell>
-                      <TableCell>
-                        <Badge variant={invoice.isSettled ? 'secondary' : 'default'}>
-                          {invoice.isSettled ? 'Lunas' : 'Belum Lunas'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
+          {receivables.length === 0 ? (
+            <EmptyState
+              type="orders"
+              title={activeTab === 'settled' ? 'Belum Ada Piutang Lunas' : 'Belum Ada Piutang Belum Lunas'}
+              description={
+                activeTab === 'settled'
+                  ? 'Invoice kredit lunas akan muncul di sini sesuai filter tanggal yang dipilih.'
+                  : 'Invoice kredit yang belum lunas akan muncul di sini sesuai filter tanggal yang dipilih.'
+              }
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Detail</TableHead>
+                  <TableHead>Invoice</TableHead>
+                  <TableHead>Pelanggan</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Dibayar</TableHead>
+                  <TableHead>Sisa</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {receivables.map((invoice) => {
+                  const isExpanded = !!expandedRows[invoice.id];
+                  const draft = getDraft(invoice);
+                  const isSubmitting = submittingId === invoice.id;
 
-                    {isExpanded && (
-                      <TableRow key={`${invoice.id}-details`}>
-                        <TableCell colSpan={7} className="bg-muted/20">
-                          <div className="grid gap-4 lg:grid-cols-2">
-                            <div className="space-y-3 rounded-lg border bg-background p-4">
-                              <div>
-                                <p className="font-medium">Riwayat Pembayaran</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Pembayaran dapat dicatat lebih dari satu kali untuk invoice yang sama.
-                                </p>
-                              </div>
-                              {invoice.payments.length === 0 ? (
-                                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                  Belum ada pembayaran untuk invoice ini.
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {invoice.payments.map((payment, index) => (
-                                    <div
-                                      key={payment.id}
-                                      className="flex items-center justify-between rounded-lg border p-3"
-                                    >
-                                      <div>
-                                        <p className="text-sm font-medium">Pembayaran #{invoice.payments.length - index}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                          Tanggal diterima: {formatDateOnly(payment.receivedAt)}
-                                        </p>
-                                      </div>
-                                      <p className="font-semibold">{formatRupiah(payment.amount)}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-3 rounded-lg border bg-background p-4">
-                              <div>
-                                <p className="font-medium">Input Pembayaran</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Catat cicilan baru untuk invoice ini.
-                                </p>
-                              </div>
-
-                              <div className="grid gap-3">
-                                <div className="grid gap-1.5">
-                                  <label className="text-sm font-medium">Nominal</label>
-                                  <Input
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    value={formatPaymentAmountInput(draft.amount)}
-                                    onChange={(e) => updateDraft(invoice.id, {
-                                      amount: e.target.value.replace(/\D/g, ''),
-                                    })}
-                                    disabled={isSubmitting || invoice.isSettled}
-                                  />
-                                </div>
-                                <div className="grid gap-1.5">
-                                  <label className="text-sm font-medium">Tanggal Penerimaan</label>
-                                  <Input
-                                    type="date"
-                                    value={draft.receivedAt}
-                                    onChange={(e) => updateDraft(invoice.id, {
-                                      receivedAt: e.target.value,
-                                    })}
-                                    disabled={isSubmitting || invoice.isSettled}
-                                  />
-                                </div>
-                                <div className="rounded-lg bg-muted p-3 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Sisa saat ini</span>
-                                    <span className="font-medium">{formatRupiah(invoice.remainingAmount)}</span>
-                                  </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  onClick={() => handleSubmitPayment(invoice)}
-                                  disabled={
-                                    isSubmitting
-                                    || invoice.isSettled
-                                    || !draft.amount
-                                    || !draft.receivedAt
-                                  }
-                                >
-                                  {isSubmitting ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                  )}
-                                  Simpan Pembayaran
-                                </Button>
-                                {invoice.isSettled && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Invoice ini sudah lunas, tidak bisa menerima pembayaran tambahan.
-                                  </p>
-                                )}
-                              </div>
-                            </div>
+                  return (
+                    <Fragment key={invoice.id}>
+                      <TableRow>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => toggleExpand(invoice.id)}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-mono text-sm font-medium">{invoice.publicOrderId}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(invoice.createdAt)}
+                            </p>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{invoice.customerName || '-'}</p>
+                            <p className="text-sm text-muted-foreground">{invoice.customerPhone || '-'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatRupiah(invoice.totalAmount)}</TableCell>
+                        <TableCell>{formatRupiah(invoice.paidAmount)}</TableCell>
+                        <TableCell className="font-medium">{formatRupiah(invoice.remainingAmount)}</TableCell>
+                        <TableCell>
+                          <Badge variant={invoice.isSettled ? 'secondary' : 'default'}>
+                            {invoice.isSettled ? 'Lunas' : 'Belum Lunas'}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </TableBody>
-          </Table>
+
+                      {isExpanded && (
+                        <TableRow key={`${invoice.id}-details`}>
+                          <TableCell colSpan={7} className="bg-muted/20">
+                            <div className="grid gap-4 lg:grid-cols-2">
+                              <div className="space-y-3 rounded-lg border bg-background p-4">
+                                <div>
+                                  <p className="font-medium">Riwayat Pembayaran</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Pembayaran dapat dicatat lebih dari satu kali untuk invoice yang sama.
+                                  </p>
+                                </div>
+                                {invoice.payments.length === 0 ? (
+                                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                                    Belum ada pembayaran untuk invoice ini.
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {invoice.payments.map((payment, index) => (
+                                      <div
+                                        key={payment.id}
+                                        className="flex items-center justify-between rounded-lg border p-3"
+                                      >
+                                        <div>
+                                          <p className="text-sm font-medium">Pembayaran #{invoice.payments.length - index}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Tanggal diterima: {formatDateOnly(payment.receivedAt)}
+                                          </p>
+                                        </div>
+                                        <p className="font-semibold">{formatRupiah(payment.amount)}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-3 rounded-lg border bg-background p-4">
+                                <div>
+                                  <p className="font-medium">Input Pembayaran</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Catat cicilan baru untuk invoice ini.
+                                  </p>
+                                </div>
+
+                                <div className="grid gap-3">
+                                  <div className="grid gap-1.5">
+                                    <label className="text-sm font-medium">Nominal</label>
+                                    <Input
+                                      inputMode="numeric"
+                                      placeholder="0"
+                                      value={formatPaymentAmountInput(draft.amount)}
+                                      onChange={(event) => updateDraft(invoice.id, {
+                                        amount: event.target.value.replace(/\D/g, ''),
+                                      })}
+                                      disabled={isSubmitting || invoice.isSettled}
+                                    />
+                                  </div>
+                                  <div className="grid gap-1.5">
+                                    <label className="text-sm font-medium">Tanggal Penerimaan</label>
+                                    <Input
+                                      type="date"
+                                      value={draft.receivedAt}
+                                      onChange={(event) => updateDraft(invoice.id, {
+                                        receivedAt: event.target.value,
+                                      })}
+                                      disabled={isSubmitting || invoice.isSettled}
+                                    />
+                                  </div>
+                                  <div className="rounded-lg bg-muted p-3 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Sisa saat ini</span>
+                                      <span className="font-medium">{formatRupiah(invoice.remainingAmount)}</span>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleSubmitPayment(invoice)}
+                                    disabled={
+                                      isSubmitting
+                                      || invoice.isSettled
+                                      || !draft.amount
+                                      || !draft.receivedAt
+                                    }
+                                  >
+                                    {isSubmitting ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                    )}
+                                    Simpan Pembayaran
+                                  </Button>
+                                  {invoice.isSettled && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Invoice ini sudah lunas, tidak bisa menerima pembayaran tambahan.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+
+          {pagination && totalRows > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Menampilkan {startRow}-{endRow} dari {totalRows} invoice
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1 || isValidating}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {pageNumbers.map((item, index) => {
+                  if (item === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-1 text-muted-foreground">
+                        ...
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <Button
+                      key={item}
+                      variant={item === page ? 'default' : 'outline'}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handlePageChange(item)}
+                      disabled={isValidating}
+                    >
+                      {item}
+                    </Button>
+                  );
+                })}
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages || isValidating}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
