@@ -123,12 +123,13 @@ export function CustomerTable({
 
   const handleChangeType = async (customer: CustomerListItem) => {
     const nextType = customer.type === 'wholesale' ? 'base' : 'wholesale';
-    if (!confirm(`Ubah kategori "${customer.name || customer.phone}" menjadi ${nextType}?`)) return;
+    const nextTypeLabel = nextType === 'wholesale' ? 'Toko' : 'Retail';
+    if (!confirm(`Ubah kategori "${customer.name || customer.phone}" menjadi customer ${nextTypeLabel}?`)) return;
 
     setLoadingActionId(customer.id);
     try {
       await api.patch(`/admin/customers/${customer.id}/type`, { type: nextType });
-      toast.success(`Kategori pelanggan berhasil diubah menjadi ${nextType}`);
+      toast.success(`Kategori pelanggan berhasil diubah menjadi customer ${nextTypeLabel}`);
       onStatusChange();
     } catch (error: unknown) {
       console.error('Change type error:', error);
@@ -252,9 +253,15 @@ export function CustomerTable({
                     </p>
                   </TableCell>
 
-                   <TableCell className="hidden md:table-cell">
+                   {/* <TableCell className="hidden md:table-cell">
                     <Badge variant={customer.type === 'wholesale' ? 'default' : 'outline'}>
                       {customer.type === 'wholesale' ? 'Wholesale' : 'Base'}
+                    </Badge>
+                  </TableCell> */}
+
+                  <TableCell className="hidden md:table-cell">
+                    <Badge variant={customer.type === 'wholesale' ? 'default' : 'outline'}>
+                      {customer.type === 'wholesale' ? 'Toko' : 'Retail'}
                     </Badge>
                   </TableCell>
 
@@ -289,7 +296,8 @@ export function CustomerTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleChangeType(customer)}>
                           <RefreshCcw className="mr-2 h-4 w-4" />
-                          Ubah ke {customer.type === 'wholesale' ? 'Base' : 'Wholesale'}
+                          {/* Ubah ke {customer.type === 'wholesale' ? 'Base' : 'Wholesale'} */}
+                          Ubah ke {customer.type === 'wholesale' ? 'Retail' : 'Toko'}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleToggleStatus(customer)}
