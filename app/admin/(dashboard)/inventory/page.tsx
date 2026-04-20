@@ -40,7 +40,7 @@ const categoryOptions: Array<{ value: StockMovementCategory | 'all'; label: stri
   { value: 'all', label: 'Semua kategori' },
   { value: 'initial_stock', label: 'Stok awal' },
   { value: 'add_stock', label: 'Tambah stok' },
-  { value: 'sale', label: 'Penjualan' },
+  { value: 'sale', label: 'Checkout / Penjualan' },
   { value: 'restore', label: 'Restore' },
 ];
 

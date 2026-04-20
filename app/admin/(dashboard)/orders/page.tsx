@@ -52,7 +52,8 @@ export default function AdminOrdersPage() {
 
   const handleUpdateStatus = async (
     orderId: string,
-    newStatus: 'shipped' | 'done'
+    newStatus: 'shipped' | 'done',
+    deliveryMethod: Order['deliveryMethod']
   ) => {
     setLoadingId(orderId);
     try {
@@ -61,7 +62,9 @@ export default function AdminOrdersPage() {
       });
       toast.success(
         newStatus === 'shipped'
-          ? 'Pesanan ditandai sebagai dikirim'
+          ? deliveryMethod === 'pickup'
+            ? 'Pengambilan pesanan berhasil dikonfirmasi'
+            : 'Pesanan ditandai sebagai dikirim'
           : 'Pesanan selesai'
       );
       mutate();
@@ -184,7 +187,11 @@ function AdminActions({
   onRefresh: () => void | Promise<void>;
   onConfirmPayment: (id: string) => void;
   onSettleCredit: (id: string) => void;
-  onUpdateStatus: (id: string, status: 'shipped' | 'done') => void;
+  onUpdateStatus: (
+    id: string,
+    status: 'shipped' | 'done',
+    deliveryMethod: Order['deliveryMethod']
+  ) => void;
 }) {
   const showSettleCredit = order.paymentMethod === 'credit' && !order.creditSettledAt;
 
@@ -247,15 +254,15 @@ function AdminActions({
         ) : (
           <Button
             size="sm"
-            onClick={() => onUpdateStatus(order.id, 'shipped')}
+            onClick={() => onUpdateStatus(order.id, 'shipped', order.deliveryMethod)}
             disabled={isLoading}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
             ) : (
-              <Truck className="h-4 w-4 mr-1.5" />
+              <Check className="h-4 w-4 mr-1.5" />
             )}
-            Kirim
+            Konfirmasi Pengambilan
           </Button>
         )
       )}
@@ -263,7 +270,7 @@ function AdminActions({
       {order.status === 'shipped' && (
         <Button
           size="sm"
-          onClick={() => onUpdateStatus(order.id, 'done')}
+          onClick={() => onUpdateStatus(order.id, 'done', order.deliveryMethod)}
           disabled={isLoading}
         >
           {isLoading ? (

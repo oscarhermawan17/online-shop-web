@@ -91,7 +91,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       await api.patch(`/admin/orders/${id}/status`, { status });
       toast.success(
         status === 'shipped'
-          ? 'Pesanan ditandai sebagai dikirim'
+          ? order.deliveryMethod === 'pickup'
+            ? 'Pengambilan pesanan berhasil dikonfirmasi'
+            : 'Pesanan ditandai sebagai dikirim'
           : 'Pesanan selesai'
       );
       mutate();
@@ -524,9 +526,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     {isUpdating ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Truck className="mr-2 h-4 w-4" />
+                      <Check className="mr-2 h-4 w-4" />
                     )}
-                    Tandai Dikirim
+                    Konfirmasi Pengambilan
                   </Button>
                 )
               )}
