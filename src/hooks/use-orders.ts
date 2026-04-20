@@ -22,9 +22,28 @@ export function usePublicOrder(publicOrderId: string | null) {
   };
 }
 
+export interface AdminOrdersParams {
+  status?: OrderStatus;
+  startDate?: string;
+  endDate?: string;
+}
+
 // Hook for fetching admin orders
-export function useAdminOrders(status?: OrderStatus) {
-  const url = status ? `/admin/orders?status=${status}` : '/admin/orders';
+export function useAdminOrders(params?: AdminOrdersParams) {
+  const queryParams = new URLSearchParams();
+
+  if (params?.status) {
+    queryParams.set('status', params.status);
+  }
+  if (params?.startDate) {
+    queryParams.set('startDate', params.startDate);
+  }
+  if (params?.endDate) {
+    queryParams.set('endDate', params.endDate);
+  }
+
+  const queryString = queryParams.toString();
+  const url = queryString ? `/admin/orders?${queryString}` : '/admin/orders';
   
   const { data, error, isLoading, mutate } = useSWR<Order[]>(
     url,

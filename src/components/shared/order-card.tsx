@@ -21,6 +21,8 @@ interface OrderCardProps {
   order: Order;
   /** URL prefix for detail link. Defaults to order detail by publicOrderId. */
   detailHref?: string;
+  /** Extra controls rendered in card header actions area. */
+  headerActions?: React.ReactNode;
   /** Extra content rendered in the footer (e.g. action buttons). */
   footerActions?: React.ReactNode;
   /** Whether to show customer name in the header (admin view). */
@@ -32,6 +34,7 @@ interface OrderCardProps {
 export function OrderCard({
   order,
   detailHref,
+  headerActions,
   footerActions,
   showCustomer = false,
   showShippingSummary = false,
@@ -86,6 +89,7 @@ export function OrderCard({
           </div>
           
           <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
+            {headerActions}
             <Link href={href} onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="sm" className="shrink-0 h-8">
                 <Eye className="h-4 w-4 mr-1.5" />
