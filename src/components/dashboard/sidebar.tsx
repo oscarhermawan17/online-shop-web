@@ -25,7 +25,7 @@ export function DashboardSidebar() {
         { title: 'Profil', href: '/dashboard' },
         // { title: 'Bank & Kartu', href: '#' },
         { title: 'Alamat', href: '/dashboard/address' },
-        { title: 'Ubah Password', href: '#' },
+        { title: 'Ubah Password', href: '/dashboard/password' },
         // { title: 'Pengaturan Notifikasi', href: '#' },
         // { title: 'Pengaturan Privasi', href: '#' },
       ]

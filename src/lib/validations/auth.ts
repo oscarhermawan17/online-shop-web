@@ -31,3 +31,26 @@ export const registerSchema = z.object({
 });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, 'Password saat ini harus diisi'),
+    newPassword: z
+      .string()
+      .min(6, 'Password baru minimal 6 karakter'),
+    confirmNewPassword: z
+      .string()
+      .min(1, 'Konfirmasi password baru harus diisi'),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'Konfirmasi password baru tidak cocok',
+    path: ['confirmNewPassword'],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'Password baru harus berbeda dari password saat ini',
+    path: ['newPassword'],
+  });
+
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
