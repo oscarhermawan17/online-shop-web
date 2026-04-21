@@ -154,11 +154,7 @@ function resolveCategoryIconUrl(rawUrl: string) {
 function CategoryIcon({ icon, name, colorClass, FallbackIcon }: CategoryIconProps) {
   const [hasError, setHasError] = useState(false);
   const resolvedIconUrl = icon ? resolveCategoryIconUrl(icon) : null;
-  const iconSrc = resolvedIconUrl
-    ? /^data:image\//i.test(resolvedIconUrl)
-      ? resolvedIconUrl
-      : `/api/image-proxy?url=${encodeURIComponent(resolvedIconUrl)}`
-    : null;
+  const iconSrc = resolvedIconUrl;
   const shouldShowImage = !!iconSrc && !hasError;
 
   return (
