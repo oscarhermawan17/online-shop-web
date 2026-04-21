@@ -36,6 +36,7 @@ function createEmptySlide(index: number): CarouselSlideInput {
     badge: '',
     imageUrl: '',
     backgroundColor: DEFAULT_BACKGROUND_COLOR,
+    showText: true,
     isActive: true,
     sortOrder: index,
   };
@@ -49,6 +50,7 @@ function normalizeSlides(slides: CarouselSlideInput[]) {
     badge: slide.badge ?? '',
     imageUrl: slide.imageUrl ?? '',
     backgroundColor: slide.backgroundColor || DEFAULT_BACKGROUND_COLOR,
+    showText: slide.showText ?? true,
     isActive: slide.isActive,
     sortOrder: index,
   }));
@@ -57,11 +59,12 @@ function normalizeSlides(slides: CarouselSlideInput[]) {
 function mapSlideToEditor(slide: CarouselSlide): CarouselSlideInput {
   return {
     id: slide.id,
-    title: slide.title,
+    title: slide.title ?? '',
     subtitle: slide.subtitle ?? '',
     badge: slide.badge ?? '',
     imageUrl: slide.imageUrl ?? '',
     backgroundColor: slide.backgroundColor ?? DEFAULT_BACKGROUND_COLOR,
+    showText: slide.showText ?? true,
     isActive: slide.isActive,
     sortOrder: slide.sortOrder,
   };
@@ -323,6 +326,13 @@ export function CarouselManager() {
             const imageInputId = `carousel-image-${slide.id ?? index}`;
             const isUploadingThisSlide = uploadingSlideId === slide.id;
             const previewBackground = slide.backgroundColor || DEFAULT_BACKGROUND_COLOR;
+            const shouldShowText = slide.showText ?? true;
+            const previewBadge = slide.badge?.trim();
+            const previewTitle = slide.title?.trim();
+            const previewSubtitle = slide.subtitle?.trim();
+            const hasPreviewText = Boolean(
+              previewBadge || previewTitle || previewSubtitle
+            );
 
             return (
               <div
@@ -338,27 +348,37 @@ export function CarouselManager() {
                       <>
                         <Image
                           src={getOptimizedImageUrl(slide.imageUrl, 1200)}
-                          alt={slide.title || `Slide ${index + 1}`}
+                          alt={previewTitle || `Slide ${index + 1}`}
                           fill
                           className="object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/40" />
+                        {shouldShowText && hasPreviewText ? (
+                          <div className="absolute inset-0 bg-black/40" />
+                        ) : null}
                       </>
                     ) : (
                       <div className="absolute inset-0 bg-linear-to-br from-white/20 via-transparent to-transparent" />
                     )}
 
-                    <div className="relative z-10 flex h-full min-h-40 flex-col justify-center p-4 sm:min-h-48 sm:p-6">
-                      <span className="mb-3 inline-flex w-fit max-w-full break-words rounded bg-[#f9fbb7] px-2 py-1 text-[10px] font-bold tracking-[1px] text-[#5e602c] uppercase">
-                        {slide.badge || 'BADGE SLIDE'}
-                      </span>
-                      <h3 className="whitespace-pre-line break-words text-xl font-extrabold text-white sm:text-2xl">
-                        {slide.title || `Judul slide ${index + 1}`}
-                      </h3>
-                      <p className="mt-2 max-w-xl break-words text-xs text-white/90 sm:text-sm">
-                        {slide.subtitle || 'Subjudul slide akan muncul di sini.'}
-                      </p>
-                    </div>
+                    {shouldShowText && hasPreviewText ? (
+                      <div className="relative z-10 flex h-full min-h-40 flex-col justify-center p-4 sm:min-h-48 sm:p-6">
+                        {previewBadge ? (
+                          <span className="mb-3 inline-flex w-fit max-w-full break-words rounded bg-[#f9fbb7] px-2 py-1 text-[10px] font-bold tracking-[1px] text-[#5e602c] uppercase">
+                            {previewBadge}
+                          </span>
+                        ) : null}
+                        {previewTitle ? (
+                          <h3 className="whitespace-pre-line break-words text-xl font-extrabold text-white sm:text-2xl">
+                            {previewTitle}
+                          </h3>
+                        ) : null}
+                        {previewSubtitle ? (
+                          <p className="mt-2 max-w-xl break-words text-xs text-white/90 sm:text-sm">
+                            {previewSubtitle}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-44 lg:grid-cols-1">
@@ -373,6 +393,20 @@ export function CarouselManager() {
                         checked={slide.isActive}
                         onCheckedChange={(checked) =>
                           handleSlideChange(index, 'isActive', checked)
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2 sm:col-span-2 lg:col-span-1">
+                      <div>
+                        <p className="text-sm font-medium">Mode Tampilan</p>
+                        <p className="text-xs text-muted-foreground">
+                          {shouldShowText ? 'Gambar + Teks' : 'Gambar Saja'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={shouldShowText}
+                        onCheckedChange={(checked) =>
+                          handleSlideChange(index, 'showText', checked)
                         }
                       />
                     </div>
@@ -412,7 +446,9 @@ export function CarouselManager() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor={`carousel-title-${slide.id}`}>Judul Slide</Label>
+                    <Label htmlFor={`carousel-title-${slide.id}`}>
+                      Judul Slide (Opsional)
+                    </Label>
                     <Textarea
                       id={`carousel-title-${slide.id}`}
                       rows={2}
@@ -436,7 +472,7 @@ export function CarouselManager() {
                       onChange={(event) =>
                         handleSlideChange(index, 'subtitle', event.target.value)
                       }
-                      placeholder="Deskripsi singkat promo atau informasi slide"
+                      placeholder="Opsional"
                       disabled={isSaving}
                     />
                   </div>
@@ -449,7 +485,7 @@ export function CarouselManager() {
                       onChange={(event) =>
                         handleSlideChange(index, 'badge', event.target.value)
                       }
-                      placeholder="Contoh: PROMO UNGGULAN"
+                      placeholder="Opsional"
                       disabled={isSaving}
                     />
                   </div>
