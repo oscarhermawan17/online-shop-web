@@ -54,6 +54,7 @@ export interface CustomerUser {
   name: string | null;
   phone: string;
   email: string | null;
+  avatarUrl: string | null;
   type: CustomerType;
 }
 

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { AxiosError } from 'axios';
 import {
   User,
   Camera,
@@ -24,29 +26,22 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useCustomerAuthStore, useCartStore } from '@/stores';
-import { cn } from '@/lib/utils';
+import { cn, getThumbnailUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/shared';
 import { OrderStatusBadge } from '@/components/public/order-status';
-import { fetcher } from '@/lib/api';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+import api, { fetcher } from '@/lib/api';
 import type { Order } from '@/types/order';
+import type { CustomerUser } from '@/types';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const customer = useCustomerAuthStore((state) => state.customer);
-
   return (
     <>
       {/* Desktop View */}
@@ -63,33 +58,116 @@ export default function ProfilePage() {
 }
 
 function DesktopProfile() {
+  const token = useCustomerAuthStore((state) => state.token);
   const customer = useCustomerAuthStore((state) => state.customer);
+  const setAuth = useCustomerAuthStore((state) => state.setAuth);
   const [loading, setLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Generate days, months, years for selects
-  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-  const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
+  const { data: profileData, isLoading: isProfileLoading, mutate } = useSWR<{ customer: CustomerUser }>(
+    '/customer-auth/me',
+    fetcher
+  );
+
+  const activeCustomer = profileData?.customer ?? customer;
+
+  useEffect(() => {
+    if (token && profileData?.customer) {
+      setAuth(token, profileData.customer);
+    }
+  }, [token, profileData, setAuth]);
+
+  useEffect(() => {
+    setName(activeCustomer?.name ?? '');
+    setEmail(activeCustomer?.email ?? '');
+  }, [activeCustomer?.id, activeCustomer?.name, activeCustomer?.email]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      toast.error('Nama wajib diisi');
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      toast.error('Nama minimal 2 karakter');
+      return;
+    }
+
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const response = await api.patch<{ data: { customer: CustomerUser } }>('/customer-auth/me', {
+        name: trimmedName,
+        email: trimmedEmail || null,
+      });
+
+      const updatedCustomer = response.data.data.customer;
+
+      if (token) {
+        setAuth(token, updatedCustomer);
+      }
+
+      await mutate({ customer: updatedCustomer }, false);
+      setName(updatedCustomer.name ?? '');
+      setEmail(updatedCustomer.email ?? '');
       toast.success('Profil berhasil diperbarui');
-    }, 1000);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      toast.error(axiosError.response?.data?.message ?? 'Gagal memperbarui profil');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const maskEmail = (email: string | null) => {
-    if (!email) return 'Belum ada email';
-    const [user, domain] = email.split('@');
-    return `${user.slice(0, 2)}${'*'.repeat(user.length - 2)}@${domain}`;
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!acceptedTypes.includes(file.type)) {
+      toast.error('Format gambar harus JPG, PNG, atau WEBP');
+      event.target.value = '';
+      return;
+    }
+
+    const maxSizeBytes = 1 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.error('Ukuran foto profil maksimal 1 MB');
+      event.target.value = '';
+      return;
+    }
+
+    setAvatarUploading(true);
+
+    try {
+      const uploaded = await uploadToCloudinary(file);
+      const response = await api.patch<{ data: { customer: CustomerUser } }>('/customer-auth/me', {
+        avatarUrl: uploaded.secure_url,
+      });
+
+      const updatedCustomer = response.data.data.customer;
+
+      if (token) {
+        setAuth(token, updatedCustomer);
+      }
+
+      await mutate({ customer: updatedCustomer }, false);
+      toast.success('Foto profil berhasil diperbarui');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      toast.error(axiosError.response?.data?.message ?? 'Gagal mengunggah foto profil');
+    } finally {
+      setAvatarUploading(false);
+      event.target.value = '';
+    }
   };
 
   return (
@@ -110,85 +188,45 @@ function DesktopProfile() {
             {/* Username Row */}
             <Label className="text-sm text-gray-500 justify-self-start mr-4">Username</Label>
             <div className="space-y-1">
-              <span className="text-sm text-gray-900 font-medium">{customer?.phone || 'frederykabryan'}</span>
-              <p className="text-[11px] text-gray-400">Username hanya dapat diubah satu (1) kali.</p>
+              <span className="text-sm text-gray-900 font-medium">{activeCustomer?.phone || '-'}</span>
+              <p className="text-[11px] text-gray-400">Username menggunakan nomor HP dan tidak dapat diubah dari halaman ini.</p>
             </div>
 
             {/* Nama Row */}
             <Label className="text-sm text-gray-500 justify-self-start mr-4">Nama</Label>
             <Input
               placeholder="Masukkan nama"
-              defaultValue={customer?.name || ''}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
               className="max-w-md h-10 border-gray-200"
+              disabled={isProfileLoading || loading}
             />
 
             {/* Email Row */}
             <Label className="text-sm text-gray-500 justify-self-start mr-4">Email</Label>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-900">{maskEmail(customer?.email || 'fa*******@gmail.com')}</span>
-              <button type="button" className="text-blue-600 text-sm hover:underline">Ubah</button>
-            </div>
+            <Input
+              type="email"
+              placeholder="Masukkan email (opsional)"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="max-w-md h-10 border-gray-200"
+              disabled={isProfileLoading || loading}
+            />
 
             {/* Nomor Telepon Row */}
             <Label className="text-sm text-gray-500 justify-self-start mr-4">Nomor Telepon</Label>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-900">{customer?.phone || '********3456'}</span>
-              <button type="button" className="text-blue-600 text-sm hover:underline">Ubah</button>
+            <div className="space-y-1">
+              <span className="text-sm text-gray-900">{activeCustomer?.phone || '-'}</span>
+              <p className="text-[11px] text-gray-400">Ubah nomor telepon melalui admin bila diperlukan.</p>
             </div>
 
-            {/* Nama Toko Row */}
-            <Label className="text-sm text-gray-500 justify-self-start mr-4">Nama Toko</Label>
-            <Input
-              placeholder="Masukkan nama toko"
-              defaultValue="frederykabryan"
-              className="max-w-md h-10 border-gray-200"
-            />
-
-            {/* Jenis Kelamin Row */}
-            <Label className="text-sm text-gray-500 justify-self-start mr-4">Jenis Kelamin</Label>
-            <div className="flex items-center gap-6">
-              {['Laki-laki', 'Perempuan', 'Lainnya'].map((label) => (
-                <label key={label} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value={label.toLowerCase()}
-                    className="w-4 h-4 text-[#ee4d2d] focus:ring-[#ee4d2d] border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">{label}</span>
-                </label>
-              ))}
-            </div>
-
-            {/* Tanggal Lahir Row */}
-            <Label className="text-sm text-gray-500 justify-self-start mr-4">Tanggal lahir</Label>
-            <div className="flex gap-2 max-w-md">
-              <Select defaultValue="9">
-                <SelectTrigger className="h-10 border-gray-200 flex-1">
-                  <SelectValue placeholder="Tanggal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select defaultValue="Januari">
-                <SelectTrigger className="h-10 border-gray-200 flex-1">
-                  <SelectValue placeholder="Bulan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select defaultValue="1995">
-                <SelectTrigger className="h-10 border-gray-200 flex-1">
-                  <SelectValue placeholder="Tahun" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            {/* Tipe Akun Row */}
+            <Label className="text-sm text-gray-500 justify-self-start mr-4">Tipe Akun</Label>
+            <div className="space-y-1">
+              <span className="text-sm text-gray-900">
+                {activeCustomer?.type === 'wholesale' ? 'Toko' : 'Retail'}
+              </span>
+              <p className="text-[11px] text-gray-400">Tipe akun mengikuti pengaturan dari admin.</p>
             </div>
 
             {/* Save Button */}
@@ -196,7 +234,7 @@ function DesktopProfile() {
             <div className="pt-2">
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isProfileLoading}
                 className="bg-[#166534] hover:bg-[#115e5b] text-white px-8 h-10 text-sm font-medium"
               >
                 {loading ? 'Menyimpan...' : 'Simpan'}
@@ -209,20 +247,49 @@ function DesktopProfile() {
         <div className="flex flex-col items-center gap-6 md:w-64 md:border-l border-gray-100 pl-0 md:pl-12 pt-4">
           <div className="relative group">
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
-              <User className="w-12 h-12 text-gray-300" />
+              {activeCustomer?.avatarUrl ? (
+                <Image
+                  src={getThumbnailUrl(activeCustomer.avatarUrl, 192)}
+                  alt={activeCustomer.name || 'Foto profil'}
+                  width={96}
+                  height={96}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-gray-300" />
+              )}
             </div>
-            <button className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading || loading || isProfileLoading}
+              className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+            >
               <Camera className="text-white w-6 h-6" />
             </button>
           </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleAvatarUpload}
+            className="hidden"
+          />
 
           <div className="flex flex-col items-center gap-3">
-            <Button variant="outline" size="sm" className="bg-white border-gray-200 text-sm px-4">
-              Pilih Gambar
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="bg-white border-gray-200 text-sm px-4"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading || loading || isProfileLoading}
+            >
+              {avatarUploading ? 'Mengunggah...' : 'Pilih Gambar'}
             </Button>
             <div className="text-center text-xs text-gray-400 leading-normal">
               <p>Ukuran gambar: maks. 1 MB</p>
-              <p>Format gambar: .JPEG, .PNG</p>
+              <p>Format gambar: .JPG, .PNG, .WEBP</p>
             </div>
           </div>
         </div>
@@ -300,7 +367,17 @@ function MobileDashboard() {
         <div className="flex items-start gap-4 relative z-10">
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center overflow-hidden">
-              <User className="w-10 h-10 text-white" />
+              {customer?.avatarUrl ? (
+                <Image
+                  src={getThumbnailUrl(customer.avatarUrl, 128)}
+                  alt={customer.name || 'Foto profil'}
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="w-10 h-10 text-white" />
+              )}
             </div>
             <button className="absolute bottom-0 right-0 bg-white rounded-full p-1 border shadow-sm">
               <Camera className="w-3 h-3 text-gray-600" />
@@ -449,4 +526,3 @@ function OrderHistoryInline({ activeStatus = 'all' }: { activeStatus?: string })
     </div>
   );
 }
-

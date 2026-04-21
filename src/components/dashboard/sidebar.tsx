@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   User,
@@ -10,7 +11,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useCustomerAuthStore } from '@/stores';
-import { cn } from '@/lib/utils';
+import { cn, getThumbnailUrl } from '@/lib/utils';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -51,7 +52,17 @@ export function DashboardSidebar() {
     <aside className="w-48 shrink-0">
       <div className="flex items-center gap-3 py-4 mb-3">
         <div className="h-12 w-12 rounded-full border bg-gray-100 shrink-0 overflow-hidden flex items-center justify-center">
-          <User className="w-6 h-6 text-gray-400" />
+          {customer?.avatarUrl ? (
+            <Image
+              src={getThumbnailUrl(customer.avatarUrl, 96)}
+              alt={customer.name || 'Foto profil'}
+              width={48}
+              height={48}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <User className="w-6 h-6 text-gray-400" />
+          )}
         </div>
         <div className="overflow-hidden">
           <p className="font-bold text-sm truncate">{customer?.name || 'Pengguna'}</p>
