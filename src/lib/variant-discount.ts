@@ -26,6 +26,10 @@ const clamp = (value: number, min: number, max: number): number => {
   return value;
 };
 
+const getScopePriority = (rule: VariantDiscountRule): number => (
+  rule.source === 'product' ? 0 : 1
+);
+
 const isRuleApplicable = (rule: VariantDiscountRule, ctx: VariantDiscountContext): boolean => {
   if (!rule.isActive) {
     return false;
@@ -95,6 +99,11 @@ export const resolveVariantDiscount = (
       discountAmount: getRuleDiscountAmount(rule, ctx),
     }))
     .sort((a, b) => {
+      const scopePriorityDiff = getScopePriority(b.rule) - getScopePriority(a.rule);
+      if (scopePriorityDiff !== 0) {
+        return scopePriorityDiff;
+      }
+
       if (b.discountAmount !== a.discountAmount) {
         return b.discountAmount - a.discountAmount;
       }

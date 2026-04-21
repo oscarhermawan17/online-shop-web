@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ProductForm, VariantForm, ImageUpload } from '@/components/admin';
+import { ProductForm, VariantForm, ImageUpload, ProductDiscountRulesForm } from '@/components/admin';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminProduct } from '@/hooks';
 import { toast } from 'sonner';
@@ -246,6 +246,13 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               />
             </CardContent>
           </Card>
+
+          {/* Variants */}
+          <ProductDiscountRulesForm
+            productId={id}
+            rules={product.productDiscountRules ?? []}
+            onRulesChange={() => mutate()}
+          />
 
           {/* Variants */}
           <VariantForm

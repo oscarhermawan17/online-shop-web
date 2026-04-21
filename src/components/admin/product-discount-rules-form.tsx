@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatRupiah } from '@/lib/utils';
 import type {
-  ProductVariant,
+  ProductDiscountRule,
   VariantDiscountCustomerType,
-  VariantDiscountRule,
 } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,14 +25,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
-interface VariantDiscountRulesFormProps {
+interface ProductDiscountRulesFormProps {
   productId: string;
-  variants: ProductVariant[];
+  rules: ProductDiscountRule[];
   onRulesChange: () => void;
-  embedded?: boolean;
-  onlyVariantId?: string;
-  hideHeading?: boolean;
-  inlineForVariant?: boolean;
 }
 
 type RuleFormState = {
@@ -62,30 +57,22 @@ const defaultRuleForm: RuleFormState = {
   priority: 0,
 };
 
-const getSellableVariants = (variants: ProductVariant[]) => {
-  const realVariants = variants.filter((variant) => !variant.isDefault);
-  return realVariants.length > 0 ? realVariants : variants;
-};
-
-const getVariantLabel = (variant: ProductVariant, index: number) =>
-  variant.name?.trim() || (variant.isDefault ? 'Varian Utama' : `Varian ${index + 1}`);
-
-const getCustomerLabel = (customerType: VariantDiscountRule['customerType']) => {
+const getCustomerLabel = (customerType: ProductDiscountRule['customerType']) => {
   if (customerType === 'base') return 'Customer biasa';
   if (customerType === 'wholesale') return 'Customer ritel';
   return 'Semua customer';
 };
 
-const getTriggerLabel = (triggerType: VariantDiscountRule['triggerType']) =>
+const getTriggerLabel = (triggerType: ProductDiscountRule['triggerType']) =>
   triggerType === 'quantity' ? 'Qty item' : 'Subtotal item';
 
-const getApplyModeLabel = (applyMode: VariantDiscountRule['applyMode']) =>
+const getApplyModeLabel = (applyMode: ProductDiscountRule['applyMode']) =>
   applyMode === 'per_item' ? 'Diskon per item' : 'Diskon total line';
 
-const getRuleValueLabel = (rule: VariantDiscountRule) =>
+const getRuleValueLabel = (rule: ProductDiscountRule) =>
   rule.valueType === 'percentage' ? `${rule.value}%` : formatRupiah(rule.value);
 
-const getThresholdLabel = (rule: VariantDiscountRule) => {
+const getThresholdLabel = (rule: ProductDiscountRule) => {
   const min = rule.triggerType === 'quantity'
     ? `${rule.minThreshold}`
     : formatRupiah(rule.minThreshold);
@@ -110,57 +97,39 @@ const parseIntegerInput = (value: string): number | null => {
   return Number.isInteger(parsed) ? parsed : null;
 };
 
-const sortRules = (rules: VariantDiscountRule[] | undefined): VariantDiscountRule[] => {
-  if (!rules?.length) return [];
-
-  return [...rules].sort((a, b) => {
+const sortRules = (rules: ProductDiscountRule[]): ProductDiscountRule[] => (
+  [...rules].sort((a, b) => {
     if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
     if (a.priority !== b.priority) return b.priority - a.priority;
     if (a.minThreshold !== b.minThreshold) return b.minThreshold - a.minThreshold;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
-};
+  })
+);
 
-export function VariantDiscountRulesForm({
+export function ProductDiscountRulesForm({
   productId,
-  variants,
+  rules,
   onRulesChange,
-  embedded = false,
-  onlyVariantId,
-  hideHeading = false,
-  inlineForVariant = false,
-}: VariantDiscountRulesFormProps) {
-  const sellableVariants = useMemo(() => getSellableVariants(variants), [variants]);
-  const visibleVariants = useMemo(() => {
-    if (!onlyVariantId) return sellableVariants;
-    return sellableVariants.filter((variant) => variant.id === onlyVariantId);
-  }, [sellableVariants, onlyVariantId]);
-  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+}: ProductDiscountRulesFormProps) {
+  const sortedRules = useMemo(() => sortRules(rules), [rules]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [togglingRuleId, setTogglingRuleId] = useState<string | null>(null);
-  const [editingRule, setEditingRule] = useState<VariantDiscountRule | null>(null);
+  const [editingRule, setEditingRule] = useState<ProductDiscountRule | null>(null);
   const [form, setForm] = useState<RuleFormState>(defaultRuleForm);
-  const activeVariant = sellableVariants.find((variant) => variant.id === activeVariantId) ?? null;
-  const rulesByVariantId = useMemo(() => {
-    const entries = visibleVariants.map((variant) => [variant.id, sortRules(variant.discountRules)] as const);
-    return new Map<string, VariantDiscountRule[]>(entries);
-  }, [visibleVariants]);
 
   const setField = <K extends keyof RuleFormState>(key: K, value: RuleFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const openCreateDialog = (variantId: string) => {
-    setActiveVariantId(variantId);
+  const openCreateDialog = () => {
     setEditingRule(null);
     setForm(defaultRuleForm);
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (variantId: string, rule: VariantDiscountRule) => {
-    setActiveVariantId(variantId);
+  const openEditDialog = (rule: ProductDiscountRule) => {
     setEditingRule(rule);
     setForm({
       name: rule.name ?? '',
@@ -182,7 +151,6 @@ export function VariantDiscountRulesForm({
     if (!open) {
       setEditingRule(null);
       setForm(defaultRuleForm);
-      setActiveVariantId(null);
     }
   };
 
@@ -232,8 +200,6 @@ export function VariantDiscountRulesForm({
   };
 
   const handleSaveRule = async () => {
-    if (!activeVariant) return;
-
     let payload: ReturnType<typeof normalizeAndValidateForm>;
     try {
       payload = normalizeAndValidateForm();
@@ -247,221 +213,160 @@ export function VariantDiscountRulesForm({
     try {
       if (editingRule) {
         await api.patch(
-          `/admin/products/${productId}/variants/${activeVariant.id}/discount-rules/${editingRule.id}`,
+          `/admin/products/${productId}/discount-rules/${editingRule.id}`,
           payload,
         );
-        toast.success('Rule diskon varian berhasil diperbarui');
+        toast.success('Rule diskon all varian berhasil diperbarui');
       } else {
         await api.post(
-          `/admin/products/${productId}/variants/${activeVariant.id}/discount-rules`,
+          `/admin/products/${productId}/discount-rules`,
           payload,
         );
-        toast.success('Rule diskon varian berhasil ditambahkan');
+        toast.success('Rule diskon all varian berhasil ditambahkan');
       }
 
       handleDialogOpenChange(false);
       onRulesChange();
     } catch (error: unknown) {
-      console.error('Save variant discount rule error:', error);
+      console.error('Save product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal menyimpan rule diskon varian');
+      toast.error(err.response?.data?.message || 'Gagal menyimpan rule diskon all varian');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteRule = async (variantId: string, rule: VariantDiscountRule) => {
+  const handleDeleteRule = async (rule: ProductDiscountRule) => {
     if (!confirm(`Hapus rule diskon "${rule.name || 'Tanpa Nama'}"?`)) return;
 
     setDeletingRuleId(rule.id);
     try {
-      await api.delete(
-        `/admin/products/${productId}/variants/${variantId}/discount-rules/${rule.id}`,
-      );
-      toast.success('Rule diskon varian berhasil dihapus');
+      await api.delete(`/admin/products/${productId}/discount-rules/${rule.id}`);
+      toast.success('Rule diskon all varian berhasil dihapus');
       onRulesChange();
     } catch (error: unknown) {
-      console.error('Delete variant discount rule error:', error);
+      console.error('Delete product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal menghapus rule diskon varian');
+      toast.error(err.response?.data?.message || 'Gagal menghapus rule diskon all varian');
     } finally {
       setDeletingRuleId(null);
     }
   };
 
-  const handleToggleRule = async (variantId: string, rule: VariantDiscountRule) => {
+  const handleToggleRule = async (rule: ProductDiscountRule) => {
     setTogglingRuleId(rule.id);
     try {
-      await api.patch(
-        `/admin/products/${productId}/variants/${variantId}/discount-rules/${rule.id}`,
-        { isActive: !rule.isActive },
-      );
+      await api.patch(`/admin/products/${productId}/discount-rules/${rule.id}`, {
+        isActive: !rule.isActive,
+      });
       toast.success(rule.isActive ? 'Rule diskon dinonaktifkan' : 'Rule diskon diaktifkan');
       onRulesChange();
     } catch (error: unknown) {
-      console.error('Toggle variant discount rule error:', error);
+      console.error('Toggle product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal mengubah status rule diskon varian');
+      toast.error(err.response?.data?.message || 'Gagal mengubah status rule diskon all varian');
     } finally {
       setTogglingRuleId(null);
     }
   };
 
-  const heading = (
-    <div className="space-y-1">
-      <CardTitle className="text-lg">Diskon per Varian</CardTitle>
-      <p className="text-sm text-muted-foreground">
-        Atur rule diskon langsung di masing-masing varian (tanpa pilih varian dari dropdown).
-      </p>
-    </div>
-  );
-
-  const renderRules = (variantId: string, rules: VariantDiscountRule[]) => (
-    rules.length === 0 ? (
-      <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-        Belum ada rule diskon untuk varian ini.
-      </p>
-    ) : (
-      <div className="space-y-2">
-        {rules.map((rule) => (
-          <div
-            key={rule.id}
-            className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3"
-          >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{rule.name || 'Rule tanpa nama'}</p>
-                <Badge variant={rule.isActive ? 'default' : 'secondary'}>
-                  {rule.isActive ? 'Aktif' : 'Nonaktif'}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {getTriggerLabel(rule.triggerType)}: {getThresholdLabel(rule)}
-                {' • '}
-                Diskon: {getRuleValueLabel(rule)}
-                {' • '}
-                {getApplyModeLabel(rule.applyMode)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {getCustomerLabel(rule.customerType)}
-                {' • '}
-                Prioritas: {rule.priority}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleToggleRule(variantId, rule)}
-                disabled={togglingRuleId === rule.id}
-              >
-                {togglingRuleId === rule.id ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Power className="mr-2 h-4 w-4" />
-                )}
-                {rule.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => openEditDialog(variantId, rule)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive hover:text-destructive"
-                onClick={() => handleDeleteRule(variantId, rule)}
-                disabled={deletingRuleId === rule.id}
-              >
-                {deletingRuleId === rule.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  );
-
-  const content = (
-    <>
-      {!visibleVariants.length ? (
-        <p className="text-sm text-muted-foreground">
-          Varian belum tersedia. Tambahkan varian terlebih dulu.
-        </p>
-      ) : inlineForVariant && visibleVariants.length === 1 ? (
-        <div className="space-y-3 rounded-lg border border-dashed bg-muted/30 p-3">
-          {(() => {
-            const variant = visibleVariants[0];
-            const rules = rulesByVariantId.get(variant.id) ?? [];
-            return (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">Rule Diskon</p>
-                  <Badge variant={rules.length > 0 ? 'default' : 'secondary'}>
-                    {rules.length > 0 ? `${rules.length} rule` : 'Kosong'}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    {rules.length > 0 ? `${rules.length} rule diskon` : 'Belum ada rule diskon'}
-                  </p>
-                  <Button size="sm" onClick={() => openCreateDialog(variant.id)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Rule
-                  </Button>
-                </div>
-                {renderRules(variant.id, rules)}
-              </>
-            );
-          })()}
+  return (
+    <Card>
+      <CardHeader>
+        <div className="space-y-1">
+          <CardTitle className="text-lg">Diskon All Varian</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Rule ini berlaku ke semua varian dalam produk.
+          </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {visibleVariants.map((variant, index) => {
-            const rules = rulesByVariantId.get(variant.id) ?? [];
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex justify-end">
+          <Button size="sm" onClick={openCreateDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Rule
+          </Button>
+        </div>
 
-            return (
-              <div key={variant.id} className="rounded-lg border p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <p className="font-medium">{getVariantLabel(variant, index)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {rules.length > 0
-                        ? `${rules.length} rule diskon`
-                        : 'Belum ada rule diskon'}
-                    </p>
+        {sortedRules.length === 0 ? (
+          <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+            Belum ada rule diskon all varian.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {sortedRules.map((rule) => (
+              <div
+                key={rule.id}
+                className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{rule.name || 'Rule tanpa nama'}</p>
+                    <Badge variant={rule.isActive ? 'default' : 'secondary'}>
+                      {rule.isActive ? 'Aktif' : 'Nonaktif'}
+                    </Badge>
                   </div>
-                  <Button size="sm" onClick={() => openCreateDialog(variant.id)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Rule
+                  <p className="text-sm text-muted-foreground">
+                    {getTriggerLabel(rule.triggerType)}: {getThresholdLabel(rule)}
+                    {' • '}
+                    Diskon: {getRuleValueLabel(rule)}
+                    {' • '}
+                    {getApplyModeLabel(rule.applyMode)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {getCustomerLabel(rule.customerType)}
+                    {' • '}
+                    Prioritas: {rule.priority}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleRule(rule)}
+                    disabled={togglingRuleId === rule.id}
+                  >
+                    {togglingRuleId === rule.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Power className="mr-2 h-4 w-4" />
+                    )}
+                    {rule.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEditDialog(rule)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteRule(rule)}
+                    disabled={deletingRuleId === rule.id}
+                  >
+                    {deletingRuleId === rule.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-                <div className="mt-3">
-                  {renderRules(variant.id, rules)}
-                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
         <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingRule ? 'Edit Rule Diskon Varian' : 'Tambah Rule Diskon Varian'}
+                {editingRule ? 'Edit Rule Diskon All Varian' : 'Tambah Rule Diskon All Varian'}
               </DialogTitle>
               <DialogDescription>
-                {activeVariant
-                  ? `Varian: ${activeVariant.name?.trim() || 'Varian tanpa nama'}`
-                  : 'Pilih varian dari daftar untuk menambahkan rule.'}
+                Rule ini berlaku untuk semua varian pada produk ini.
               </DialogDescription>
             </DialogHeader>
 
@@ -676,22 +581,7 @@ export function VariantDiscountRulesForm({
             </div>
           </DialogContent>
         </Dialog>
-    </>
-  );
-
-  if (embedded) {
-    return (
-      <div className="space-y-4">
-        {!hideHeading ? heading : null}
-        {content}
-      </div>
-    );
-  }
-
-  return (
-    <Card>
-      {!hideHeading ? <CardHeader>{heading}</CardHeader> : null}
-      <CardContent className="space-y-4">{content}</CardContent>
+      </CardContent>
     </Card>
   );
 }

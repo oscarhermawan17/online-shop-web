@@ -30,6 +30,25 @@ export interface VariantDiscountRule {
   id: string;
   variantId: string;
   storeId: string;
+  source?: 'variant' | 'product';
+  name: string | null;
+  triggerType: DiscountTriggerType;
+  minThreshold: number;
+  maxThreshold: number | null;
+  valueType: DiscountValueType;
+  value: number;
+  applyMode: DiscountApplyMode;
+  customerType: VariantDiscountCustomerType | null;
+  isActive: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductDiscountRule {
+  id: string;
+  productId: string;
+  storeId: string;
   name: string | null;
   triggerType: DiscountTriggerType;
   minThreshold: number;
@@ -75,6 +94,7 @@ export interface Product {
   updatedAt: string;
   images: ProductImage[];
   variants: ProductVariant[];
+  productDiscountRules?: ProductDiscountRule[];
   discount?: ProductDiscount | null;
 }
 
@@ -101,6 +121,7 @@ export interface ProductListItem {
   isActive: boolean;
   images: ProductImage[];
   variants: ProductVariant[];
+  productDiscountRules?: ProductDiscountRule[];
   discount?: ProductDiscount | null;
 }
 
@@ -113,7 +134,7 @@ export interface CreateProductPayload {
   wholesalePrice?: number | null;
   stock?: number;
   variants?: Array<{
-    name?: string;
+    name: string;
     imageUrl?: string | null;
     basePrice: number;
     wholesalePrice?: number | null;

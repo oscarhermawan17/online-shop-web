@@ -32,6 +32,7 @@ const areRulesEqual = (
       && rule.customerType === other.customerType
       && rule.isActive === other.isActive
       && rule.priority === other.priority
+      && rule.source === other.source
     );
   });
 };

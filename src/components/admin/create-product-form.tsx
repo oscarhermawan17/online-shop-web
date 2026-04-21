@@ -300,7 +300,6 @@ export function CreateProductForm({
 
             {fields.map((field, index) => {
               const variantErrors = errors.variants?.[index];
-              const requiresName = fields.length > 1;
 
               return (
                 <div key={field.id} className="space-y-4 rounded-lg border p-4">
@@ -325,16 +324,10 @@ export function CreateProductForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`variants.${index}.name`}>
-                      Nama Varian {requiresName ? '*' : ''}
-                    </Label>
+                    <Label htmlFor={`variants.${index}.name`}>Nama Varian *</Label>
                     <Input
                       id={`variants.${index}.name`}
-                      placeholder={
-                        requiresName
-                          ? 'Contoh: Merah, Ukuran L, 500ml'
-                          : 'Opsional jika hanya satu varian'
-                      }
+                      placeholder="Contoh: Merah, Ukuran L, 500ml"
                       {...register(`variants.${index}.name`)}
                       disabled={isSubmitting}
                     />
