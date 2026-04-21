@@ -110,30 +110,63 @@ interface CategoryIconProps {
   FallbackIcon: typeof ShoppingBag;
 }
 
-function isDirectImageUrl(url: string) {
-  return (
-    /^data:image\//i.test(url)
-    || /cloudinary\.com/i.test(url)
-    || /\.(png|jpe?g|gif|webp|svg|avif|ico)(\?.*)?$/i.test(url)
-  );
+function resolveCategoryIconUrl(rawUrl: string) {
+  const iconUrl = rawUrl.trim();
+
+  if (!iconUrl) {
+    return null;
+  }
+
+  if (/^data:image\//i.test(iconUrl)) {
+    return iconUrl;
+  }
+
+  if (iconUrl.startsWith('//')) {
+    return `https:${iconUrl}`;
+  }
+
+  if (/^https?:\/\//i.test(iconUrl)) {
+    return iconUrl;
+  }
+
+  if (!iconUrl.startsWith('/')) {
+    return null;
+  }
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (apiBaseUrl) {
+    try {
+      const apiOrigin = new URL(apiBaseUrl).origin;
+      return new URL(iconUrl, apiOrigin).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    return new URL(iconUrl, window.location.origin).toString();
+  }
+
+  return null;
 }
 
 function CategoryIcon({ icon, name, colorClass, FallbackIcon }: CategoryIconProps) {
   const [hasError, setHasError] = useState(false);
-  const iconUrl = icon?.trim();
-  const canLoadFromUrl = !!iconUrl && isDirectImageUrl(iconUrl);
-  const proxiedIconUrl = iconUrl
-    && canLoadFromUrl
-    ? `/api/image-proxy?url=${encodeURIComponent(iconUrl)}`
+  const resolvedIconUrl = icon ? resolveCategoryIconUrl(icon) : null;
+  const iconSrc = resolvedIconUrl
+    ? /^data:image\//i.test(resolvedIconUrl)
+      ? resolvedIconUrl
+      : `/api/image-proxy?url=${encodeURIComponent(resolvedIconUrl)}`
     : null;
-  const shouldShowImage = !!proxiedIconUrl && !hasError;
+  const shouldShowImage = !!iconSrc && !hasError;
 
   return (
     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm overflow-hidden ${colorClass}`}>
       {shouldShowImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={proxiedIconUrl}
+          src={iconSrc}
           alt={name}
           className="w-full h-full object-cover"
           loading="lazy"
