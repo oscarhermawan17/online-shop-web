@@ -279,12 +279,13 @@ export function CarouselManager() {
             </CardDescription>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button
               type="button"
               variant="outline"
               onClick={handleAddSlide}
               disabled={slides.length >= MAX_SLIDES || isSaving}
+              className="w-full sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Tambah Slide
@@ -293,6 +294,7 @@ export function CarouselManager() {
               type="button"
               onClick={handleSaveSlides}
               disabled={isSaving || uploadingSlideId !== null}
+              className="w-full sm:w-auto"
             >
               {isSaving ? (
                 <>
@@ -325,11 +327,11 @@ export function CarouselManager() {
             return (
               <div
                 key={slide.id ?? `slide-${index}`}
-                className="rounded-2xl border bg-background p-4 shadow-sm"
+                className="rounded-2xl border bg-background p-3 shadow-sm sm:p-4"
               >
-                <div className="mb-4 flex flex-col gap-4 lg:flex-row">
+                <div className="mb-4 flex flex-col gap-3 sm:gap-4 lg:flex-row">
                   <div
-                    className="relative min-h-48 flex-1 overflow-hidden rounded-2xl"
+                    className="relative min-h-40 flex-1 overflow-hidden rounded-2xl sm:min-h-48"
                     style={{ backgroundColor: previewBackground }}
                   >
                     {slide.imageUrl ? (
@@ -346,21 +348,21 @@ export function CarouselManager() {
                       <div className="absolute inset-0 bg-linear-to-br from-white/20 via-transparent to-transparent" />
                     )}
 
-                    <div className="relative z-10 flex h-full min-h-48 flex-col justify-center p-6">
-                      <span className="mb-3 inline-flex w-fit rounded bg-[#f9fbb7] px-2 py-1 text-[10px] font-bold tracking-[1px] text-[#5e602c] uppercase">
+                    <div className="relative z-10 flex h-full min-h-40 flex-col justify-center p-4 sm:min-h-48 sm:p-6">
+                      <span className="mb-3 inline-flex w-fit max-w-full break-words rounded bg-[#f9fbb7] px-2 py-1 text-[10px] font-bold tracking-[1px] text-[#5e602c] uppercase">
                         {slide.badge || 'BADGE SLIDE'}
                       </span>
-                      <h3 className="whitespace-pre-line text-2xl font-extrabold text-white">
+                      <h3 className="whitespace-pre-line break-words text-xl font-extrabold text-white sm:text-2xl">
                         {slide.title || `Judul slide ${index + 1}`}
                       </h3>
-                      <p className="mt-2 max-w-xl text-sm text-white/90">
+                      <p className="mt-2 max-w-xl break-words text-xs text-white/90 sm:text-sm">
                         {slide.subtitle || 'Subjudul slide akan muncul di sini.'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex w-full flex-col gap-2 lg:w-44">
-                    <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                  <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-44 lg:grid-cols-1">
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2 sm:col-span-2 lg:col-span-1">
                       <div>
                         <p className="text-sm font-medium">Slide #{index + 1}</p>
                         <p className="text-xs text-muted-foreground">
@@ -380,6 +382,7 @@ export function CarouselManager() {
                       variant="outline"
                       onClick={() => handleMoveSlide(index, 'up')}
                       disabled={index === 0 || isSaving}
+                      className="w-full"
                     >
                       <ArrowUp className="h-4 w-4" />
                       Naik
@@ -389,6 +392,7 @@ export function CarouselManager() {
                       variant="outline"
                       onClick={() => handleMoveSlide(index, 'down')}
                       disabled={index === slides.length - 1 || isSaving}
+                      className="w-full"
                     >
                       <ArrowDown className="h-4 w-4" />
                       Turun
@@ -398,6 +402,7 @@ export function CarouselManager() {
                       variant="destructive"
                       onClick={() => handleRemoveSlide(index)}
                       disabled={slides.length === 1 || isSaving}
+                      className="w-full sm:col-span-2 lg:col-span-1"
                     >
                       <Trash2 className="h-4 w-4" />
                       Hapus
@@ -453,7 +458,7 @@ export function CarouselManager() {
                     <Label htmlFor={`carousel-color-${slide.id}`}>
                       Warna Latar Fallback
                     </Label>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Input
                         id={`carousel-color-${slide.id}`}
                         value={slide.backgroundColor || DEFAULT_BACKGROUND_COLOR}
@@ -466,6 +471,7 @@ export function CarouselManager() {
                         }
                         placeholder="#166534"
                         disabled={isSaving}
+                        className="min-w-0"
                       />
                       <input
                         type="color"
@@ -496,10 +502,10 @@ export function CarouselManager() {
                         </p>
                       </div>
 
-                      <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <Label
                           htmlFor={imageInputId}
-                          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                          className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent sm:w-auto"
                         >
                           {isUploadingThisSlide ? (
                             <>
@@ -530,6 +536,7 @@ export function CarouselManager() {
                             variant="outline"
                             onClick={() => handleSlideChange(index, 'imageUrl', '')}
                             disabled={isSaving || isUploadingThisSlide}
+                            className="w-full sm:w-auto"
                           >
                             Hapus Gambar
                           </Button>
@@ -538,7 +545,7 @@ export function CarouselManager() {
                     </div>
 
                     {slide.imageUrl ? (
-                      <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                      <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground break-all">
                         Gambar aktif: {slide.imageUrl}
                       </div>
                     ) : null}
