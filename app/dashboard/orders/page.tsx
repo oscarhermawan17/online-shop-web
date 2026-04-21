@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EmptyState, OrderCard } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { fetcher } from '@/lib/api';
 import { orderStatusLabels } from '@/lib/utils';
 import type { Order, OrderStatus } from '@/types/order';
@@ -18,16 +22,92 @@ const tabItems: { value: string; label: string }[] = [
   { value: 'expired_unpaid', label: 'Kadaluarsa' },
 ];
 
+const toDateInputValue = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getFirstDayOfCurrentMonth = (): string => {
+  const now = new Date();
+  return toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+};
+
+const getTodayDateInputValue = (): string => toDateInputValue(new Date());
+
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
   const { data: allOrders, isLoading } = useSWR<Order[]>(
     '/customer/orders',
     fetcher
   );
 
-  const orders = allOrders?.filter(
-    (o) => activeTab === 'all' || o.status === activeTab
-  );
+  const orders = useMemo(() => {
+    if (!allOrders) {
+      return [];
+    }
+
+    return allOrders.filter((order) => {
+      if (activeTab !== 'all' && order.status !== activeTab) {
+        return false;
+      }
+
+      if (!startDate && !endDate) {
+        return true;
+      }
+
+      const createdAtDate = new Date(order.createdAt);
+      if (Number.isNaN(createdAtDate.getTime())) {
+        return false;
+      }
+
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00`);
+        if (createdAtDate < start) {
+          return false;
+        }
+      }
+
+      if (endDate) {
+        const endExclusive = new Date(`${endDate}T00:00:00`);
+        endExclusive.setDate(endExclusive.getDate() + 1);
+
+        if (createdAtDate >= endExclusive) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [activeTab, allOrders, endDate, startDate]);
+
+  const handleStartDateChange = (value: string) => {
+    setStartDate(value);
+    if (value && endDate && value > endDate) {
+      setEndDate(value);
+    }
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
+    if (value && startDate && value < startDate) {
+      setStartDate(value);
+    }
+  };
+
+  const handleSetDateToThisMonth = () => {
+    setStartDate(getFirstDayOfCurrentMonth());
+    setEndDate(getTodayDateInputValue());
+  };
+
+  const handleClearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   if (isLoading) {
     return (
@@ -54,6 +134,43 @@ export default function OrdersPage() {
         </p>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Filter Tanggal</CardTitle>
+          <CardDescription>
+            Tanggal bisa dikosongkan untuk menampilkan semua pesanan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Tanggal Mulai</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => handleStartDateChange(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tanggal Akhir</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => handleEndDateChange(event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleSetDateToThisMonth}>
+              Bulan Ini
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleClearDateFilter}>
+              Semua Tanggal
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList
           variant="pill"
@@ -72,14 +189,14 @@ export default function OrdersPage() {
 
         {tabItems.map((tab) => (
           <TabsContent key={tab.value} value={tab.value} className="mt-4">
-            {!orders || orders.length === 0 ? (
+            {orders.length === 0 ? (
               <EmptyState
                 type="orders"
                 title="Belum Ada Pesanan"
                 description={
                   activeTab === 'all'
-                    ? 'Anda belum memiliki riwayat pesanan.'
-                    : `Tidak ada pesanan dengan status "${orderStatusLabels[activeTab] || activeTab}"`
+                    ? 'Tidak ada pesanan untuk filter tanggal saat ini.'
+                    : `Tidak ada pesanan dengan status "${orderStatusLabels[activeTab] || activeTab}" untuk filter tanggal saat ini.`
                 }
                 actionLabel={activeTab === 'all' ? 'Mulai Belanja' : undefined}
                 actionHref={activeTab === 'all' ? '/' : undefined}
