@@ -24,24 +24,39 @@ function createMinioClient() {
   });
 }
 
-export const minioClient = createMinioClient();
-export const minioBucket = process.env.MINIO_BUCKET ?? 'uploads';
-
 /**
- * Public base URL for serving images — e.g. http://localhost:9000 or http://43.129.52.166:9000
- * Used to build public image URLs and presigned upload URLs (browser-accessible)
+ * Lazy MinIO client — initialized on first use, not at import time.
+ * This prevents build failures when MinIO env vars are absent during `next build`.
  */
-export const minioPublicUrl = process.env.MINIO_PUBLIC_URL ?? `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}`;
+let _client: Client | null = null;
+
+export function getMinioClient(): Client {
+  if (!_client) {
+    _client = createMinioClient();
+  }
+  return _client;
+}
+
+export function getMinioBucket(): string {
+  return process.env.MINIO_BUCKET ?? 'uploads-stg';
+}
+
+export function getMinioPublicUrl(): string {
+  return process.env.MINIO_PUBLIC_URL ?? `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}`;
+}
 
 /**
  * Ensure the bucket exists and is publicly readable.
  * Call this once on startup or before first upload.
  */
 export async function ensureBucketReady() {
-  const exists = await minioClient.bucketExists(minioBucket);
+  const client = getMinioClient();
+  const bucket = getMinioBucket();
+
+  const exists = await client.bucketExists(bucket);
 
   if (!exists) {
-    await minioClient.makeBucket(minioBucket);
+    await client.makeBucket(bucket);
   }
 
   // Set bucket policy to allow public read (anonymous GET)
@@ -52,19 +67,19 @@ export async function ensureBucketReady() {
         Effect: 'Allow',
         Principal: { AWS: ['*'] },
         Action: ['s3:GetObject'],
-        Resource: [`arn:aws:s3:::${minioBucket}/*`],
+        Resource: [`arn:aws:s3:::${bucket}/*`],
       },
     ],
   });
 
-  await minioClient.setBucketPolicy(minioBucket, policy);
+  await client.setBucketPolicy(bucket, policy);
 }
 
 /**
  * Get the public URL for a stored object
  */
 export function getPublicUrl(objectKey: string): string {
-  return `${minioPublicUrl}/${minioBucket}/${objectKey}`;
+  return `${getMinioPublicUrl()}/${getMinioBucket()}/${objectKey}`;
 }
 
 /**

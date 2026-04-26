@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import {
-  minioClient,
-  minioBucket,
-  minioPublicUrl,
+  getMinioClient,
+  getMinioBucket,
+  getMinioPublicUrl,
   ensureBucketReady,
   buildTempKey,
   getPublicUrl,
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
 
     // Generate presigned PUT URL — expires in 5 minutes
     const EXPIRY_SECONDS = 5 * 60;
-    const internalPresignedUrl = await minioClient.presignedPutObject(
-      minioBucket,
+    const internalPresignedUrl = await getMinioClient().presignedPutObject(
+      getMinioBucket(),
       tempKey,
       EXPIRY_SECONDS
     );
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     // e.g. http://minio:9000 → http://localhost:9000
     const presignedUrl = internalPresignedUrl.replace(
       /^https?:\/\/[^/]+/,
-      minioPublicUrl
+      getMinioPublicUrl()
     );
 
     const previewUrl = getPublicUrl(tempKey);

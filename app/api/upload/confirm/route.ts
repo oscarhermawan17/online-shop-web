@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  minioClient,
-  minioBucket,
+  getMinioClient,
+  getMinioBucket,
   buildPermanentKey,
   getPublicUrl,
   getFilenameFromKey,
@@ -37,14 +37,17 @@ export async function POST(req: NextRequest) {
     const permanentKey = buildPermanentKey(tenantId, purpose, filename);
 
     // Copy temp → permanent (MinIO has no native move, so copy + delete)
-    await minioClient.copyObject(
-      minioBucket,
+    const client = getMinioClient();
+    const bucket = getMinioBucket();
+
+    await client.copyObject(
+      bucket,
       permanentKey,
-      `/${minioBucket}/${tempKey}`
+      `/${bucket}/${tempKey}`
     );
 
     // Delete the temp file
-    await minioClient.removeObject(minioBucket, tempKey);
+    await client.removeObject(bucket, tempKey);
 
     const permanentUrl = getPublicUrl(permanentKey);
 

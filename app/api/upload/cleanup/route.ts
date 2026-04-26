@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { minioClient, minioBucket } from '@/lib/minio-server';
+import { getMinioClient, getMinioBucket } from '@/lib/minio-server';
 
 const TEMP_PREFIX = 'temp/';
 const MAX_AGE_HOURS = 2;
@@ -23,7 +23,7 @@ export async function GET() {
   const toDelete: string[] = [];
 
   await new Promise<void>((resolve, reject) => {
-    const stream = minioClient.listObjects(minioBucket, TEMP_PREFIX, true);
+    const stream = getMinioClient().listObjects(getMinioBucket(), TEMP_PREFIX, true);
 
     stream.on('data', (obj) => {
       if (obj.name && obj.lastModified && new Date(obj.lastModified) < cutoff) {
@@ -37,7 +37,7 @@ export async function GET() {
 
   for (const key of toDelete) {
     try {
-      await minioClient.removeObject(minioBucket, key);
+      await getMinioClient().removeObject(getMinioBucket(), key);
       deleted++;
     } catch (err) {
       console.error(`[cleanup] Failed to delete ${key}:`, err);
