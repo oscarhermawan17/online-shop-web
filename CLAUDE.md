@@ -8,9 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Stg**: `ghcr.io/oscarhermawan17/online-shop-web:staging` — `stg.tokotimika.my.id`
 - CI/CD: push to `main` → `:latest`, push to `stg` → `:staging`, auto-deploys to VPS
 - `NEXT_PUBLIC_API_URL=/api` (relative) — works for both prod and stg domains via nginx
-- `API_URL=http://api:4000/api` hardcoded in Dockerfile (server-side SSR, prod only)
-- Cloudinary: browser uploads directly — `NEXT_PUBLIC_CLOUDINARY_*` baked in at build time
-- **Planned**: replace Cloudinary with MinIO for stg when local stack is ready
+- `API_URL=http://api:4000/api` set in docker-compose environment (server-side SSR, prod only)
+- Storage (stg): MinIO ✅ — all uploads go through presigned URLs (`/api/upload/presign` + `/api/upload/confirm`)
+- Storage (prod): Cloudinary still used (migration to MinIO planned after stg is stable)
+- GitHub build args: `NEXT_PUBLIC_API_URL`, `NODE_ENV`, `NEXT_PUBLIC_STORE_ID` — MinIO vars are runtime, not build-time
 
 ---
 
@@ -75,9 +76,28 @@ All forms use `react-hook-form` + `@hookform/resolvers` + `zod`. Schemas live in
 
 ### Image Uploads
 
-Images are uploaded directly to Cloudinary from the browser via `src/lib/cloudinary.ts` (`uploadToCloudinary()`). The `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` env vars are required. The `next-cloudinary` package is installed but image transforms are done manually via URL string manipulation in `getOptimizedImageUrl()` / `getThumbnailUrl()`.
+All uploads go through MinIO via presigned URLs. `src/lib/cloudinary.ts` still exists but is no longer imported anywhere — kept for reference only.
 
-The `app/api/image-proxy/route.ts` Route Handler proxies external images (for cases where direct browser loading fails).
+Upload flow:
+1. `src/lib/storage.ts` → `uploadFile(file, purpose)` — compresses image in browser (`browser-image-compression`), then calls `/api/upload/presign`
+2. `/api/upload/presign` (Next.js route) → generates presigned PUT URL for `temp/{tenantId}/{purpose}/{uuid}.ext`
+3. Browser PUTs file directly to MinIO (no file passes through Next.js)
+4. On form submit → `confirmUpload(tempKey)` calls `/api/upload/confirm`
+5. `/api/upload/confirm` copies `temp/...` → `{tenantId}/{purpose}/{uuid}.ext`, deletes temp, returns permanent URL
+
+Upload purposes and compression settings (in `src/lib/storage.ts`):
+| Purpose | Max Size | Max Dimension |
+|---|---|---|
+| `products` | 0.5MB (env) | 1200px (env) |
+| `carousel` | 0.8MB | 1920px |
+| `payment` | 0.3MB | 1000px |
+| `customer` | 0.3MB | 800px |
+| `category` | 0.1MB | 400px |
+| `qris` | 0.2MB | 800px |
+
+Components that use uploads: `image-upload.tsx` (products), `carousel-manager.tsx`, `upload-payment-proof.tsx`, `store/page.tsx` (QRIS), `category/page.tsx` (icon), `dashboard/page.tsx` (avatar).
+
+`getOptimizedImageUrl()` and `getThumbnailUrl()` in `src/lib/utils.ts` return URLs as-is (no transformation). `next.config.ts` has `unoptimized: true` — bypasses `/_next/image` pipeline entirely (MinIO serves plain URLs, Cloudinary does its own optimization).
 
 ### Shipping & Map
 
@@ -109,11 +129,82 @@ Each namespace has an `index.ts` barrel export.
 ```
 NEXT_PUBLIC_API_URL=      # Backend API base URL (browser + server fallback)
 API_URL=                  # Backend API base URL (server-side only, preferred)
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=
+
+# ─── Storage (MinIO) — server-side only, NOT NEXT_PUBLIC ──────────────────────
+MINIO_ENDPOINT=           # MinIO host — "minio" inside Docker, "localhost" for local dev
+MINIO_PORT=               # MinIO S3 API port (9000)
+MINIO_ACCESS_KEY=         # MinIO root user
+MINIO_SECRET_KEY=         # MinIO root password
+MINIO_BUCKET=             # Bucket name — "uploads-stg" (stg) or "uploads-prod" (prod)
+MINIO_USE_SSL=            # false for local/VPS, true if behind HTTPS
+MINIO_PUBLIC_URL=         # Public base URL for images — "http://localhost:9000" (local) or "http://43.129.52.166:9000" (VPS)
+
+# ─── Build-time (NEXT_PUBLIC) ─────────────────────────────────────────────────
+NEXT_PUBLIC_STORE_ID=     # Tenant storeId — used as folder prefix in MinIO uploads
+NEXT_PUBLIC_IMG_MAX_SIZE_MB=    # Global image compression limit in MB (default 0.5)
+NEXT_PUBLIC_IMG_MAX_WIDTH_PX=   # Global image max dimension in px (default 1200)
 ```
 
+MinIO vars are **not** in GitHub Secrets — they are runtime vars injected via `docker-compose.yaml` environment or `.env.stg` on the VPS. Only `NEXT_PUBLIC_*` vars are GitHub Secrets (baked at build time).
+
 In production (`.env.prod`), the frontend calls `API_URL=http://api:4000/api` (Docker internal) and `NEXT_PUBLIC_API_URL=/api` (browser via reverse proxy). The app is designed to run inside Docker alongside a backend container named `api`.
+
+## Storage: Image Upload Architecture
+
+All image uploads go through MinIO (S3-compatible). Cloudinary is no longer used.
+
+### Upload flow
+1. Client requests a presigned URL → `POST /api/upload/presign` `{ purpose, tenantId }`
+2. Next.js generates a presigned PUT URL pointing to `temp/{tenantId}/{purpose}/{uuid}.ext`
+3. Browser uploads the file **directly to MinIO** via the presigned URL (no file passes through Next.js)
+4. Client stores the `tempKey` and shows a preview
+5. On form submit → client calls `POST /api/upload/confirm` `{ tempKey }`
+6. Next.js copies `temp/...` → `{tenantId}/{purpose}/{uuid}.ext`, deletes temp, returns permanent URL
+7. Client sends the permanent URL to the Express API as a plain string (no change to API)
+
+### MinIO folder structure
+```
+uploads-stg/  (or uploads-prod)       ← bucket
+  temp/
+    {tenantId}/
+      products/                ← product images (before form submit)
+      customer/                ← customer images e.g. KTP (before form submit)
+      payment/                 ← payment proofs (before form submit)
+      carousel/                ← carousel slides (before form submit)
+      category/                ← category icons (before form submit)
+      qris/                    ← QRIS images (confirmed immediately)
+  {tenantId}/
+    products/                  ← confirmed product images
+    customer/                  ← confirmed customer images
+    payment/                   ← confirmed payment proofs
+    carousel/                  ← confirmed carousel slides
+    category/                  ← confirmed category icons
+    qris/                      ← confirmed QRIS images
+```
+
+### Orphan cleanup
+Endpoint: `GET /api/upload/cleanup` — deletes all objects under `temp/` older than 2 hours.
+Should be called by a cron job every hour (e.g. via docker cron or system cron on VPS).
+
+### tenantId resolution — CURRENT vs FUTURE
+
+**Current (single tenant):**
+`tenantId` is read statically from `NEXT_PUBLIC_STORE_ID` env var.
+Used as the folder prefix in MinIO for all uploads.
+
+**Future (multi-tenant) — TODO:**
+Each tenant will have their own domain (e.g. `tokotimika.my.id`, `tokolain.my.id`).
+`tenantId` resolution should change to:
+1. Read `Host` header from incoming Next.js request
+2. Call `GET /api/store` (backend) which returns `storeId` for that domain
+3. Cache the domain → storeId mapping (e.g. in-memory or Redis) to avoid repeated API calls
+4. For admin routes: also verify that JWT `storeId` matches the domain-resolved `storeId`
+5. For public routes (e.g. payment proof): domain-based resolution is sufficient — no JWT needed
+
+Files to update when implementing multi-tenant:
+- `app/api/upload/presign/route.ts` — change `tenantId` source
+- `app/api/upload/confirm/route.ts` — change `tenantId` source
+- `src/lib/storage.ts` — update `getTenantId()` helper
 
 ## Routing Reference
 

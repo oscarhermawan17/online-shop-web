@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminStore } from '@/hooks';
 import { storeSchema, type StoreFormData } from '@/lib/validations';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import Image from 'next/image';
@@ -94,8 +94,9 @@ export default function AdminStorePage() {
     setQrisPreview(URL.createObjectURL(file));
 
     try {
-      const result = await uploadToCloudinary(file);
-      setValue('qrisImageUrl', result.secure_url);
+      const { tempKey } = await uploadFile(file, 'qris');
+      const { permanentUrl } = await confirmUpload(tempKey);
+      setValue('qrisImageUrl', permanentUrl);
       toast.success('QRIS berhasil diunggah');
     } catch (error) {
       console.error('QRIS upload error:', error);

@@ -10,7 +10,7 @@ import { LoadingPage, ErrorMessage } from '@/components/shared';
 import { useAdminCategories } from '@/hooks';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 
 export default function CategoryPage() {
   const { categories, isLoading, isError, mutate } = useAdminCategories();
@@ -78,8 +78,9 @@ export default function CategoryPage() {
 
     setIsUploadingIcon(true);
     try {
-      const result = await uploadToCloudinary(file);
-      setIcon(result.secure_url);
+      const { tempKey } = await uploadFile(file, 'category');
+      const { permanentUrl } = await confirmUpload(tempKey);
+      setIcon(permanentUrl);
       toast.success('Icon kategori berhasil diunggah');
     } catch (error) {
       console.error('Upload category icon error:', error);

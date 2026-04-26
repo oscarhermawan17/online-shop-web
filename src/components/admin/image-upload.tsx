@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Upload, X, Loader2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 import { toast } from 'sonner';
 import { getThumbnailUrl } from '@/lib/utils';
 
@@ -47,9 +47,12 @@ export function ImageUpload({
 
     try {
       const uploadPromises = filesToUpload.map(async (file) => {
-        const result = await uploadToCloudinary(file);
+        // Step 1: upload to MinIO temp folder
+        const { tempKey } = await uploadFile(file, 'products');
+        // Step 2: confirm (move temp → permanent)
+        const { permanentUrl } = await confirmUpload(tempKey);
         return {
-          imageUrl: result.secure_url,
+          imageUrl: permanentUrl,
           altText: file.name,
           sortOrder: images.length + filesToUpload.indexOf(file),
           isNew: true,

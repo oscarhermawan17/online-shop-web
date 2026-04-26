@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Upload, X, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -44,13 +44,15 @@ export function UploadPaymentProof({
     setPreview(URL.createObjectURL(file));
 
     try {
-      // Upload to Cloudinary
-      const result = await uploadToCloudinary(file);
+      // Step 1: Upload to MinIO temp folder
+      const { tempKey } = await uploadFile(file, 'payment');
+      // Step 2: Confirm (move temp → permanent)
+      const { permanentUrl } = await confirmUpload(tempKey);
 
-      // Send to API
+      // Step 3: Send permanent URL to Express API
       await api.post('/payment-proof', {
         publicOrderId,
-        imageUrl: result.secure_url,
+        imageUrl: permanentUrl,
       });
 
       toast.success('Bukti pembayaran berhasil diunggah');

@@ -38,8 +38,6 @@ jobs:
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
             --build-arg NODE_ENV=${{ secrets.NODE_ENV }} \
-            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }} \
-            --build-arg NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }} \
             --build-arg NEXT_PUBLIC_STORE_ID=${{ secrets.NEXT_PUBLIC_STORE_ID }} \
             -t ghcr.io/${{ github.repository_owner }}/online-shop-web:${{ steps.tag.outputs.tag }} .
 

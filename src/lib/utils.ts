@@ -125,29 +125,25 @@ export const orderStatusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
+/**
+ * Returns the image URL as-is (MinIO serves plain URLs, no transform needed).
+ * Falls back to a placeholder if url is empty.
+ *
+ * Previously applied Cloudinary URL transformations here — no longer needed
+ * since storage moved to MinIO. If image optimization is needed in the future,
+ * consider adding an nginx image filter or a dedicated image CDN in front of MinIO.
+ */
 export function getOptimizedImageUrl(
   url: string,
   width?: number,
-  quality?: number
+  _quality?: number
 ): string {
-  if (!url || !url.includes('cloudinary.com')) {
-    return url || getPlaceholderImage(width || 400, width || 400);
+  if (!url) {
+    return getPlaceholderImage(width ?? 400, width ?? 400);
   }
-
-  // Transform Cloudinary URL with optimizations
-  const transformations = [
-    'f_auto', // Auto format (webp, avif, etc.)
-    'q_auto', // Auto quality
-    width ? `w_${width}` : '',
-    quality ? `q_${quality}` : '',
-  ]
-    .filter(Boolean)
-    .join(',');
-
-  // Insert transformations into Cloudinary URL
-  return url.replace('/upload/', `/upload/${transformations}/`);
+  return url;
 }
 
-export function getThumbnailUrl(url: string, size: number = 200): string {
-  return getOptimizedImageUrl(url, size);
+export function getThumbnailUrl(url: string, _size: number = 200): string {
+  return url || getPlaceholderImage(200, 200);
 }

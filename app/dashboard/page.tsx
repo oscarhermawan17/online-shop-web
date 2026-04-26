@@ -34,7 +34,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/shared';
 import { OrderStatusBadge } from '@/components/public/order-status';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 import api, { fetcher } from '@/lib/api';
 import type { Order } from '@/types/order';
 import type { CustomerUser } from '@/types';
@@ -148,9 +148,10 @@ function DesktopProfile() {
     setAvatarUploading(true);
 
     try {
-      const uploaded = await uploadToCloudinary(file);
+      const { tempKey } = await uploadFile(file, 'customer');
+      const { permanentUrl } = await confirmUpload(tempKey);
       const response = await api.patch<{ data: { customer: CustomerUser } }>('/customer-auth/me', {
-        avatarUrl: uploaded.secure_url,
+        avatarUrl: permanentUrl,
       });
 
       const updatedCustomer = response.data.data.customer;

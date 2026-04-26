@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/stores';
 import type { CarouselSlide, CarouselSlideInput } from '@/types';
 import api from '@/lib/api';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadFile, confirmUpload } from '@/lib/storage';
 import { carouselSlidesPayloadSchema } from '@/lib/validations';
 import { getOptimizedImageUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -203,8 +203,9 @@ export function CarouselManager() {
     setUploadingSlideId(slideId);
 
     try {
-      const result = await uploadToCloudinary(file);
-      handleSlideChange(index, 'imageUrl', result.secure_url);
+      const { tempKey } = await uploadFile(file, 'carousel');
+      const { permanentUrl } = await confirmUpload(tempKey);
+      handleSlideChange(index, 'imageUrl', permanentUrl);
       toast.success('Gambar slide berhasil diunggah');
     } catch (error) {
       console.error('Carousel image upload error:', error);
