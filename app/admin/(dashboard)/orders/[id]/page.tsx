@@ -31,6 +31,7 @@ import {
   formatDate,
   formatDateOnly,
   getOptimizedImageUrl,
+  getPlaceholderImage,
   getShippingShiftLabel,
 } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -303,22 +304,28 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     ? item.discountAmount
                     : computedLineDiscount;
                   const hasDiscount = lineDiscount > 0;
+                  const imgSrc = item.imageUrl
+                    ? getOptimizedImageUrl(item.imageUrl, 64)
+                    : getPlaceholderImage(64, 64);
 
                   return (
                     <div
                       key={item.id}
-                      className="flex justify-between border-b pb-4 last:border-0 last:pb-0"
+                      className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0"
                     >
-                      <div>
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                        <Image src={imgSrc} alt={item.productName} fill className="object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium">{item.productName}</p>
                         {item.variantDescription && (
-                          <p className="text-sm text-muted-foreground">
-                            Varian: {item.variantDescription}
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            Variasi: <span className="font-medium text-foreground">{item.variantDescription}</span>
                           </p>
                         )}
                         {hasDiscount ? (
                           <>
-                            <p className="text-sm text-muted-foreground line-through">
+                            <p className="text-sm text-muted-foreground line-through mt-0.5">
                               {formatRupiah(originalUnitPrice)} x {item.quantity}
                             </p>
                             <p className="text-sm text-green-600">
@@ -330,12 +337,12 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                             </p>
                           </>
                         ) : (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             {formatRupiah(item.price)} x {item.quantity}
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         {hasDiscount ? (
                           <>
                             <p className="text-sm text-muted-foreground line-through">

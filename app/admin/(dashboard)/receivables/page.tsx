@@ -16,7 +16,7 @@ import { downloadAdminReport } from '@/lib/report-download';
 import { useAdminReceivables } from '@/hooks';
 import { formatDate, formatDateOnly, formatRupiah } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { ReceivableInvoiceItem } from '@/types';
+import type { ReceivableInvoiceItem, ReceivableOrderItem } from '@/types';
 import { LoadingPage, ErrorMessage, EmptyState } from '@/components/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,27 @@ const toDateInputValue = (value: Date): string => {
 };
 
 const today = toDateInputValue(new Date());
+
+const getDueDateLabel = (
+  dueDate: string | null,
+  remainingAmount: number,
+): { label: string; color: string } | null => {
+  if (!dueDate) return null;
+
+  const todayMs = new Date();
+  todayMs.setHours(0, 0, 0, 0);
+
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((due.getTime() - todayMs.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (remainingAmount === 0) return { label: 'Lunas', color: 'text-green-600' };
+  if (diffDays < 0) return { label: `Lewat ${Math.abs(diffDays)} hari`, color: 'text-red-600 font-semibold' };
+  if (diffDays === 0) return { label: 'Jatuh tempo hari ini', color: 'text-orange-600 font-semibold' };
+  if (diffDays <= 7) return { label: `${diffDays} hari lagi`, color: 'text-orange-500' };
+  return { label: `${diffDays} hari lagi`, color: 'text-muted-foreground' };
+};
 const firstDayOfCurrentMonth = (() => {
   const now = new Date();
   return toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -418,6 +439,7 @@ export default function AdminReceivablesPage() {
                   <TableHead>Total</TableHead>
                   <TableHead>Dibayar</TableHead>
                   <TableHead>Sisa</TableHead>
+                  <TableHead>Jatuh Tempo</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -462,6 +484,21 @@ export default function AdminReceivablesPage() {
                         <TableCell>{formatRupiah(invoice.paidAmount)}</TableCell>
                         <TableCell className="font-medium">{formatRupiah(invoice.remainingAmount)}</TableCell>
                         <TableCell>
+                          {invoice.dueDate ? (() => {
+                            const info = getDueDateLabel(invoice.dueDate, invoice.remainingAmount);
+                            return (
+                              <div className="space-y-0.5">
+                                <p className="text-sm whitespace-nowrap">{formatDateOnly(invoice.dueDate)}</p>
+                                {info && (
+                                  <p className={`text-xs whitespace-nowrap ${info.color}`}>{info.label}</p>
+                                )}
+                              </div>
+                            );
+                          })() : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={invoice.isSettled ? 'secondary' : 'default'}>
                             {invoice.isSettled ? 'Lunas' : 'Belum Lunas'}
                           </Badge>
@@ -470,8 +507,68 @@ export default function AdminReceivablesPage() {
 
                       {isExpanded && (
                         <TableRow key={`${invoice.id}-details`}>
-                          <TableCell colSpan={7} className="bg-muted/20">
-                            <div className="grid gap-4 lg:grid-cols-2">
+                          <TableCell colSpan={8} className="bg-muted/20">
+                            <div className="grid gap-4 p-4 lg:grid-cols-3">
+                              {/* Produk */}
+                              <div className="space-y-3 rounded-lg border bg-background p-4">
+                                <p className="font-medium text-sm">Produk yang Dibeli</p>
+                                {invoice.items.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">Tidak ada data produk.</p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {invoice.items.map((item: ReceivableOrderItem) => {
+                                      const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
+                                        ? item.originalPrice : item.price;
+                                      const lineDiscount = typeof item.discountAmount === 'number'
+                                        ? item.discountAmount
+                                        : Math.max(0, (originalUnitPrice - item.price) * item.quantity);
+                                      const hasDiscount = lineDiscount > 0;
+
+                                      return (
+                                        <div key={item.id} className="flex items-start gap-3 rounded-lg border p-3">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium">{item.productName}</p>
+                                            {item.variantDescription && (
+                                              <p className="text-xs text-muted-foreground mt-0.5">
+                                                Variasi: <span className="font-medium text-foreground">{item.variantDescription}</span>
+                                              </p>
+                                            )}
+                                            {hasDiscount ? (
+                                              <>
+                                                <p className="text-xs text-muted-foreground mt-0.5 line-through">
+                                                  {formatRupiah(originalUnitPrice)} × {item.quantity}
+                                                </p>
+                                                <p className="text-xs text-green-700 mt-0.5">
+                                                  {formatRupiah(item.price)} × {item.quantity}
+                                                </p>
+                                                {item.discountRuleName && (
+                                                  <p className="text-[11px] text-green-600 mt-0.5">
+                                                    Diskon: {item.discountRuleName}
+                                                  </p>
+                                                )}
+                                              </>
+                                            ) : (
+                                              <p className="text-xs text-muted-foreground mt-0.5">
+                                                {formatRupiah(item.price)} × {item.quantity}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                            {hasDiscount && (
+                                              <p className="text-xs text-muted-foreground line-through">
+                                                {formatRupiah(originalUnitPrice * item.quantity)}
+                                              </p>
+                                            )}
+                                            <p className="text-sm font-semibold">{formatRupiah(item.price * item.quantity)}</p>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+
+                            <div className="grid gap-4 lg:grid-cols-2 lg:col-span-2">
                               <div className="space-y-3 rounded-lg border bg-background p-4">
                                 <div>
                                   <p className="font-medium">Riwayat Pembayaran</p>
@@ -565,6 +662,7 @@ export default function AdminReceivablesPage() {
                                   )}
                                 </div>
                               </div>
+                            </div>
                             </div>
                           </TableCell>
                         </TableRow>

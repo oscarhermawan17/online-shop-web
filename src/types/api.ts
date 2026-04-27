@@ -78,6 +78,7 @@ export interface CustomerCreditListItem {
   hasAccount: boolean;
   createdAt: string;
   creditLimit: number;
+  termOfPayment: number;
   outstandingCredit: number;
   remainingCredit: number;
   creditUpdatedAt: string | null;
@@ -97,6 +98,17 @@ export interface ReceivablePaymentItem {
   createdAt: string;
 }
 
+export interface ReceivableOrderItem {
+  id: string;
+  productName: string;
+  variantDescription: string | null;
+  price: number;
+  quantity: number;
+  originalPrice: number | null;
+  discountAmount: number;
+  discountRuleName: string | null;
+}
+
 export interface ReceivableInvoiceItem {
   id: string;
   publicOrderId: string;
@@ -109,6 +121,9 @@ export interface ReceivableInvoiceItem {
   createdAt: string;
   creditSettledAt: string | null;
   isSettled: boolean;
+  termOfPayment: number;
+  dueDate: string | null;
+  items: ReceivableOrderItem[];
   payments: ReceivablePaymentItem[];
 }
 

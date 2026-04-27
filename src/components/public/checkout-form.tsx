@@ -77,7 +77,6 @@ export function CheckoutForm({
     register,
     handleSubmit,
     setValue,
-    reset,
     control,
     formState: { errors },
   } = useForm<CheckoutFormData>({
@@ -122,15 +121,10 @@ export function CheckoutForm({
   // Auto-fill when customer data is available/hydrated
   useEffect(() => {
     if (customer) {
-      reset({
-        customerName: customer.name || '',
-        customerPhone: customer.phone || '',
-        deliveryMethod: deliveryMethod,
-        paymentMethod,
-        customerAddress: '',
-      });
+      setValue('customerName', customer.name || '');
+      setValue('customerPhone', customer.phone || '');
     }
-  }, [customer, deliveryMethod, paymentMethod, reset]);
+  }, [customer, setValue]);
 
   useEffect(() => {
     if (!isWholesaleCustomer && paymentMethod !== 'bank_transfer') {
