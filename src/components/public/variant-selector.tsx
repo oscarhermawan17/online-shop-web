@@ -120,7 +120,7 @@ export function VariantSelector({
                       src={variant.imageUrl}
                       alt={variant.name || 'Variant'}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="112px"
                     />
                   ) : (

@@ -36,7 +36,7 @@ export function PromoCarousel({ slides }: PromoCarouselProps) {
   }
 
   return (
-    <div className="relative group overflow-hidden rounded-2xl w-full h-45 md:h-48">
+    <div className="relative group overflow-hidden rounded-2xl w-full h-52 md:h-60">
       {/* Slides */}
       <div
         className="flex transition-transform duration-500 ease-out h-full"

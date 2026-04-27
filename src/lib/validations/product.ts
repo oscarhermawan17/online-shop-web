@@ -31,7 +31,11 @@ export const productSchema = z.object({
 export type ProductFormData = z.infer<typeof productSchema>;
 
 export const createProductVariantSchema = z.object({
-  name: z.string().max(100, 'Nama varian maksimal 100 karakter').optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Nama varian harus diisi')
+    .max(100, 'Nama varian maksimal 100 karakter'),
   imageUrl: z.string().url('URL gambar varian tidak valid').nullable().optional(),
   basePrice: priceSchema,
   wholesalePrice: nullablePriceSchema,
@@ -51,21 +55,6 @@ export const createProductSchema = z
       .max(2000, 'Deskripsi maksimal 2000 karakter')
       .optional(),
     variants: z.array(createProductVariantSchema).min(1, 'Minimal 1 varian'),
-  })
-  .superRefine((data, ctx) => {
-    if (data.variants.length <= 1) {
-      return;
-    }
-
-    data.variants.forEach((variant, index) => {
-      if (!variant.name?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Nama varian wajib diisi jika lebih dari satu',
-          path: ['variants', index, 'name'],
-        });
-      }
-    });
   });
 
 export type CreateProductFormData = z.infer<typeof createProductSchema>;
@@ -73,6 +62,7 @@ export type CreateProductFormData = z.infer<typeof createProductSchema>;
 export const variantSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, 'Nama variant harus diisi')
     .max(100, 'Nama variant maksimal 100 karakter'),
   imageUrl: z

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { CalendarDays, ChevronDown, ChevronUp, Clock, Eye, Package, ShoppingBag, Truck, UserRound } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronDown, ChevronUp, Clock, Eye, MessageSquareWarning, ShoppingBag, Truck, UserRound } from 'lucide-react';
+import { OrderItemImage } from './order-item-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,6 @@ import {
   formatRupiah,
   formatDate,
   formatDateOnly,
-  getOptimizedImageUrl,
   getShippingShiftLabel,
 } from '@/lib/utils';
 import type { Order } from '@/types';
@@ -56,6 +55,11 @@ export function OrderCard({
     return sum + lineDiscount;
   }, 0);
   const productSubtotalBeforeDiscount = productSubtotalAfterDiscount + totalItemDiscount;
+  const activeComplaints = (order.complaints ?? []).filter(
+    (complaint) => complaint.status === 'open' || complaint.status === 'accepted',
+  );
+  const latestComplaint = activeComplaints[0];
+  const activeComplaintCount = activeComplaints.length;
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md py-0 gap-0">
@@ -78,6 +82,15 @@ export function OrderCard({
                 <Badge variant="outline">
                   {order.paymentMethod === 'credit' ? 'Credit' : 'Transfer'}
                 </Badge>
+                {activeComplaintCount > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="border-amber-300 bg-amber-50 text-amber-700"
+                  >
+                    <MessageSquareWarning className="mr-1 h-3 w-3" />
+                    Komplain {activeComplaintCount}
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {showCustomer && order.customerName
@@ -126,18 +139,7 @@ export function OrderCard({
                 return (
                 <div key={item.id} className="flex items-center gap-4 px-4 py-3">
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
-                    {item.imageUrl ? (
-                      <Image
-                        src={getOptimizedImageUrl(item.imageUrl, 100)}
-                        alt={item.productName}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <Package className="h-6 w-6 text-muted-foreground/40" />
-                      </div>
-                    )}
+                    <OrderItemImage item={item} size={64} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -230,6 +232,23 @@ export function OrderCard({
                       <span className="font-medium text-foreground">{order.shippingAssignment.driverName}</span>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {latestComplaint && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center text-sm font-semibold text-amber-800">
+                      <AlertTriangle className="mr-1.5 h-4 w-4" />
+                      {latestComplaint.status === 'open' ? 'Komplain Baru' : 'Komplain Diproses'}
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      {formatDate(latestComplaint.createdAt)}
+                    </p>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-amber-700">
+                    {latestComplaint.comment}
+                  </p>
                 </div>
               )}
               

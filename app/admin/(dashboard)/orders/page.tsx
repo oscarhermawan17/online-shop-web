@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Check,
   Loader2,
+  MessageSquareWarning,
   PackageCheck,
   Truck,
   WalletCards,
@@ -43,6 +45,7 @@ import { toast } from 'sonner';
 
 const tabItems: { value: string; label: string }[] = [
   { value: 'all', label: 'Semua' },
+  { value: 'complaint', label: 'Komplain' },
   { value: 'pending_payment', label: 'Menunggu Bayar' },
   { value: 'waiting_confirmation', label: 'Konfirmasi' },
   { value: 'paid', label: 'Dibayar' },
@@ -82,7 +85,9 @@ export default function AdminOrdersPage() {
   const [bulkShipShiftId, setBulkShipShiftId] = useState('');
   const [bulkShipDriverName, setBulkShipDriverName] = useState('');
 
-  const status = activeTab === 'all' ? undefined : (activeTab as OrderStatus);
+  const status = activeTab === 'all' || activeTab === 'complaint'
+    ? undefined
+    : (activeTab as OrderStatus);
 
   const { orders, isLoading, isError, mutate } = useAdminOrders({
     status,
@@ -111,11 +116,20 @@ export default function AdminOrdersPage() {
     [drivers],
   );
 
+  const visibleOrders = useMemo(
+    () => (activeTab === 'complaint'
+      ? orders.filter((order) => (order.complaints ?? []).some(
+        (complaint) => complaint.status === 'open' || complaint.status === 'accepted',
+      ))
+      : orders),
+    [activeTab, orders],
+  );
+
   const selectedOrderIdSet = useMemo(() => new Set(selectedOrderIds), [selectedOrderIds]);
 
   const selectedOrders = useMemo(
-    () => orders.filter((order) => selectedOrderIdSet.has(order.id)),
-    [orders, selectedOrderIdSet],
+    () => visibleOrders.filter((order) => selectedOrderIdSet.has(order.id)),
+    [visibleOrders, selectedOrderIdSet],
   );
 
   const confirmableOrderIds = useMemo(
@@ -154,20 +168,23 @@ export default function AdminOrdersPage() {
 
   const doneOrderIds = useMemo(
     () => selectedOrders
-      .filter((order) => order.status === 'shipped')
+      .filter((order) => (
+        order.status === 'shipped'
+        && !(order.complaints ?? []).some((complaint) => complaint.status === 'open' || complaint.status === 'accepted')
+      ))
       .map((order) => order.id),
     [selectedOrders],
   );
 
-  const allVisibleSelected = orders.length > 0 && selectedOrderIds.length === orders.length;
+  const allVisibleSelected = visibleOrders.length > 0 && selectedOrderIds.length === visibleOrders.length;
   const hasSelectedOrders = selectedOrderIds.length > 0;
 
   useEffect(() => {
     setSelectedOrderIds((prev) => {
-      const next = prev.filter((id) => orders.some((order) => order.id === id));
+      const next = prev.filter((id) => visibleOrders.some((order) => order.id === id));
       return next.length === prev.length ? prev : next;
     });
-  }, [orders]);
+  }, [visibleOrders]);
 
   const handleTabChange = (nextTab: string) => {
     setActiveTab(nextTab);
@@ -216,7 +233,7 @@ export default function AdminOrdersPage() {
       return;
     }
 
-    setSelectedOrderIds(orders.map((order) => order.id));
+    setSelectedOrderIds(visibleOrders.map((order) => order.id));
   };
 
   const handleConfirmPayment = async (orderId: string) => {
@@ -239,15 +256,18 @@ export default function AdminOrdersPage() {
   ) => {
     setLoadingId(orderId);
     try {
-      await api.patch(`/admin/orders/${orderId}/status`, {
+      const response = await api.patch(`/admin/orders/${orderId}/status`, {
         status: newStatus,
       });
+      const updatedStatus = response.data?.data?.status as OrderStatus | undefined;
       toast.success(
         newStatus === 'shipped'
           ? deliveryMethod === 'pickup'
             ? 'Pengambilan pesanan berhasil dikonfirmasi'
             : 'Pesanan ditandai sebagai dikirim'
-          : 'Pesanan selesai',
+          : updatedStatus === 'done'
+            ? 'Pesanan selesai'
+            : 'Konfirmasi selesai admin tersimpan, menunggu konfirmasi pelanggan',
       );
       mutate();
     } catch {
@@ -267,6 +287,32 @@ export default function AdminOrdersPage() {
       console.error('Settle credit error:', error);
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || 'Gagal melunasi invoice credit');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleUpdateComplaintStatus = async (
+    orderId: string,
+    complaintId: string,
+    complaintStatus: 'accepted' | 'rejected' | 'resolved',
+  ) => {
+    setLoadingId(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/complaints/${complaintId}/status`, {
+        status: complaintStatus,
+      });
+      toast.success(
+        complaintStatus === 'accepted'
+          ? 'Komplain diterima'
+          : complaintStatus === 'rejected'
+            ? 'Komplain ditolak'
+            : 'Komplain ditandai selesai',
+      );
+      mutate();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal memperbarui status komplain');
     } finally {
       setLoadingId(null);
     }
@@ -466,7 +512,7 @@ export default function AdminOrdersPage() {
 
             <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
-                {selectedOrderIds.length} dipilih dari {orders.length} pesanan
+                {selectedOrderIds.length} dipilih dari {visibleOrders.length} pesanan
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={handleSelectAll}>
@@ -543,22 +589,24 @@ export default function AdminOrdersPage() {
           </CardContent>
         </Card>
 
-        {orders.length === 0 ? (
+        {visibleOrders.length === 0 ? (
           <EmptyState
             type="orders"
             title="Belum Ada Pesanan"
             description={
               activeTab === 'all'
                 ? 'Pesanan akan muncul di sini ketika ada pembeli.'
+                : activeTab === 'complaint'
+                  ? 'Tidak ada komplain aktif untuk filter tanggal ini.'
                 : `Tidak ada pesanan dengan status "${orderStatusLabels[activeTab] || activeTab}" untuk filter tanggal ini.`
             }
           />
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {orders.length} pesanan
+              {visibleOrders.length} pesanan
             </p>
-            {orders.map((order) => {
+            {visibleOrders.map((order) => {
               const isSelected = selectedOrderIdSet.has(order.id);
 
               return (
@@ -569,19 +617,29 @@ export default function AdminOrdersPage() {
                   showCustomer
                   showShippingSummary
                   headerActions={(
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="h-8"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        toggleSelectOrder(order.id);
-                      }}
-                    >
-                      {isSelected ? 'Dipilih' : 'Pilih'}
-                    </Button>
+                    <>
+                      {(order.complaints ?? []).some(
+                        (complaint) => complaint.status === 'open' || complaint.status === 'accepted',
+                      ) && (
+                        <Button type="button" size="sm" variant="outline" className="h-8" disabled>
+                          <MessageSquareWarning className="mr-1.5 h-4 w-4 text-amber-600" />
+                          Komplain
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isSelected ? 'default' : 'outline'}
+                        className="h-8"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          toggleSelectOrder(order.id);
+                        }}
+                      >
+                        {isSelected ? 'Dipilih' : 'Pilih'}
+                      </Button>
+                    </>
                   )}
                   footerActions={(
                     <AdminActions
@@ -591,6 +649,7 @@ export default function AdminOrdersPage() {
                       onConfirmPayment={handleConfirmPayment}
                       onSettleCredit={handleSettleCredit}
                       onUpdateStatus={handleUpdateStatus}
+                      onUpdateComplaintStatus={handleUpdateComplaintStatus}
                     />
                   )}
                 />
@@ -738,6 +797,7 @@ function AdminActions({
   onConfirmPayment,
   onSettleCredit,
   onUpdateStatus,
+  onUpdateComplaintStatus,
 }: {
   order: Order;
   isLoading: boolean;
@@ -749,11 +809,21 @@ function AdminActions({
     status: 'shipped' | 'done',
     deliveryMethod: Order['deliveryMethod'],
   ) => void;
+  onUpdateComplaintStatus: (
+    orderId: string,
+    complaintId: string,
+    status: 'accepted' | 'rejected' | 'resolved',
+  ) => void;
 }) {
   const showSettleCredit = order.paymentMethod === 'credit' && !order.creditSettledAt;
+  const activeComplaint = (order.complaints ?? []).find(
+    (complaint) => complaint.status === 'open' || complaint.status === 'accepted',
+  );
+  const hasOpenComplaint = Boolean(activeComplaint);
 
   if (
-    !showSettleCredit
+    !hasOpenComplaint
+    && !showSettleCredit
     && order.status !== 'waiting_confirmation'
     && order.status !== 'paid'
     && order.status !== 'shipped'
@@ -824,18 +894,68 @@ function AdminActions({
         )
       )}
 
+      {activeComplaint && (
+        <>
+          {activeComplaint.status === 'open' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onUpdateComplaintStatus(order.id, activeComplaint.id, 'accepted')}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <MessageSquareWarning className="mr-1.5 h-4 w-4" />
+              )}
+              Terima Komplain
+            </Button>
+          )}
+
+          {activeComplaint.status === 'accepted' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onUpdateComplaintStatus(order.id, activeComplaint.id, 'resolved')}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-1.5 h-4 w-4" />
+              )}
+              Selesai Komplain
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onUpdateComplaintStatus(order.id, activeComplaint.id, 'rejected')}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <AlertTriangle className="mr-1.5 h-4 w-4" />
+            )}
+            Tolak Komplain
+          </Button>
+        </>
+      )}
+
       {order.status === 'shipped' && (
         <Button
           size="sm"
           onClick={() => onUpdateStatus(order.id, 'done', order.deliveryMethod)}
-          disabled={isLoading}
+          disabled={isLoading || hasOpenComplaint}
         >
           {isLoading ? (
             <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
           ) : (
             <PackageCheck className="mr-1.5 h-4 w-4" />
           )}
-          Selesai
+          {hasOpenComplaint ? 'Selesaikan (Komplain Aktif)' : 'Selesai'}
         </Button>
       )}
     </>

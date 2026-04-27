@@ -4,9 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useHasMounted } from '@/hooks/use-has-mounted';
 import { formatRupiah, getPlaceholderImage, getThumbnailUrl } from '@/lib/utils';
-import { useCustomerAuthStore } from '@/stores/customer-auth-store';
+import { inferVariantRawUnitPrice } from '@/lib/variant-discount';
 import type { ProductListItem } from '@/types';
 
 interface ProductCardProps {
@@ -15,31 +14,31 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const hasVariants = product.variants && product.variants.length > 0;
-  const hasMounted = useHasMounted();
-  const customerType = useCustomerAuthStore((s) => s.customer?.type);
   const primaryImage = product.images?.[0]?.imageUrl;
   const imageUrl = primaryImage
     ? getThumbnailUrl(primaryImage, 400)
     : getPlaceholderImage(400, 400);
-  const canUseWholesalePricing = hasMounted && customerType === 'wholesale';
-
-  const activeDiscountPercent = canUseWholesalePricing
-    ? (product.discount?.retailDiscountActive ? product.discount.retailDiscount : null)
-    : (product.discount?.normalDiscountActive ? product.discount.normalDiscount : null);
-
-  const getOriginalPriceFromDiscount = (discountedPrice: number) => {
-    if (!activeDiscountPercent || activeDiscountPercent <= 0 || activeDiscountPercent >= 100) {
-      return discountedPrice;
-    }
-
-    return Math.round((discountedPrice * 100) / (100 - activeDiscountPercent));
-  };
+  const resolvedVariantPrices = hasVariants
+    ? product.variants.map((variant) => {
+      const resolvedPrice = variant.price ?? variant.priceOverride ?? product.basePrice;
+      const rawPrice = variant.rawPrice ?? inferVariantRawUnitPrice(
+        resolvedPrice,
+        variant.discountRules,
+        variant.activeDiscountRuleId,
+      );
+      return {
+        resolvedPrice,
+        rawPrice,
+      };
+    })
+    : [{ resolvedPrice: product.basePrice, rawPrice: product.basePrice }];
+  const hasAnyDiscount = resolvedVariantPrices.some((variant) => variant.rawPrice > variant.resolvedPrice);
 
   const getPriceDisplay = () => {
     if (!hasVariants) {
       return formatRupiah(product.basePrice);
     }
-    const prices = product.variants.map((v) => v.price ?? v.priceOverride ?? product.basePrice);
+    const prices = resolvedVariantPrices.map((variant) => variant.resolvedPrice);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     if (minPrice === maxPrice) return formatRupiah(minPrice);
@@ -47,16 +46,11 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const getOriginalPriceDisplay = () => {
-    if (!activeDiscountPercent) {
+    if (!hasAnyDiscount) {
       return null;
     }
 
-    if (!hasVariants) {
-      return formatRupiah(getOriginalPriceFromDiscount(product.basePrice));
-    }
-
-    const discountedPrices = product.variants.map((v) => v.price ?? v.priceOverride ?? product.basePrice);
-    const originalPrices = discountedPrices.map(getOriginalPriceFromDiscount);
+    const originalPrices = resolvedVariantPrices.map((variant) => variant.rawPrice);
     const minOriginalPrice = Math.min(...originalPrices);
     const maxOriginalPrice = Math.max(...originalPrices);
 
@@ -67,8 +61,43 @@ export function ProductCard({ product }: ProductCardProps) {
     return `${formatRupiah(minOriginalPrice)} - ${formatRupiah(maxOriginalPrice)}`;
   };
 
+  type DiscountHint = { value: number; valueType: 'percentage' | 'fixed_amount'; applied: boolean };
+
+  const getDiscountHint = (): DiscountHint | null => {
+    // Case 1: discount already baked into listed price
+    if (hasAnyDiscount) {
+      const percents = resolvedVariantPrices
+        .filter((v) => v.rawPrice > v.resolvedPrice)
+        .map((v) => Math.round(((v.rawPrice - v.resolvedPrice) / v.rawPrice) * 100));
+      if (percents.length > 0) return { value: Math.max(...percents), valueType: 'percentage', applied: true };
+    }
+
+    // Case 2: rules exist but not yet applied (qty/amount threshold)
+    const pctValues: number[] = [];
+    const fixedValues: number[] = [];
+
+    product.variants.forEach((v) => {
+      v.discountRules?.forEach((r) => {
+        if (!r.isActive) return;
+        if (r.valueType === 'percentage') pctValues.push(r.value);
+        else if (r.valueType === 'fixed_amount') fixedValues.push(r.value);
+      });
+    });
+    product.productDiscountRules?.forEach((r) => {
+      if (!r.isActive) return;
+      if (r.valueType === 'percentage') pctValues.push(r.value);
+      else if (r.valueType === 'fixed_amount') fixedValues.push(r.value);
+    });
+
+    if (pctValues.length > 0) return { value: Math.max(...pctValues), valueType: 'percentage', applied: false };
+    if (fixedValues.length > 0) return { value: Math.max(...fixedValues), valueType: 'fixed_amount', applied: false };
+
+    return null;
+  };
+
   const isLowStock = product.stock > 0 && product.stock <= 20;
   const originalPriceDisplay = getOriginalPriceDisplay();
+  const maxDiscount = getDiscountHint();
 
   return (
     <Link href={`/product/${product.id}`}>
@@ -80,7 +109,7 @@ export function ProductCard({ product }: ProductCardProps) {
               src={imageUrl}
               alt={product.name}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
             />
           </div>
@@ -110,9 +139,9 @@ export function ProductCard({ product }: ProductCardProps) {
             <div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <p className="text-[#006f1d] text-lg font-extrabold leading-7">{getPriceDisplay()}</p>
-                {activeDiscountPercent && (
+                {hasAnyDiscount && (
                   <span className="rounded-full bg-[#ecfdf3] px-2 py-0.5 text-[10px] font-bold text-[#15803d]">
-                    -{activeDiscountPercent}%
+                    PROMO
                   </span>
                 )}
               </div>
@@ -126,6 +155,17 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <div className="flex flex-col gap-2 mt-auto">
+            {maxDiscount !== null && (
+              <p className="text-[10px] font-semibold text-[#b45309]">
+                {(() => {
+                  const prefix = maxDiscount.applied ? 'Diskon hingga' : 'Diskon s/d';
+                  const amount = maxDiscount.valueType === 'percentage'
+                    ? `${maxDiscount.value}%`
+                    : formatRupiah(maxDiscount.value);
+                  return `${prefix} ${amount}`;
+                })()}
+              </p>
+            )}
             <div className="flex items-center justify-between pb-1">
               <p className="text-[#59615f] text-[10px] font-medium">
                 Tersedia:{' '}

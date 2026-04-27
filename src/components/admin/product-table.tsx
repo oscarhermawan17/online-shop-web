@@ -482,12 +482,16 @@ export function ProductTable({ products, onDelete }: ProductTableProps) {
                       <p className="font-medium line-clamp-1">{product.name}</p>
                       {(() => {
                         const activeVariantRuleCount = getActiveVariantDiscountRuleCount(product);
+                        const activeProductRuleCount = product.productDiscountRules?.filter((rule) => rule.isActive).length ?? 0;
                         const d = product.discount;
                         const hasNormal = d?.normalDiscountActive && d.normalDiscount;
                         const hasRetail = d?.retailDiscountActive && d.retailDiscount;
-                        if (activeVariantRuleCount === 0 && !hasNormal && !hasRetail) return null;
+                        if (activeVariantRuleCount === 0 && activeProductRuleCount === 0 && !hasNormal && !hasRetail) return null;
 
                         const lines: string[] = [];
+                        if (activeProductRuleCount > 0) {
+                          lines.push(`${activeProductRuleCount} rule diskon all varian aktif`);
+                        }
                         if (activeVariantRuleCount > 0) {
                           lines.push(`${activeVariantRuleCount} rule diskon varian aktif`);
                         }

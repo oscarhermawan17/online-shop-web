@@ -34,7 +34,11 @@ export function DashboardSidebar() {
     {
       title: 'Pesanan Saya',
       icon: <ClipboardList className="w-5 h-5 text-blue-600" />,
-      href: '/dashboard/orders'
+      href: '/dashboard/orders',
+      subItems: [
+        { title: 'Semua Pesanan', href: '/dashboard/orders' },
+        { title: 'Kredit', href: '/dashboard/credit' },
+      ],
     },
     {
       title: 'Notifikasi',

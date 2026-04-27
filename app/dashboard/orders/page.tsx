@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EmptyState, OrderCard } from '@/components/shared';
+import { OrderDeliveryActions } from '@/components/public';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,7 +42,7 @@ export default function OrdersPage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  const { data: allOrders, isLoading } = useSWR<Order[]>(
+  const { data: allOrders, isLoading, mutate } = useSWR<Order[]>(
     '/customer/orders',
     fetcher
   );
@@ -207,7 +208,20 @@ export default function OrdersPage() {
                   {orders.length} pesanan
                 </p>
                 {orders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    footerActions={(
+                      <OrderDeliveryActions
+                        orderId={order.id}
+                        orderStatus={order.status}
+                        adminCompletedAt={order.adminCompletedAt}
+                        customerCompletedAt={order.customerCompletedAt}
+                        complaints={order.complaints}
+                        onSuccess={() => mutate()}
+                      />
+                    )}
+                  />
                 ))}
               </div>
             )}

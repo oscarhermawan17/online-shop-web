@@ -6,6 +6,7 @@ import { useAdminCredits } from '@/hooks';
 import { LoadingPage, ErrorMessage, EmptyState } from '@/components/shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -23,8 +24,10 @@ import type { CustomerCreditListItem } from '@/types';
 
 export default function AdminCreditPage() {
   const { credits, isLoading, isError, mutate } = useAdminCredits();
-  const [drafts, setDrafts] = useState<Record<string, number | null>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, number | null>>({});
+  const [topDrafts, setTopDrafts] = useState<Record<string, number | null>>({});
+  const [savingLimitId, setSavingLimitId] = useState<string | null>(null);
+  const [savingTopId, setSavingTopId] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     return credits.reduce(
@@ -37,40 +40,61 @@ export default function AdminCreditPage() {
     );
   }, [credits]);
 
-  const getCreditLimitInputValue = (item: CustomerCreditListItem): number | null => {
-    if (drafts[item.id] !== undefined) {
-      return drafts[item.id];
-    }
-
+  const getLimitInputValue = (item: CustomerCreditListItem): number | null => {
+    if (limitDrafts[item.id] !== undefined) return limitDrafts[item.id];
     return item.creditLimit > 0 ? item.creditLimit : null;
   };
 
-  const handleSave = async (item: CustomerCreditListItem) => {
-    const creditLimit =
-      drafts[item.id] !== undefined ? (drafts[item.id] ?? 0) : item.creditLimit;
+  const getTopInputValue = (item: CustomerCreditListItem): string => {
+    if (topDrafts[item.id] !== undefined) {
+      return topDrafts[item.id] !== null ? String(topDrafts[item.id]) : '';
+    }
+    return item.termOfPayment > 0 ? String(item.termOfPayment) : '';
+  };
 
-    setSavingId(item.id);
+  const handleSaveLimit = async (item: CustomerCreditListItem) => {
+    const creditLimit =
+      limitDrafts[item.id] !== undefined ? (limitDrafts[item.id] ?? 0) : item.creditLimit;
+
+    setSavingLimitId(item.id);
     try {
-      await api.put(`/admin/credit/${item.id}`, { creditLimit });
-      toast.success(`Limit credit untuk ${item.name || item.phone} berhasil disimpan`);
-      setDrafts((prev) => {
-        const next = { ...prev };
-        delete next[item.id];
-        return next;
+      await api.put(`/admin/credit/${item.id}`, {
+        creditLimit,
+        termOfPayment: item.termOfPayment,
       });
+      toast.success(`Limit credit untuk ${item.name || item.phone} berhasil disimpan`);
+      setLimitDrafts((prev) => { const next = { ...prev }; delete next[item.id]; return next; });
       mutate();
     } catch (error: unknown) {
-      console.error('Save credit error:', error);
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || 'Gagal menyimpan limit credit');
     } finally {
-      setSavingId(null);
+      setSavingLimitId(null);
     }
   };
 
-  if (isLoading) {
-    return <LoadingPage />;
-  }
+  const handleSaveTop = async (item: CustomerCreditListItem) => {
+    const termOfPayment =
+      topDrafts[item.id] !== undefined ? (topDrafts[item.id] ?? 0) : item.termOfPayment;
+
+    setSavingTopId(item.id);
+    try {
+      await api.put(`/admin/credit/${item.id}`, {
+        creditLimit: item.creditLimit,
+        termOfPayment,
+      });
+      toast.success(`TOP untuk ${item.name || item.phone} berhasil disimpan`);
+      setTopDrafts((prev) => { const next = { ...prev }; delete next[item.id]; return next; });
+      mutate();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal menyimpan TOP');
+    } finally {
+      setSavingTopId(null);
+    }
+  };
+
+  if (isLoading) return <LoadingPage />;
 
   if (isError) {
     return (
@@ -97,7 +121,7 @@ export default function AdminCreditPage() {
       <div>
         <h1 className="text-2xl font-bold">Limit Credit</h1>
         <p className="text-muted-foreground">
-          Atur limit credit pelanggan dan pantau total invoice credit yang belum dilunasi.
+          Atur limit credit dan TOP pelanggan, pantau total invoice credit yang belum dilunasi.
         </p>
       </div>
 
@@ -126,7 +150,7 @@ export default function AdminCreditPage() {
         <CardHeader>
           <CardTitle>Daftar Credit Pelanggan</CardTitle>
           <CardDescription>
-            Satu pelanggan hanya memiliki satu data credit. Nilai terpakai dihitung dari total invoice credit yang belum dibayar.
+            TOP (Term of Payment) menentukan jatuh tempo tagihan dalam hari sejak tanggal pembelian.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -136,18 +160,25 @@ export default function AdminCreditPage() {
                 <TableHead>Pelanggan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Limit Credit</TableHead>
+                <TableHead>TOP (Hari)</TableHead>
                 <TableHead>Terpakai</TableHead>
                 <TableHead>Sisa</TableHead>
-                <TableHead className="w-[220px]">Atur Limit</TableHead>
+                <TableHead>Atur Limit</TableHead>
+                <TableHead>Atur TOP</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {credits.map((item) => {
-                const inputValue = getCreditLimitInputValue(item);
-                const isSaving = savingId === item.id;
+                const isSavingLimit = savingLimitId === item.id;
+                const isSavingTop = savingTopId === item.id;
+
                 const effectiveLimit =
-                  drafts[item.id] !== undefined ? (drafts[item.id] ?? 0) : item.creditLimit;
-                const isChanged = effectiveLimit !== item.creditLimit;
+                  limitDrafts[item.id] !== undefined ? (limitDrafts[item.id] ?? 0) : item.creditLimit;
+                const effectiveTop =
+                  topDrafts[item.id] !== undefined ? (topDrafts[item.id] ?? 0) : item.termOfPayment;
+
+                const limitChanged = effectiveLimit !== item.creditLimit;
+                const topChanged = effectiveTop !== item.termOfPayment;
 
                 return (
                   <TableRow key={item.id}>
@@ -172,32 +203,71 @@ export default function AdminCreditPage() {
                       {formatRupiah(item.creditLimit)}
                     </TableCell>
                     <TableCell className="align-top">
+                      {item.termOfPayment > 0 ? (
+                        <Badge variant="outline">{item.termOfPayment} hari</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-top">
                       {formatRupiah(item.outstandingCredit)}
                     </TableCell>
                     <TableCell className="align-top">
                       {formatRupiah(item.remainingCredit)}
                     </TableCell>
+
+                    {/* Atur Limit */}
                     <TableCell className="align-top">
                       <div className="flex gap-2">
                         <CurrencyInput
                           inputMode="numeric"
-                          placeholder="0"
-                          value={inputValue}
+                          placeholder="Rp 0"
+                          value={getLimitInputValue(item)}
                           onValueChange={(value) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [item.id]: value,
-                            }))
+                            setLimitDrafts((prev) => ({ ...prev, [item.id]: value }))
                           }
-                          disabled={isSaving}
-                          className="min-w-[140px]"
+                          disabled={isSavingLimit}
+                          className="w-36"
                         />
                         <Button
                           type="button"
-                          onClick={() => handleSave(item)}
-                          disabled={isSaving || !isChanged}
+                          size="icon"
+                          onClick={() => handleSaveLimit(item)}
+                          disabled={isSavingLimit || !limitChanged}
                         >
-                          {isSaving ? (
+                          {isSavingLimit ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+
+                    {/* Atur TOP */}
+                    <TableCell className="align-top">
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Hari"
+                          value={getTopInputValue(item)}
+                          onChange={(e) => {
+                            const val = e.target.value === ''
+                              ? null
+                              : Math.max(0, parseInt(e.target.value, 10) || 0);
+                            setTopDrafts((prev) => ({ ...prev, [item.id]: val }));
+                          }}
+                          disabled={isSavingTop}
+                          className="w-24"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          onClick={() => handleSaveTop(item)}
+                          disabled={isSavingTop || !topChanged}
+                        >
+                          {isSavingTop ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Save className="h-4 w-4" />
