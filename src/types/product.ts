@@ -59,6 +59,7 @@ export interface ProductDiscountRule {
   customerType: VariantDiscountCustomerType | null;
   isActive: boolean;
   priority: number;
+  targetVariantIds: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -7,11 +7,13 @@ import api from '@/lib/api';
 import { formatRupiah } from '@/lib/utils';
 import type {
   ProductDiscountRule,
+  ProductVariant,
   VariantDiscountCustomerType,
 } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 interface ProductDiscountRulesFormProps {
   productId: string;
   rules: ProductDiscountRule[];
+  variants: ProductVariant[];
   onRulesChange: () => void;
 }
 
@@ -42,6 +45,7 @@ type RuleFormState = {
   customerType: 'all' | VariantDiscountCustomerType;
   isActive: boolean;
   priority: number | null;
+  targetVariantIds: string[];
 };
 
 const defaultRuleForm: RuleFormState = {
@@ -55,6 +59,7 @@ const defaultRuleForm: RuleFormState = {
   customerType: 'all',
   isActive: true,
   priority: 0,
+  targetVariantIds: [],
 };
 
 const getCustomerLabel = (customerType: ProductDiscountRule['customerType']) => {
@@ -106,12 +111,24 @@ const sortRules = (rules: ProductDiscountRule[]): ProductDiscountRule[] => (
   })
 );
 
+const getSellableVariants = (variants: ProductVariant[]) => {
+  const real = variants.filter((v) => !v.isDefault);
+  return real.length > 0 ? real : variants;
+};
+
+const getVariantLabel = (variant: ProductVariant) =>
+  variant.name || `Varian ${variant.id.slice(-6)}`;
+
 export function ProductDiscountRulesForm({
   productId,
   rules,
+  variants,
   onRulesChange,
 }: ProductDiscountRulesFormProps) {
   const sortedRules = useMemo(() => sortRules(rules), [rules]);
+  const sellableVariants = useMemo(() => getSellableVariants(variants), [variants]);
+  const hasMultipleVariants = sellableVariants.length > 1;
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
@@ -121,6 +138,15 @@ export function ProductDiscountRulesForm({
 
   const setField = <K extends keyof RuleFormState>(key: K, value: RuleFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleVariantId = (variantId: string) => {
+    setForm((prev) => {
+      const ids = prev.targetVariantIds.includes(variantId)
+        ? prev.targetVariantIds.filter((id) => id !== variantId)
+        : [...prev.targetVariantIds, variantId];
+      return { ...prev, targetVariantIds: ids };
+    });
   };
 
   const openCreateDialog = () => {
@@ -142,6 +168,7 @@ export function ProductDiscountRulesForm({
       customerType: rule.customerType ?? 'all',
       isActive: rule.isActive,
       priority: rule.priority,
+      targetVariantIds: rule.targetVariantIds ?? [],
     });
     setIsDialogOpen(true);
   };
@@ -196,6 +223,7 @@ export function ProductDiscountRulesForm({
       customerType: form.customerType === 'all' ? null : form.customerType,
       isActive: form.isActive,
       priority,
+      variantIds: form.targetVariantIds,
     };
   };
 
@@ -216,13 +244,13 @@ export function ProductDiscountRulesForm({
           `/admin/products/${productId}/discount-rules/${editingRule.id}`,
           payload,
         );
-        toast.success('Rule diskon all varian berhasil diperbarui');
+        toast.success('Rule diskon utama berhasil diperbarui');
       } else {
         await api.post(
           `/admin/products/${productId}/discount-rules`,
           payload,
         );
-        toast.success('Rule diskon all varian berhasil ditambahkan');
+        toast.success('Rule diskon utama berhasil ditambahkan');
       }
 
       handleDialogOpenChange(false);
@@ -230,7 +258,7 @@ export function ProductDiscountRulesForm({
     } catch (error: unknown) {
       console.error('Save product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal menyimpan rule diskon all varian');
+      toast.error(err.response?.data?.message || 'Gagal menyimpan rule diskon utama');
     } finally {
       setIsSubmitting(false);
     }
@@ -242,12 +270,12 @@ export function ProductDiscountRulesForm({
     setDeletingRuleId(rule.id);
     try {
       await api.delete(`/admin/products/${productId}/discount-rules/${rule.id}`);
-      toast.success('Rule diskon all varian berhasil dihapus');
+      toast.success('Rule diskon utama berhasil dihapus');
       onRulesChange();
     } catch (error: unknown) {
       console.error('Delete product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal menghapus rule diskon all varian');
+      toast.error(err.response?.data?.message || 'Gagal menghapus rule diskon utama');
     } finally {
       setDeletingRuleId(null);
     }
@@ -264,19 +292,29 @@ export function ProductDiscountRulesForm({
     } catch (error: unknown) {
       console.error('Toggle product discount rule error:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Gagal mengubah status rule diskon all varian');
+      toast.error(err.response?.data?.message || 'Gagal mengubah status rule diskon utama');
     } finally {
       setTogglingRuleId(null);
     }
+  };
+
+  const getVariantScopeLabel = (rule: ProductDiscountRule) => {
+    const ids = rule.targetVariantIds ?? [];
+    if (ids.length === 0) return 'Semua varian';
+    const labels = ids.map((id) => {
+      const v = sellableVariants.find((sv) => sv.id === id);
+      return v ? getVariantLabel(v) : id.slice(-6);
+    });
+    return labels.join(', ');
   };
 
   return (
     <Card>
       <CardHeader>
         <div className="space-y-1">
-          <CardTitle className="text-lg">Diskon All Varian</CardTitle>
+          <CardTitle className="text-lg">Diskon Utama</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Rule ini berlaku ke semua varian dalam produk.
+            Rule diskon produk. Bisa berlaku ke semua varian atau varian tertentu.
           </p>
         </div>
       </CardHeader>
@@ -290,7 +328,7 @@ export function ProductDiscountRulesForm({
 
         {sortedRules.length === 0 ? (
           <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-            Belum ada rule diskon all varian.
+            Belum ada rule diskon utama.
           </p>
         ) : (
           <div className="space-y-2">
@@ -317,6 +355,12 @@ export function ProductDiscountRulesForm({
                     {getCustomerLabel(rule.customerType)}
                     {' • '}
                     Prioritas: {rule.priority}
+                    {hasMultipleVariants && (
+                      <>
+                        {' • '}
+                        <span className="font-medium">{getVariantScopeLabel(rule)}</span>
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -360,13 +404,13 @@ export function ProductDiscountRulesForm({
         )}
 
         <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingRule ? 'Edit Rule Diskon All Varian' : 'Tambah Rule Diskon All Varian'}
+                {editingRule ? 'Edit Rule Diskon Utama' : 'Tambah Rule Diskon Utama'}
               </DialogTitle>
               <DialogDescription>
-                Rule ini berlaku untuk semua varian pada produk ini.
+                Rule berlaku ke semua varian, atau pilih varian tertentu di bawah.
               </DialogDescription>
             </DialogHeader>
 
@@ -543,6 +587,60 @@ export function ProductDiscountRulesForm({
                   />
                 </div>
               </div>
+
+              {hasMultipleVariants && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Target Varian</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setField('targetVariantIds', sellableVariants.map((v) => v.id))}
+                        disabled={isSubmitting || form.targetVariantIds.length === sellableVariants.length}
+                      >
+                        Pilih Semua
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setField('targetVariantIds', [])}
+                        disabled={isSubmitting || form.targetVariantIds.length === 0}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Kosongkan untuk berlaku ke semua varian, atau pilih varian tertentu.
+                  </p>
+                  <div className="space-y-2 rounded-md border p-3">
+                    {sellableVariants.map((variant) => (
+                      <div key={variant.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`variant-${variant.id}`}
+                          checked={form.targetVariantIds.includes(variant.id)}
+                          onCheckedChange={() => toggleVariantId(variant.id)}
+                          disabled={isSubmitting}
+                        />
+                        <label
+                          htmlFor={`variant-${variant.id}`}
+                          className="cursor-pointer text-sm"
+                        >
+                          {getVariantLabel(variant)}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {form.targetVariantIds.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Berlaku ke semua varian.</p>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-between rounded-md border p-3">
                 <div>

@@ -251,6 +251,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           <ProductDiscountRulesForm
             productId={id}
             rules={product.productDiscountRules ?? []}
+            variants={product.variants}
             onRulesChange={() => mutate()}
           />
 
