@@ -61,8 +61,43 @@ export function ProductCard({ product }: ProductCardProps) {
     return `${formatRupiah(minOriginalPrice)} - ${formatRupiah(maxOriginalPrice)}`;
   };
 
+  type DiscountHint = { value: number; valueType: 'percentage' | 'fixed_amount'; applied: boolean };
+
+  const getDiscountHint = (): DiscountHint | null => {
+    // Case 1: discount already baked into listed price
+    if (hasAnyDiscount) {
+      const percents = resolvedVariantPrices
+        .filter((v) => v.rawPrice > v.resolvedPrice)
+        .map((v) => Math.round(((v.rawPrice - v.resolvedPrice) / v.rawPrice) * 100));
+      if (percents.length > 0) return { value: Math.max(...percents), valueType: 'percentage', applied: true };
+    }
+
+    // Case 2: rules exist but not yet applied (qty/amount threshold)
+    const pctValues: number[] = [];
+    const fixedValues: number[] = [];
+
+    product.variants.forEach((v) => {
+      v.discountRules?.forEach((r) => {
+        if (!r.isActive) return;
+        if (r.valueType === 'percentage') pctValues.push(r.value);
+        else if (r.valueType === 'fixed_amount') fixedValues.push(r.value);
+      });
+    });
+    product.productDiscountRules?.forEach((r) => {
+      if (!r.isActive) return;
+      if (r.valueType === 'percentage') pctValues.push(r.value);
+      else if (r.valueType === 'fixed_amount') fixedValues.push(r.value);
+    });
+
+    if (pctValues.length > 0) return { value: Math.max(...pctValues), valueType: 'percentage', applied: false };
+    if (fixedValues.length > 0) return { value: Math.max(...fixedValues), valueType: 'fixed_amount', applied: false };
+
+    return null;
+  };
+
   const isLowStock = product.stock > 0 && product.stock <= 20;
   const originalPriceDisplay = getOriginalPriceDisplay();
+  const maxDiscount = getDiscountHint();
 
   return (
     <Link href={`/product/${product.id}`}>
@@ -120,6 +155,17 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <div className="flex flex-col gap-2 mt-auto">
+            {maxDiscount !== null && (
+              <p className="text-[10px] font-semibold text-[#b45309]">
+                {(() => {
+                  const prefix = maxDiscount.applied ? 'Diskon hingga' : 'Diskon s/d';
+                  const amount = maxDiscount.valueType === 'percentage'
+                    ? `${maxDiscount.value}%`
+                    : formatRupiah(maxDiscount.value);
+                  return `${prefix} ${amount}`;
+                })()}
+              </p>
+            )}
             <div className="flex items-center justify-between pb-1">
               <p className="text-[#59615f] text-[10px] font-medium">
                 Tersedia:{' '}
