@@ -4,11 +4,13 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   Truck,
   PackageCheck,
   Loader2,
+  MessageSquareWarning,
   WalletCards,
   MapPin,
   User,
@@ -20,18 +22,18 @@ import {
   UserRound,
 } from 'lucide-react';
 import { ShipOrderDialog } from '@/components/admin';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/public/order-status';
-import { LoadingPage, ErrorMessage } from '@/components/shared';
+import { LoadingPage, ErrorMessage, OrderItemImage } from '@/components/shared';
 import { useAdminOrder } from '@/hooks';
 import {
   formatRupiah,
   formatDate,
   formatDateOnly,
   getOptimizedImageUrl,
-  getPlaceholderImage,
   getShippingShiftLabel,
 } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -45,6 +47,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = use(params);
   const { order, isLoading, isError, mutate } = useAdminOrder(id);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeComplaintId, setActiveComplaintId] = useState<string | null>(null);
 
   if (isLoading) {
     return <LoadingPage />;
@@ -71,6 +74,16 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     return sum + lineDiscount;
   }, 0);
   const productSubtotalBeforeDiscount = productSubtotalAfterDiscount + totalProductDiscount;
+  const activeComplaint = (order.complaints ?? []).find(
+    (complaint) => complaint.status === 'open' || complaint.status === 'accepted',
+  );
+  const hasOpenComplaint = Boolean(activeComplaint);
+  const complaintStatusMeta: Record<'open' | 'accepted' | 'resolved' | 'rejected', { label: string; className: string }> = {
+    open: { label: 'Komplain Baru', className: 'border-amber-300 bg-amber-50 text-amber-700' },
+    accepted: { label: 'Diproses', className: 'border-blue-300 bg-blue-50 text-blue-700' },
+    resolved: { label: 'Selesai', className: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
+    rejected: { label: 'Ditolak', className: 'border-red-300 bg-red-50 text-red-700' },
+  };
 
   const handleConfirmPayment = async () => {
     setIsUpdating(true);
@@ -89,13 +102,16 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const handleUpdateStatus = async (status: 'shipped' | 'done') => {
     setIsUpdating(true);
     try {
-      await api.patch(`/admin/orders/${id}/status`, { status });
+      const response = await api.patch(`/admin/orders/${id}/status`, { status });
+      const updatedStatus = response.data?.data?.status as string | undefined;
       toast.success(
         status === 'shipped'
           ? order.deliveryMethod === 'pickup'
             ? 'Pengambilan pesanan berhasil dikonfirmasi'
             : 'Pesanan ditandai sebagai dikirim'
-          : 'Pesanan selesai'
+          : updatedStatus === 'done'
+            ? 'Pesanan selesai'
+            : 'Konfirmasi selesai admin tersimpan, menunggu konfirmasi pelanggan'
       );
       mutate();
     } catch (error: unknown) {
@@ -118,6 +134,31 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       toast.error(err.response?.data?.message || 'Gagal melunasi invoice credit');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateComplaintStatus = async (
+    complaintId: string,
+    complaintStatus: 'accepted' | 'rejected' | 'resolved',
+  ) => {
+    setActiveComplaintId(complaintId);
+    try {
+      await api.patch(`/admin/orders/${id}/complaints/${complaintId}/status`, {
+        status: complaintStatus,
+      });
+      toast.success(
+        complaintStatus === 'accepted'
+          ? 'Komplain diterima'
+          : complaintStatus === 'rejected'
+            ? 'Komplain ditolak'
+            : 'Komplain ditandai selesai',
+      );
+      mutate();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Gagal memperbarui status komplain');
+    } finally {
+      setActiveComplaintId(null);
     }
   };
 
@@ -287,6 +328,91 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </Card>
 
           {/* Order Items */}
+          {(order.complaints ?? []).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Daftar Komplain</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(order.complaints ?? []).map((complaint) => (
+                  <div key={complaint.id} className="rounded-lg border p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Badge variant="outline" className={complaintStatusMeta[complaint.status].className}>
+                        {complaintStatusMeta[complaint.status].label}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(complaint.createdAt)}
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{complaint.comment}</p>
+                    {complaint.evidenceImageUrls.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {complaint.evidenceImageUrls.map((imageUrl, index) => (
+                          <div key={`${complaint.id}-${index}`} className="relative aspect-square overflow-hidden rounded-md border bg-muted">
+                            <Image
+                              src={getOptimizedImageUrl(imageUrl, 300)}
+                              alt={`Bukti komplain ${index + 1}`}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(complaint.status === 'open' || complaint.status === 'accepted') && (
+                      <div className="flex flex-wrap gap-2">
+                        {complaint.status === 'open' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateComplaintStatus(complaint.id, 'accepted')}
+                            disabled={Boolean(activeComplaintId)}
+                          >
+                            {activeComplaintId === complaint.id ? (
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                            ) : (
+                              <MessageSquareWarning className="mr-1.5 h-4 w-4" />
+                            )}
+                            Terima Komplain
+                          </Button>
+                        )}
+                        {complaint.status === 'accepted' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateComplaintStatus(complaint.id, 'resolved')}
+                            disabled={Boolean(activeComplaintId)}
+                          >
+                            {activeComplaintId === complaint.id ? (
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="mr-1.5 h-4 w-4" />
+                            )}
+                            Tandai Komplain Selesai
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdateComplaintStatus(complaint.id, 'rejected')}
+                          disabled={Boolean(activeComplaintId)}
+                        >
+                          {activeComplaintId === complaint.id ? (
+                            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="mr-1.5 h-4 w-4" />
+                          )}
+                          Tolak Komplain
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Order Items */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Item Pesanan</CardTitle>
@@ -304,9 +430,6 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     ? item.discountAmount
                     : computedLineDiscount;
                   const hasDiscount = lineDiscount > 0;
-                  const imgSrc = item.imageUrl
-                    ? getOptimizedImageUrl(item.imageUrl, 64)
-                    : getPlaceholderImage(64, 64);
 
                   return (
                     <div
@@ -314,7 +437,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                       className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0"
                     >
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
-                        <Image src={imgSrc} alt={item.productName} fill className="object-cover" />
+                        <OrderItemImage item={item} size={48} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{item.productName}</p>
@@ -428,6 +551,19 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                   </p>
                 </div>
               )}
+              <Separator />
+              <div>
+                <p className="text-sm text-muted-foreground">Konfirmasi Selesai Admin</p>
+                <p className="font-medium">
+                  {order.adminCompletedAt ? `Sudah (${formatDate(order.adminCompletedAt)})` : 'Belum'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Konfirmasi Selesai Pelanggan</p>
+                <p className="font-medium">
+                  {order.customerCompletedAt ? `Sudah (${formatDate(order.customerCompletedAt)})` : 'Belum'}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -543,14 +679,14 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 <Button
                   className="w-full"
                   onClick={() => handleUpdateStatus('done')}
-                  disabled={isUpdating}
+                  disabled={isUpdating || hasOpenComplaint}
                 >
                   {isUpdating ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <PackageCheck className="mr-2 h-4 w-4" />
                   )}
-                  Selesaikan Pesanan
+                  {hasOpenComplaint ? 'Selesaikan Pesanan (Komplain Aktif)' : 'Selesaikan Pesanan'}
                 </Button>
               )}
               {!['waiting_confirmation', 'paid', 'shipped'].includes(

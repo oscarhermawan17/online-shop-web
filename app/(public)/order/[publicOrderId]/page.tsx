@@ -1,7 +1,6 @@
 'use client';
 
 import { use } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -25,15 +24,13 @@ import {
   OrderStatusTracker,
   UploadPaymentProof,
 } from '@/components/public';
-import { LoadingPage, ErrorMessage } from '@/components/shared';
+import { LoadingPage, ErrorMessage, OrderItemImage } from '@/components/shared';
 import { usePublicOrder } from '@/hooks';
 import {
   formatRupiah,
   formatDate,
   formatDateOnly,
   getShippingShiftLabel,
-  getOptimizedImageUrl,
-  getPlaceholderImage,
 } from '@/lib/utils';
 
 interface OrderPageProps {
@@ -138,9 +135,6 @@ export default function OrderPage({ params }: OrderPageProps) {
                     ? item.discountAmount
                     : computedLineDiscount;
                   const hasDiscount = lineDiscount > 0;
-                  const imgSrc = item.imageUrl
-                    ? getOptimizedImageUrl(item.imageUrl, 64)
-                    : getPlaceholderImage(64, 64);
 
                   return (
                     <div
@@ -148,7 +142,7 @@ export default function OrderPage({ params }: OrderPageProps) {
                       className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0"
                     >
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
-                        <Image src={imgSrc} alt={item.productName} fill className="object-cover" />
+                        <OrderItemImage item={item} size={48} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{item.productName}</p>

@@ -19,3 +19,4 @@ export { CheckoutForm } from './checkout-form';
 export { PaymentInfo } from './payment-info';
 export { OrderStatusTracker, OrderStatusBadge } from './order-status';
 export { UploadPaymentProof } from './upload-payment-proof';
+export { OrderDeliveryActions } from './order-delivery-actions';

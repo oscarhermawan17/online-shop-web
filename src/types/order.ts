@@ -7,6 +7,26 @@ export type OrderStatus =
   | 'expired_unpaid'
   | 'cancelled';
 
+export type OrderComplaintStatus = 'open' | 'accepted' | 'rejected' | 'resolved';
+
+export interface OrderComplaint {
+  id: string;
+  orderId: string;
+  customerId: string;
+  comment: string;
+  evidenceImageUrls: string[];
+  status: OrderComplaintStatus;
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+  resolvedAt?: string | null;
+  acceptedByAdminId?: string | null;
+  rejectedByAdminId?: string | null;
+  resolvedByAdminId?: string | null;
+}
+
 export interface OrderItem {
   id: string;
   variantId?: string | null;
@@ -77,10 +97,13 @@ export interface Order {
   totalAmount: number;
   status: OrderStatus;
   creditSettledAt: string | null;
+  adminCompletedAt?: string | null;
+  customerCompletedAt?: string | null;
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  complaints?: OrderComplaint[];
   paymentProof?: PaymentProof | null;
   shippingAssignment?: OrderShippingAssignment | null;
 }
@@ -103,9 +126,12 @@ export interface PublicOrder {
   shippingCost: number;
   totalAmount: number;
   creditSettledAt: string | null;
+  adminCompletedAt?: string | null;
+  customerCompletedAt?: string | null;
   expiresAt: string | null;
   createdAt: string;
   items: OrderItem[];
+  complaints?: OrderComplaint[];
   store: {
     name: string;
     bankName?: string | null;
