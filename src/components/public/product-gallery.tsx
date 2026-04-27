@@ -36,7 +36,7 @@ export function ProductGallery({
           src={mainImage}
           alt={selectedImageAlt || sortedImages[selectedIndex]?.altText || productName}
           fill
-          className="object-cover"
+          className="object-contain"
           sizes="(max-width: 768px) 100vw, 50vw"
           priority
         />
