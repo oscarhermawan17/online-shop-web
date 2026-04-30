@@ -1,23 +1,31 @@
-import { Header, Footer, BottomNav } from '@/components/public';
+import { Header, Footer, BottomNav } from "@/components/public"
 
-export const dynamic = 'force-dynamic';
-import { getStoreInfo } from '@/lib/get-store-info';
+export const dynamic = "force-dynamic"
+import { getStoreInfo } from "@/lib/get-store-info"
 
 export default async function PublicLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  const { name: storeName } = await getStoreInfo();
+  const {
+    name: storeName,
+    description: storeDescription,
+    address: storeAddress,
+  } = await getStoreInfo()
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header storeName={storeName} />
       <main className="relative z-0 flex-1 pb-16 md:pb-0">{children}</main>
       <div className="hidden md:block">
-        <Footer storeName={storeName} />
+        <Footer
+          storeName={storeName}
+          storeDescription={storeDescription}
+          storeAddress={storeAddress}
+        />
       </div>
       <BottomNav />
     </div>
-  );
+  )
 }
