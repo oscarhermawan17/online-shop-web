@@ -10,7 +10,7 @@
 
 import imageCompression from 'browser-image-compression';
 
-export type UploadPurpose = 'products' | 'customer' | 'payment' | 'carousel' | 'category' | 'qris';
+export type UploadPurpose = 'products' | 'customer' | 'payment' | 'complaint' | 'carousel' | 'category' | 'qris';
 
 export interface UploadResult {
   tempKey: string;
@@ -33,6 +33,7 @@ const compressionConfig: Record<UploadPurpose, { maxSizeMB: number; maxWidthOrHe
   products: { maxSizeMB: globalMaxSizeMB,  maxWidthOrHeight: globalMaxPx  }, // product gallery
   carousel: { maxSizeMB: 0.8,              maxWidthOrHeight: 1920         }, // banner — needs to look sharp
   payment:  { maxSizeMB: 0.3,              maxWidthOrHeight: 1000         }, // payment proof, just needs to be readable
+  complaint: { maxSizeMB: 0.5,             maxWidthOrHeight: 1200         }, // complaint evidence
   customer: { maxSizeMB: 0.3,              maxWidthOrHeight: 800          }, // KTP etc
   category: { maxSizeMB: 0.1,              maxWidthOrHeight: 400          }, // small icon
   qris:     { maxSizeMB: 0.2,              maxWidthOrHeight: 800          }, // QR code — keep it sharp

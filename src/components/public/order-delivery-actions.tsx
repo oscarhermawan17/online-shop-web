@@ -6,7 +6,7 @@ import { AlertCircle, CheckCheck, Loader2, MessageSquareWarning, Upload, X } fro
 import { toast } from 'sonner';
 
 import api from '@/lib/api';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { confirmUpload, uploadFile } from '@/lib/storage';
 import { getThumbnailUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -101,8 +101,12 @@ export function OrderDeliveryActions({
 
     setIsUploadingEvidence(true);
     try {
-      const uploaded = await Promise.all(selectedFiles.map((file) => uploadToCloudinary(file)));
-      setEvidenceUrls((prev) => [...prev, ...uploaded.map((item) => item.secure_url)]);
+      const uploaded = await Promise.all(selectedFiles.map(async (file) => {
+        const { tempKey } = await uploadFile(file, 'complaint');
+        const { permanentUrl } = await confirmUpload(tempKey);
+        return permanentUrl;
+      }));
+      setEvidenceUrls((prev) => [...prev, ...uploaded]);
       toast.success(`${uploaded.length} bukti berhasil diunggah`);
     } catch (error) {
       console.error('Complaint evidence upload error:', error);
