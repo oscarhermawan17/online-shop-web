@@ -23,6 +23,7 @@ import {
   PaymentInfo,
   OrderStatusTracker,
   UploadPaymentProof,
+  OrderDeliveryActions,
 } from '@/components/public';
 import { LoadingPage, ErrorMessage, OrderItemImage } from '@/components/shared';
 import { usePublicOrder } from '@/hooks';
@@ -68,11 +69,13 @@ export default function OrderPage({ params }: OrderPageProps) {
   const showPaymentInfo =
     !isCreditOrder && (order.status === 'pending_payment' || order.status === 'waiting_confirmation');
   const showCreditInfo = isCreditOrder;
+  const showDeliveryActions = order.status === 'shipped';
   const hasSidebar =
     showPaymentInfo
     || showPaymentUpload
     || order.status === 'waiting_confirmation'
-    || showCreditInfo;
+    || showCreditInfo
+    || showDeliveryActions;
   const productSubtotalAfterDiscount = Math.max(0, order.totalAmount - (order.shippingCost || 0));
   const totalProductDiscount = order.items.reduce((sum, item) => {
     const originalUnitPrice = item.originalPrice && item.originalPrice > item.price
@@ -394,6 +397,26 @@ export default function OrderPage({ params }: OrderPageProps) {
         {/* Sidebar */}
         {hasSidebar && (
           <div className="space-y-6">
+            {showDeliveryActions && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Tindakan Pesanan</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  <OrderDeliveryActions
+                    orderId={order.publicOrderId}
+                    orderStatus={order.status}
+                    adminCompletedAt={order.adminCompletedAt}
+                    customerCompletedAt={order.customerCompletedAt}
+                    complaints={order.complaints}
+                    completeUrl={`/order/${order.publicOrderId}/complete`}
+                    showComplaintAction={false}
+                    onSuccess={() => mutate()}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
             {showCreditInfo && (
               <Card>
                 <CardHeader>
