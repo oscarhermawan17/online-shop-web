@@ -20,6 +20,8 @@ interface OrderDeliveryActionsProps {
   adminCompletedAt?: string | null;
   customerCompletedAt?: string | null;
   complaints?: OrderComplaint[];
+  completeUrl?: string;
+  showComplaintAction?: boolean;
   onSuccess?: () => void | Promise<unknown>;
 }
 
@@ -29,6 +31,8 @@ export function OrderDeliveryActions({
   adminCompletedAt,
   customerCompletedAt,
   complaints = [],
+  completeUrl,
+  showComplaintAction = true,
   onSuccess,
 }: OrderDeliveryActionsProps) {
   const [isCompleting, setIsCompleting] = useState(false);
@@ -60,7 +64,7 @@ export function OrderDeliveryActions({
 
     setIsCompleting(true);
     try {
-      const response = await api.patch(`/customer/orders/${orderId}/complete`);
+      const response = await api.patch(completeUrl ?? `/customer/orders/${orderId}/complete`);
       const updatedStatus = response.data?.data?.status as string | undefined;
       await onSuccess?.();
 
@@ -187,16 +191,18 @@ export function OrderDeliveryActions({
         )}
         {customerCompletedAt ? 'Sudah Dikonfirmasi' : 'Selesaikan Pesanan'}
       </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={() => setIsComplaintOpen(true)}
-        disabled={disableActions || hasOpenComplaint}
-      >
-        <MessageSquareWarning className="mr-1.5 h-4 w-4" />
-        {hasOpenComplaint ? 'Komplain Diproses' : 'Ajukan Komplain'}
-      </Button>
+      {showComplaintAction && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setIsComplaintOpen(true)}
+          disabled={disableActions || hasOpenComplaint}
+        >
+          <MessageSquareWarning className="mr-1.5 h-4 w-4" />
+          {hasOpenComplaint ? 'Komplain Diproses' : 'Ajukan Komplain'}
+        </Button>
+      )}
 
       <Dialog
         open={isComplaintOpen}
