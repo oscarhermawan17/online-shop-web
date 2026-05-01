@@ -4,7 +4,7 @@ import {
   CategoryFilterSidebar,
   PriceRangeFilter,
 } from '@/components/public';
-import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts } from '@/lib/products';
+import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts, normalizeCategoryValues } from '@/lib/products';
 import { ProductGridClient } from '../product-grid-client';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ const parsePageQuery = (value?: string) => {
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const searchQuery = getSingleQueryValue(resolvedSearchParams.q)?.trim() ?? '';
-  const selectedCategory = getSingleQueryValue(resolvedSearchParams.category)?.trim() ?? undefined;
+  const selectedCategory = normalizeCategoryValues(resolvedSearchParams.category);
   const minPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.minPrice));
   const maxPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.maxPrice));
   const page = parsePageQuery(getSingleQueryValue(resolvedSearchParams.page));

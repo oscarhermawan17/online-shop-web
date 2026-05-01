@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { CatalogPagination, ProductCard } from '@/components/public';
 import { useHasMounted } from '@/hooks/use-has-mounted';
 import { useProducts } from '@/hooks/use-products';
+import { normalizeCategoryValues } from '@/lib/products';
 import { useCustomerAuthStore } from '@/stores/customer-auth-store';
 import type { PaginationMeta, ProductListItem } from '@/types';
 
@@ -39,7 +40,7 @@ export function ProductGridClient({
   const pricingKey = customerToken ? `customer:${customerType ?? 'unknown'}` : 'guest';
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q')?.trim() ?? '';
-  const selectedCategory = searchParams.get('category')?.trim() ?? undefined;
+  const selectedCategory = normalizeCategoryValues(searchParams.getAll('category'));
   const minPrice = parseOptionalNumberParam(searchParams.get('minPrice'));
   const maxPrice = parseOptionalNumberParam(searchParams.get('maxPrice'));
   const page = parsePageParam(searchParams.get('page'));
@@ -61,7 +62,7 @@ export function ProductGridClient({
     ? clientPagination
     : serverPagination;
   const hasActiveFilters = useMemo(
-    () => !!searchQuery || !!selectedCategory || minPrice !== null || maxPrice !== null,
+    () => !!searchQuery || selectedCategory.length > 0 || minPrice !== null || maxPrice !== null,
     [searchQuery, selectedCategory, minPrice, maxPrice],
   );
 

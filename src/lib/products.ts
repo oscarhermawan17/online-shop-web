@@ -5,13 +5,35 @@ export const DEFAULT_PRODUCT_PAGE_LIMIT = 10;
 export interface PublicProductsParams {
   storeId?: string;
   q?: string;
-  category?: string;
+  category?: string | string[];
   minPrice?: number | null;
   maxPrice?: number | null;
   promoOnly?: boolean;
   page?: number;
   limit?: number;
 }
+
+export const normalizeCategoryValues = (value?: string | string[] | null) => {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  const seen = new Set<string>();
+
+  return values
+    .flatMap((item) => item.split(','))
+    .map((item) => item.trim())
+    .filter((item) => {
+      if (!item) {
+        return false;
+      }
+
+      const normalizedItem = item.toLowerCase();
+      if (seen.has(normalizedItem)) {
+        return false;
+      }
+
+      seen.add(normalizedItem);
+      return true;
+    });
+};
 
 const normalizePositiveInteger = (value?: number, fallback = 1) => {
   if (!Number.isInteger(value) || Number(value) <= 0) {
@@ -32,9 +54,10 @@ export const buildPublicProductsUrl = (params: PublicProductsParams = {}) => {
     searchParams.set('q', params.q.trim());
   }
 
-  if (params.category?.trim()) {
-    searchParams.set('category', params.category.trim());
-  }
+  const categories = normalizeCategoryValues(params.category);
+  categories.forEach((category) => {
+    searchParams.append('category', category);
+  });
 
   if (typeof params.minPrice === 'number' && Number.isFinite(params.minPrice) && params.minPrice >= 0) {
     searchParams.set('minPrice', String(params.minPrice));

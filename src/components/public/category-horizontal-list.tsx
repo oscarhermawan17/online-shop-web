@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ShoppingBag, Home, Sparkles, Smartphone, Shirt, PlusCircle, Gamepad, Car } from 'lucide-react';
 import Link from 'next/link';
+import { normalizeCategoryValues } from '@/lib/products';
 
 // Fallback icons if the category doesn't have an icon or we need default colors
 const fallbackIcons = [ShoppingBag, Home, Sparkles, Smartphone, Shirt, PlusCircle, Gamepad, Car];
@@ -31,15 +32,27 @@ interface CategoryHorizontalListProps {
 export function CategoryHorizontalList({ categories }: CategoryHorizontalListProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedCategory = searchParams.get('category')?.trim().toLowerCase();
-  const buildHref = (categoryName?: string) => {
+  const selectedCategories = normalizeCategoryValues(searchParams.getAll('category'));
+  const selectedCategoryNames = new Set(
+    selectedCategories.map((category) => category.toLowerCase()),
+  );
+  const allCategoriesSelected = categories.every((category) => (
+    selectedCategoryNames.has(category.name.trim().toLowerCase())
+  ));
+  const hasSelectedCategories = selectedCategoryNames.size > 0;
+  const buildHref = (categoryName?: string, active?: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
+    params.delete('category');
 
     if (categoryName) {
-      params.set('category', categoryName);
-    } else {
-      params.delete('category');
+      const nextCategories = active
+        ? selectedCategories.filter((category) => category.toLowerCase() !== categoryName.trim().toLowerCase())
+        : [...selectedCategories, categoryName];
+
+      nextCategories.forEach((category) => {
+        params.append('category', category);
+      });
     }
 
     const queryString = params.toString();
@@ -65,7 +78,7 @@ export function CategoryHorizontalList({ categories }: CategoryHorizontalListPro
           >
             <div
               className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${
-                !selectedCategory ? 'bg-[#166534] text-white' : 'bg-[#f1f5f9] text-[#166534]'
+                !hasSelectedCategories || allCategoriesSelected ? 'bg-[#166534] text-white' : 'bg-[#f1f5f9] text-[#166534]'
               }`}
             >
               <span className="text-[11px] md:text-xs font-bold">All</span>
@@ -77,12 +90,12 @@ export function CategoryHorizontalList({ categories }: CategoryHorizontalListPro
           {categories.map((cat, index) => {
             const FallbackIcon = fallbackIcons[index % fallbackIcons.length];
             const colorClass = fallbackColors[index % fallbackColors.length];
-            const isActive = selectedCategory === cat.name.trim().toLowerCase();
+            const isActive = selectedCategoryNames.has(cat.name.trim().toLowerCase());
 
             return (
               <Link
                 key={cat.id}
-                href={buildHref(cat.name)}
+                href={buildHref(cat.name, isActive)}
                 className="flex flex-col items-center gap-2 group cursor-pointer"
               >
                 <CategoryIcon

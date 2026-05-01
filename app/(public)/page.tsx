@@ -6,7 +6,7 @@ import {
   PromoCarousel,
 } from '@/components/public';
 import { ProductGridClient } from './product-grid-client';
-import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts } from '@/lib/products';
+import { DEFAULT_PRODUCT_PAGE_LIMIT, fetchPublicProducts, normalizeCategoryValues } from '@/lib/products';
 import type { CarouselSlide } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -72,7 +72,7 @@ function ProductGridSkeleton() {
 export default async function HomePage({ searchParams }: HomePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const q = getSingleQueryValue(resolvedSearchParams.q)?.trim() ?? '';
-  const category = getSingleQueryValue(resolvedSearchParams.category)?.trim() ?? undefined;
+  const category = normalizeCategoryValues(resolvedSearchParams.category);
   const minPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.minPrice));
   const maxPrice = parseOptionalNumberQuery(getSingleQueryValue(resolvedSearchParams.maxPrice));
   const page = parsePageQuery(getSingleQueryValue(resolvedSearchParams.page));
