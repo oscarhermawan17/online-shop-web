@@ -3,7 +3,7 @@ import { z } from 'zod';
 const VALID_BANK_NAMES = ['BCA', 'BRI', 'BNI', 'Mandiri', 'BankPapua', 'BTN'] as const;
 
 export const bankAccountSchema = z.object({
-  bankName: z.enum(VALID_BANK_NAMES, { errorMap: () => ({ message: 'Pilih nama bank' }) }),
+  bankName: z.enum(VALID_BANK_NAMES, { error: 'Pilih nama bank' }),
   accountNumber: z
     .string()
     .min(1, 'Nomor rekening tidak boleh kosong')
@@ -27,7 +27,7 @@ export const storeSchema = z.object({
     .string()
     .max(500, 'Alamat maksimal 500 karakter')
     .optional(),
-  bankAccounts: z.array(bankAccountSchema).default([]),
+  bankAccounts: z.array(bankAccountSchema),
   qrisImageUrl: z
     .string()
     .url('URL QRIS tidak valid')

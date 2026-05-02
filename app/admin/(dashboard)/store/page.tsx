@@ -52,6 +52,9 @@ export default function AdminStorePage() {
     formState: { errors },
   } = useForm<StoreFormData>({
     resolver: zodResolver(storeSchema),
+    defaultValues: {
+      bankAccounts: [],
+    },
     values: store
       ? {
           name: store.name,
