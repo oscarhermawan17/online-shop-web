@@ -134,9 +134,7 @@ export interface PublicOrder {
   complaints?: OrderComplaint[];
   store: {
     name: string;
-    bankName?: string | null;
-    bankAccountNumber?: string | null;
-    bankAccountName?: string | null;
+    bankAccounts: import('./store').StoreBankAccount[];
     qrisImageUrl?: string | null;
   };
   paymentProof?: PaymentProof | null;
@@ -172,9 +170,7 @@ export interface CheckoutResponse {
   minimumOrderApplied?: number | null;
   freeShippingMinimumOrderApplied?: number | null;
   isFreeShippingApplied?: boolean;
-  bankName?: string | null;
-  bankAccountNumber?: string | null;
-  bankAccountName?: string | null;
+  bankAccounts?: import('./store').StoreBankAccount[];
   qrisImageUrl?: string | null;
 }
 

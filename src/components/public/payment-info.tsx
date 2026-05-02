@@ -9,14 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { formatRupiah, getTimeRemaining, getOptimizedImageUrl } from '@/lib/utils';
+import { BANK_NAME_LABELS, type StoreBankAccount } from '@/types/store';
 
 interface PaymentInfoProps {
   publicOrderId: string;
   totalAmount: number;
   expiresAt: string | null;
-  bankName?: string | null;
-  bankAccountNumber?: string | null;
-  bankAccountName?: string | null;
+  bankAccounts?: StoreBankAccount[];
   qrisImageUrl?: string | null;
 }
 
@@ -24,9 +23,7 @@ export function PaymentInfo({
   publicOrderId,
   totalAmount,
   expiresAt,
-  bankName,
-  bankAccountNumber,
-  bankAccountName,
+  bankAccounts = [],
   qrisImageUrl,
 }: PaymentInfoProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -37,14 +34,10 @@ export function PaymentInfo({
   );
 
   useEffect(() => {
-    if (!expiresAt) {
-      return undefined;
-    }
-
+    if (!expiresAt) return undefined;
     const timer = setInterval(() => {
       setTimeRemaining(getTimeRemaining(expiresAt));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [expiresAt]);
 
@@ -59,7 +52,7 @@ export function PaymentInfo({
     }
   };
 
-  const hasBankInfo = bankName && bankAccountNumber && bankAccountName;
+  const hasBankAccounts = bankAccounts.length > 0;
 
   return (
     <Card>
@@ -96,43 +89,43 @@ export function PaymentInfo({
 
         <Separator />
 
-        {/* Bank Transfer */}
-        {hasBankInfo && (
+        {/* Bank Accounts */}
+        {hasBankAccounts && (
           <div className="space-y-4">
             <h4 className="font-semibold">Transfer Bank</h4>
-            
-            <div className="space-y-3 rounded-lg border p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Bank</p>
-                  <p className="font-medium">{bankName}</p>
-                </div>
-              </div>
+            <div className="space-y-3">
+              {bankAccounts.map((account, index) => (
+                <div key={account.id ?? index} className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                      {BANK_NAME_LABELS[account.bankName]}
+                    </span>
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nomor Rekening</p>
-                  <p className="font-mono font-medium">{bankAccountNumber}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy(bankAccountNumber!, 'account')}
-                >
-                  {copiedField === 'account' ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nomor Rekening</p>
+                      <p className="font-mono font-medium">{account.accountNumber}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(account.accountNumber, `account-${index}`)}
+                    >
+                      {copiedField === `account-${index}` ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Atas Nama</p>
-                  <p className="font-medium">{bankAccountName}</p>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Atas Nama</p>
+                    <p className="font-medium">{account.accountHolder}</p>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -157,7 +150,7 @@ export function PaymentInfo({
           </div>
         )}
 
-        {!hasBankInfo && !qrisImageUrl && (
+        {!hasBankAccounts && !qrisImageUrl && (
           <div className="rounded-lg bg-yellow-50 p-4 text-center text-yellow-800">
             <AlertTriangle className="mx-auto mb-2 h-8 w-8" />
             <p className="font-medium">Informasi pembayaran belum tersedia</p>

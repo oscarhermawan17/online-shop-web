@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# CLAUDE.md — online-shop-web
 
 ## Deployment
 
@@ -94,8 +92,9 @@ Upload purposes and compression settings (in `src/lib/storage.ts`):
 | `customer` | 0.3MB | 800px |
 | `category` | 0.1MB | 400px |
 | `qris` | 0.2MB | 800px |
+| `complaint` | 0.5MB | 1200px |
 
-Components that use uploads: `image-upload.tsx` (products), `carousel-manager.tsx`, `upload-payment-proof.tsx`, `store/page.tsx` (QRIS), `category/page.tsx` (icon), `dashboard/page.tsx` (avatar).
+Components that use uploads: `image-upload.tsx` (products), `carousel-manager.tsx`, `upload-payment-proof.tsx`, `store/page.tsx` (QRIS), `category/page.tsx` (icon), `dashboard/page.tsx` (avatar), order complaint flow (evidence images).
 
 `getOptimizedImageUrl()` and `getThumbnailUrl()` in `src/lib/utils.ts` return URLs as-is (no transformation). `next.config.ts` has `unoptimized: true` — bypasses `/_next/image` pipeline entirely (MinIO serves plain URLs, Cloudinary does its own optimization).
 
@@ -110,19 +109,49 @@ Components that use uploads: `image-upload.tsx` (products), `carousel-manager.ts
 Custom components are split into three namespaces:
 - `src/components/public/` — storefront-facing components
 - `src/components/admin/` — admin panel components
-- `src/components/shared/` — `EmptyState`, `ErrorMessage`, `Loading`, `OrderCard` (used across sections)
+- `src/components/shared/` — `EmptyState`, `ErrorMessage`, `Loading`, `OrderCard`, `OrderItemImage` (used across sections)
 
 Each namespace has an `index.ts` barrel export.
 
+### Discount Display
+
+`src/lib/variant-discount.ts` — client-side utility that mirrors backend discount rule evaluation. Used in `ProductCard` to show discount hints and crossed-out prices. Handles both the rule-based system (VariantDiscountRule / ProductDiscountRule) and legacy ProductDiscount.
+
+### Report Downloads
+
+`src/lib/report-download.ts` — `downloadAdminReport(path, params, filename)` helper that calls an admin endpoint and triggers a browser file download. Used for inventory XLS export and any future report endpoints.
+
 ## Key Types (`src/types/`)
 
-- `Product`, `ProductListItem`, `ProductVariant`, `ProductDiscount` — product catalogue
+- `Product`, `ProductListItem`, `ProductVariant`, `ProductDiscount`, `VariantDiscountRule`, `ProductDiscountRule` — product catalogue + discount rules
 - `Order`, `PublicOrder` — order with full details; `OrderStatus` union: `pending_payment | waiting_confirmation | paid | shipped | done | expired_unpaid | cancelled`
 - `PaymentMethod`: `bank_transfer | credit`
 - `DeliveryMethod`: `pickup | delivery`
-- `Store` — store settings including bank info, QRIS, and minimum order thresholds (separate retail vs store-customer thresholds)
+- `Store` — store settings including QRIS and minimum order thresholds (separate retail vs store-customer thresholds); bank info is now `bankAccounts: StoreBankAccount[]`
+- `StoreBankAccount` — `{ id, storeId, bankName: BankName, accountNumber, accountHolder, sortOrder }`; `BankName` enum: `BCA | BRI | BNI | Mandiri | BankPapua | BTN`; `BANK_NAME_LABELS` maps enum to display name; `BANK_NAME_OPTIONS` for `<Select>` dropdowns — all in `src/types/store.ts`
 - `CustomerAddress` — saved address with optional GPS coordinates
 - `CarouselSlide` — homepage carousel managed from admin
+- `StockMovement`, `StockMovementCategory` — inventory ledger types (`initial_stock | add_stock | sale | restore`)
+- `Inventory` — product + variant stock summary type used in `use-inventory.ts`
+
+## SWR Hooks (`src/hooks/`)
+
+| Hook | Endpoint | Used by |
+|---|---|---|
+| `useAdminDashboard` | `/admin/dashboard` | Admin dashboard page |
+| `useAdminProducts` | `/admin/products` | Product list, inventory page |
+| `useAdminOrders` | `/admin/orders` | Order list |
+| `useAdminCustomers` | `/admin/customers` | Customer list |
+| `useAdminInventoryMovements` | `/admin/inventory` | Inventory page |
+| `useInventory` | `/admin/inventory` (summary) | Stock management |
+| `useCategories` | `/admin/categories` | Category management |
+| `useUnits` | `/admin/units` | Unit management |
+| `useShippingZones` | `/admin/shipping-zones` | Shipping management |
+| `useShippingDrivers` | `/admin/shipping-drivers` | Driver management |
+| `useShippingShifts` | `/admin/shipping-shifts` | Shift management |
+| `useStore` | `/admin/store` | Store settings |
+| `useReceivables` | `/admin/receivables` | Receivables page |
+| `useProducts` | `/products` | Public product listing (SWR) |
 
 ## Environment Variables
 
@@ -162,26 +191,6 @@ All image uploads go through MinIO (S3-compatible). Cloudinary is no longer used
 6. Next.js copies `temp/...` → `{tenantId}/{purpose}/{uuid}.ext`, deletes temp, returns permanent URL
 7. Client sends the permanent URL to the Express API as a plain string (no change to API)
 
-### MinIO folder structure
-```
-uploads-stg/  (or uploads-prod)       ← bucket
-  temp/
-    {tenantId}/
-      products/                ← product images (before form submit)
-      customer/                ← customer images e.g. KTP (before form submit)
-      payment/                 ← payment proofs (before form submit)
-      carousel/                ← carousel slides (before form submit)
-      category/                ← category icons (before form submit)
-      qris/                    ← QRIS images (confirmed immediately)
-  {tenantId}/
-    products/                  ← confirmed product images
-    customer/                  ← confirmed customer images
-    payment/                   ← confirmed payment proofs
-    carousel/                  ← confirmed carousel slides
-    category/                  ← confirmed category icons
-    qris/                      ← confirmed QRIS images
-```
-
 ### Orphan cleanup
 Endpoint: `GET /api/upload/cleanup` — deletes all objects under `temp/` older than 2 hours.
 Should be called by a cron job every hour (e.g. via docker cron or system cron on VPS).
@@ -190,53 +199,47 @@ Should be called by a cron job every hour (e.g. via docker cron or system cron o
 
 **Current (single tenant):**
 `tenantId` is read statically from `NEXT_PUBLIC_STORE_ID` env var.
-Used as the folder prefix in MinIO for all uploads.
 
 **Future (multi-tenant) — TODO:**
-Each tenant will have their own domain (e.g. `tokotimika.my.id`, `tokolain.my.id`).
-`tenantId` resolution should change to:
-1. Read `Host` header from incoming Next.js request
-2. Call `GET /api/store` (backend) which returns `storeId` for that domain
-3. Cache the domain → storeId mapping (e.g. in-memory or Redis) to avoid repeated API calls
-4. For admin routes: also verify that JWT `storeId` matches the domain-resolved `storeId`
-5. For public routes (e.g. payment proof): domain-based resolution is sufficient — no JWT needed
-
-Files to update when implementing multi-tenant:
-- `app/api/upload/presign/route.ts` — change `tenantId` source
-- `app/api/upload/confirm/route.ts` — change `tenantId` source
-- `src/lib/storage.ts` — update `getTenantId()` helper
+Each tenant will have their own domain. `tenantId` resolution should change to reading `Host` header → call `GET /api/store` → cache domain→storeId mapping.
+Files to update: `app/api/upload/presign/route.ts`, `app/api/upload/confirm/route.ts`, `src/lib/storage.ts`.
 
 ## Routing Reference
 
 ```
 /                           Homepage — SSR product grid + carousel + promos
-/catalog                    Full catalogue with sidebar filters
-/product/[id]               Product detail with variant selector
+/catalog                    Full catalogue with sidebar filters + category + price range
+/product/[id]               Product detail with variant selector + discount hints
 /cart                       Cart page (client-only, Zustand)
 /checkout                   Checkout form with map-based shipping detection
-/order/[publicOrderId]      Public order status page (polls every 30s via SWR)
+/order/[publicOrderId]      Public order status page (polls every 30s via SWR) + delivery actions + complaint form
 /order                      Customer order list (requires customer auth)
 /promo                      Promo products listing
-/login                      Customer login/register
-/dashboard                  Customer account overview
+/login                      Customer login
+/register                   Customer registration
+
+/dashboard                  Customer account overview (avatar upload)
 /dashboard/orders           Customer order history
 /dashboard/address          Saved address management
+/dashboard/credit           Customer credit summary
+/dashboard/password         Change password
 
 /admin/login                Admin login
 /admin                      Admin dashboard (stats + recent orders)
 /admin/products             Product list + management
 /admin/products/new         Create product
-/admin/products/[id]        Edit product (variants, images, discounts)
+/admin/products/[id]        Edit product (variants, images, discounts, discount rules)
 /admin/orders               Order list with status filter
-/admin/orders/[id]          Order detail + ship/cancel actions
+/admin/orders/[id]          Order detail + ship/confirm/settle-credit actions + complaint management
 /admin/customers            Customer list
 /admin/customers/add        Add customer manually
 /admin/category             Category management
 /admin/satuan               Unit (satuan) management
+/admin/inventory            Stock movement history + add stock adjustment + export XLS
 /admin/shipping-zones       Zone map + cost management
 /admin/shipping-drivers     Delivery driver management
 /admin/shipping-shifts      Delivery shift management
-/admin/store                Store settings (bank, QRIS, minimum orders)
-/admin/credit               Customer credit limits
+/admin/store                Store settings (multiple bank accounts via useFieldArray, QRIS, minimum orders); bank accounts saved via PUT /admin/store/bank-accounts (full replace)
+/admin/credit               Customer credit limits + term of payment
 /admin/receivables          Credit receivables (piutang) tracking
 ```

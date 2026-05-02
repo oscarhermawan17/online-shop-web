@@ -451,9 +451,7 @@ export default function OrderPage({ params }: OrderPageProps) {
                 publicOrderId={order.publicOrderId}
                 totalAmount={order.totalAmount}
                 expiresAt={order.expiresAt}
-                bankName={order.store.bankName}
-                bankAccountNumber={order.store.bankAccountNumber}
-                bankAccountName={order.store.bankAccountName}
+                bankAccounts={order.store.bankAccounts}
                 qrisImageUrl={order.store.qrisImageUrl}
               />
             )}
