@@ -11,11 +11,16 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { name, description } = await getStoreInfo();
+  const { name, description, logoUrl } = await getStoreInfo();
   return {
     title: `${name} - Mitra Grosir UMKM Terpercaya`,
     description: description || 'Mitra terpercaya untuk pemenuhan kebutuhan stok warung, toko kelontong, dan bisnis UMKM Anda di seluruh Indonesia.',
     keywords: ['grosir', 'umkm', 'sembako', 'peralatan rumah', 'toko kelontong'],
+    icons: {
+      icon: logoUrl || '/favicon.svg',
+      shortcut: logoUrl || '/favicon.svg',
+      apple: logoUrl || '/favicon.svg',
+    },
   };
 }
 

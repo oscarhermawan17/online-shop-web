@@ -42,6 +42,8 @@ export default function AdminStorePage() {
   const [isSavingBanks, setIsSavingBanks] = useState(false);
   const [isUploadingQris, setIsUploadingQris] = useState(false);
   const [qrisPreview, setQrisPreview] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const {
     register,
@@ -58,6 +60,7 @@ export default function AdminStorePage() {
     values: store
       ? {
           name: store.name,
+          logoUrl: store.logoUrl || '',
           description: store.description || '',
           address: store.address || '',
           bankAccounts: store.bankAccounts ?? [],
@@ -92,6 +95,25 @@ export default function AdminStorePage() {
     );
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingLogo(true);
+    setLogoPreview(URL.createObjectURL(file));
+    try {
+      const { tempKey } = await uploadFile(file, 'logo');
+      const { permanentUrl } = await confirmUpload(tempKey);
+      setValue('logoUrl', permanentUrl);
+      toast.success('Logo berhasil diunggah');
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast.error('Gagal mengunggah logo');
+      setLogoPreview(null);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleQrisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,6 +140,7 @@ export default function AdminStorePage() {
         name: data.name,
         description: data.description || undefined,
         address: data.address || undefined,
+        logoUrl: data.logoUrl || undefined,
         qrisImageUrl: data.qrisImageUrl || undefined,
         deliveryRetailMinimumOrder: data.deliveryRetailMinimumOrder ?? null,
         deliveryStoreMinimumOrder: data.deliveryStoreMinimumOrder ?? null,
@@ -126,6 +149,7 @@ export default function AdminStorePage() {
       });
       toast.success('Pengaturan toko berhasil disimpan');
       mutate();
+      setLogoPreview(null);
       setQrisPreview(null);
     } catch (error: unknown) {
       console.error('Update store error:', error);
@@ -208,6 +232,37 @@ export default function AdminStorePage() {
                   <Textarea id="description" placeholder="Deskripsi singkat tentang toko Anda" rows={4} {...register('description')} disabled={isSubmitting} className="resize-none" />
                   {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
                 </div>
+                {/* Logo */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Store className="h-4 w-4 text-muted-foreground" />Logo Toko
+                    <span className="text-xs text-muted-foreground font-normal">(tampil sebagai ikon di tab browser)</span>
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    {(logoPreview || store.logoUrl) ? (
+                      <div className="relative h-16 w-16 overflow-hidden rounded-xl border bg-white p-1 shadow-sm shrink-0">
+                        <Image src={logoPreview || getOptimizedImageUrl(store.logoUrl!, 64)} alt="Logo" fill className="object-contain" />
+                      </div>
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-dashed bg-muted/50 shrink-0">
+                        <Store className="h-6 w-6 text-muted-foreground opacity-40" />
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="logoUpload" className="flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all hover:border-primary hover:bg-primary/5">
+                        {isUploadingLogo ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" />Mengunggah...</>
+                        ) : (
+                          <><Upload className="h-4 w-4" />Upload Logo</>
+                        )}
+                      </Label>
+                      <input id="logoUpload" type="file" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo || isSubmitting} className="hidden" />
+                      <input type="hidden" {...register('logoUrl')} />
+                      <p className="mt-1 text-xs text-muted-foreground">PNG atau JPG, maks 512px. Jika kosong, ikon default akan digunakan.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />Alamat Toko

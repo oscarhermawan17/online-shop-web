@@ -1,6 +1,13 @@
 import type { Store } from "@/types"
 
-type StoreInfo = { name: string; description?: string; address?: string }
+type StoreInfo = {
+  name: string
+  description?: string
+  address?: string
+  logoUrl?: string
+  bankAccounts?: Store['bankAccounts']
+  qrisImageUrl?: string
+}
 
 const FALLBACK: StoreInfo = { name: "Toko Kami" }
 
@@ -19,6 +26,9 @@ export async function getStoreInfo(): Promise<StoreInfo> {
       name: data.name,
       description: data.description ?? undefined,
       address: data.address ?? undefined,
+      logoUrl: data.logoUrl ?? undefined,
+      bankAccounts: data.bankAccounts ?? [],
+      qrisImageUrl: data.qrisImageUrl ?? undefined,
     }
   } catch {
     return FALLBACK

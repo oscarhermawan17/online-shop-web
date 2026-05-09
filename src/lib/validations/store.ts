@@ -27,6 +27,11 @@ export const storeSchema = z.object({
     .string()
     .max(500, 'Alamat maksimal 500 karakter')
     .optional(),
+  logoUrl: z
+    .string()
+    .url('URL logo tidak valid')
+    .optional()
+    .or(z.literal('')),
   bankAccounts: z.array(bankAccountSchema),
   qrisImageUrl: z
     .string()

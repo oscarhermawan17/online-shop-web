@@ -1,15 +1,20 @@
 import Link from "next/link"
+import { BANK_NAME_LABELS, type StoreBankAccount } from "@/types/store"
 
 interface FooterProps {
   storeName: string
   storeDescription?: string
   storeAddress?: string
+  bankAccounts?: StoreBankAccount[]
+  qrisImageUrl?: string
 }
 
 export function Footer({
   storeName,
   storeDescription,
   storeAddress,
+  bankAccounts = [],
+  qrisImageUrl,
 }: FooterProps) {
   const year = new Date().getFullYear()
   return (
@@ -56,23 +61,30 @@ export function Footer({
                   0800-1-GROSIR (476747)
                 </p>
               </div>
-              <div className="flex flex-col gap-2 pt-4">
-                <p className="text-[#757c7a] text-xs font-bold uppercase tracking-wide leading-4">
-                  Metode Pembayaran
-                </p>
-                <div className="flex gap-2 opacity-60">
-                  {["BCA", "MANDIRI", "BNI"].map((bank) => (
-                    <div
-                      key={bank}
-                      className="bg-white rounded shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] h-6 px-2 flex items-center justify-center"
-                    >
-                      <span className="text-[#2d3432] text-[10px] font-bold">
-                        {bank}
-                      </span>
-                    </div>
-                  ))}
+              {(bankAccounts.length > 0 || qrisImageUrl) && (
+                <div className="flex flex-col gap-2 pt-4">
+                  <p className="text-[#757c7a] text-xs font-bold uppercase tracking-wide leading-4">
+                    Metode Pembayaran
+                  </p>
+                  <div className="flex flex-wrap gap-2 opacity-60">
+                    {bankAccounts.map((account) => (
+                      <div
+                        key={account.id ?? account.bankName}
+                        className="bg-white rounded shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] h-6 px-2 flex items-center justify-center"
+                      >
+                        <span className="text-[#2d3432] text-[10px] font-bold uppercase">
+                          {BANK_NAME_LABELS[account.bankName]}
+                        </span>
+                      </div>
+                    ))}
+                    {qrisImageUrl && (
+                      <div className="bg-white rounded shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] h-6 px-2 flex items-center justify-center">
+                        <span className="text-[#2d3432] text-[10px] font-bold">QRIS</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

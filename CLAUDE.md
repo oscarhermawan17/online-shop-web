@@ -93,10 +93,15 @@ Upload purposes and compression settings (in `src/lib/storage.ts`):
 | `category` | 0.1MB | 400px |
 | `qris` | 0.2MB | 800px |
 | `complaint` | 0.5MB | 1200px |
+| `logo` | 0.2MB | 512px |
 
-Components that use uploads: `image-upload.tsx` (products), `carousel-manager.tsx`, `upload-payment-proof.tsx`, `store/page.tsx` (QRIS), `category/page.tsx` (icon), `dashboard/page.tsx` (avatar), order complaint flow (evidence images).
+Components that use uploads: `image-upload.tsx` (products), `carousel-manager.tsx`, `upload-payment-proof.tsx`, `store/page.tsx` (logo + QRIS), `category/page.tsx` (icon), `dashboard/page.tsx` (avatar), order complaint flow (evidence images).
 
 `getOptimizedImageUrl()` and `getThumbnailUrl()` in `src/lib/utils.ts` return URLs as-is (no transformation). `next.config.ts` has `unoptimized: true` — bypasses `/_next/image` pipeline entirely (MinIO serves plain URLs, Cloudinary does its own optimization).
+
+`getStoreInfo()` in `src/lib/get-store-info.ts` fetches `GET /store` and returns `name`, `description`, `address`, `logoUrl`, `bankAccounts`, `qrisImageUrl`. Used server-side in `app/(public)/layout.tsx` (passes to Footer) and `app/layout.tsx` (favicon via `generateMetadata`). Fallback: `{ name: "Toko Kami" }`.
+
+Favicon: `logoUrl` from store is used as browser tab icon via `generateMetadata icons`. Fallback to `public/favicon.svg` (blue cart icon) if no logo uploaded. **Note:** delete `app/favicon.ico` if it exists — it overrides `generateMetadata`.
 
 ### Shipping & Map
 
@@ -127,7 +132,7 @@ Each namespace has an `index.ts` barrel export.
 - `Order`, `PublicOrder` — order with full details; `OrderStatus` union: `pending_payment | waiting_confirmation | paid | shipped | done | expired_unpaid | cancelled`
 - `PaymentMethod`: `bank_transfer | credit`
 - `DeliveryMethod`: `pickup | delivery`
-- `Store` — store settings including QRIS and minimum order thresholds (separate retail vs store-customer thresholds); bank info is now `bankAccounts: StoreBankAccount[]`
+- `Store` — store settings including `logoUrl` (favicon), QRIS and minimum order thresholds (separate retail vs store-customer thresholds); bank info is now `bankAccounts: StoreBankAccount[]`
 - `StoreBankAccount` — `{ id, storeId, bankName: BankName, accountNumber, accountHolder, sortOrder }`; `BankName` enum: `BCA | BRI | BNI | Mandiri | BankPapua | BTN`; `BANK_NAME_LABELS` maps enum to display name; `BANK_NAME_OPTIONS` for `<Select>` dropdowns — all in `src/types/store.ts`
 - `CustomerAddress` — saved address with optional GPS coordinates
 - `CarouselSlide` — homepage carousel managed from admin
@@ -239,7 +244,7 @@ Files to update: `app/api/upload/presign/route.ts`, `app/api/upload/confirm/rout
 /admin/shipping-zones       Zone map + cost management
 /admin/shipping-drivers     Delivery driver management
 /admin/shipping-shifts      Delivery shift management
-/admin/store                Store settings (multiple bank accounts via useFieldArray, QRIS, minimum orders); bank accounts saved via PUT /admin/store/bank-accounts (full replace)
+/admin/store                Store settings (logo upload, multiple bank accounts via useFieldArray, QRIS, minimum orders); bank accounts saved via PUT /admin/store/bank-accounts (full replace); logo saved via PATCH /admin/store as logoUrl
 /admin/credit               Customer credit limits + term of payment
 /admin/receivables          Credit receivables (piutang) tracking
 ```

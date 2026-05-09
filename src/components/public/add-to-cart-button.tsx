@@ -157,7 +157,7 @@ export function AddToCartButton({
     });
 
     toast.success('Produk ditambahkan ke keranjang', {
-      description: `${nextQuantity}x ${latestProduct.name}${latestVariant ? ` - ${latestVariant.name}` : ''}`,
+      description: `${nextQuantity}x ${latestProduct.name}${latestVariant?.name ? ` - ${latestVariant.name}` : ''}`,
     });
 
     setQuantity(1);

@@ -31,6 +31,7 @@ export interface Store {
   name: string;
   description?: string | null;
   address?: string | null;
+  logoUrl?: string | null;
   bankAccounts: StoreBankAccount[];
   qrisImageUrl?: string | null;
   deliveryRetailMinimumOrder?: number | null;
@@ -45,6 +46,7 @@ export interface UpdateStorePayload {
   name?: string;
   description?: string;
   address?: string;
+  logoUrl?: string;
   qrisImageUrl?: string;
   deliveryRetailMinimumOrder?: number | null;
   deliveryStoreMinimumOrder?: number | null;

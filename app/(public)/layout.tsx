@@ -12,6 +12,8 @@ export default async function PublicLayout({
     name: storeName,
     description: storeDescription,
     address: storeAddress,
+    bankAccounts,
+    qrisImageUrl,
   } = await getStoreInfo()
 
   return (
@@ -23,6 +25,8 @@ export default async function PublicLayout({
           storeName={storeName}
           storeDescription={storeDescription}
           storeAddress={storeAddress}
+          bankAccounts={bankAccounts}
+          qrisImageUrl={qrisImageUrl}
         />
       </div>
       <BottomNav />
