@@ -30,7 +30,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 
 interface HeaderProps {
@@ -61,6 +60,7 @@ export function Header({ storeName }: HeaderProps) {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isCekResiOpen, setIsCekResiOpen] = useState(false)
   const [resiInput, setResiInput] = useState("")
+  const [isMobile, setIsMobile] = useState(false)
   const items = useCartStore((state) => state.items)
   const customerToken = useCustomerAuthStore((state) => state.token)
   const isCustomerLoggedIn = useCustomerAuthStore(
@@ -73,6 +73,11 @@ export function Header({ storeName }: HeaderProps) {
 
   useEffect(() => {
     setMounted(true)
+    const mql = window.matchMedia("(max-width: 767px)")
+    setIsMobile(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mql.addEventListener("change", handler)
+    return () => mql.removeEventListener("change", handler)
   }, [])
 
   useEffect(() => {
@@ -236,7 +241,7 @@ export function Header({ storeName }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/90 border-b border-black/6 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-3">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 md:gap-4">
           {/* Logo - Hidden on mobile search view */}
           <Link
             href="/"
@@ -246,7 +251,7 @@ export function Header({ storeName }: HeaderProps) {
           </Link>
 
           {/* Search Bar - Always visible now */}
-          <div ref={searchContainerRef} className="relative flex-1">
+          <div ref={searchContainerRef} className="relative flex-1 min-w-0">
             <form
               onSubmit={handleSearchSubmit}
               className="flex items-center bg-[#f1f5f9] rounded-lg px-3 py-1.5 md:py-2 group focus-within:ring-2 focus-within:ring-[#166534]/20 transition-all"
@@ -266,7 +271,7 @@ export function Header({ storeName }: HeaderProps) {
                   setIsSearchFocused(true)
                   setIsSuggestionsOpen(event.target.value.trim().length >= 2)
                 }}
-                placeholder="Cari produk, kategori, atau deskripsi..."
+                placeholder={isMobile ? "Cari produk..." : "Cari produk, kategori, atau deskripsi..."}
                 aria-label="Cari produk"
                 className="bg-transparent border-none outline-none flex-1 px-2 text-sm md:text-base text-[#1e293b] placeholder-[#94a3b8]"
                 autoComplete="off"
@@ -319,55 +324,26 @@ export function Header({ storeName }: HeaderProps) {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-6 h-6.5">
-            <Dialog
-              open={isCekResiOpen}
-              onOpenChange={(open) => {
-                setIsCekResiOpen(open)
-                if (!open) setResiInput("")
-              }}
+            <button
+              onClick={() => setIsCekResiOpen(true)}
+              className="text-[#166534] font-semibold text-base pb-0.5 flex items-center gap-1.5"
             >
-              <DialogTrigger asChild>
-                <button className="text-[#166534] font-semibold text-base pb-0.5 flex items-center gap-1.5">
-                  <Package className="w-4 h-4" />
-                  Cek Resi
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Cek Resi Pesanan</DialogTitle>
-                  <DialogDescription>
-                    Masukkan nomor resi pesanan Anda untuk melihat status
-                    pengiriman.
-                  </DialogDescription>
-                </DialogHeader>
-                <div>
-                  <input
-                    type="text"
-                    value={resiInput}
-                    onChange={(e) => setResiInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCekResi()
-                    }}
-                    placeholder="Masukkan nomor resi..."
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
-                    autoFocus
-                  />
-                </div>
-                <DialogFooter>
-                  <button
-                    onClick={handleCekResi}
-                    disabled={!resiInput.trim()}
-                    className="w-full sm:w-auto bg-[#166534] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#115e59] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cek Status
-                  </button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              <Package className="w-4 h-4" />
+              Cek Resi
+            </button>
           </nav>
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            {/* Cek Resi - Mobile only (icon) */}
+            <button
+              onClick={() => setIsCekResiOpen(true)}
+              className="lg:hidden relative p-2 rounded-full hover:bg-black/5 transition-colors"
+              aria-label="Cek Resi"
+            >
+              <Package className="w-5 h-5 md:w-6 md:h-6 text-[#166534]" />
+            </button>
+
             {/* Cart */}
             <Link
               href="/cart"
@@ -446,6 +422,46 @@ export function Header({ storeName }: HeaderProps) {
           </div>
         </div>
       </div>
+
+      {/* Cek Resi Modal — shared between desktop and mobile triggers */}
+      <Dialog
+        open={isCekResiOpen}
+        onOpenChange={(open) => {
+          setIsCekResiOpen(open)
+          if (!open) setResiInput("")
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cek Resi Pesanan</DialogTitle>
+            <DialogDescription>
+              Masukkan nomor resi pesanan Anda untuk melihat status pengiriman.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <input
+              type="text"
+              value={resiInput}
+              onChange={(e) => setResiInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCekResi()
+              }}
+              placeholder="Masukkan nomor resi..."
+              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <button
+              onClick={handleCekResi}
+              disabled={!resiInput.trim()}
+              className="w-full sm:w-auto bg-[#166534] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#115e59] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cek Status
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }
