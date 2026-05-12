@@ -1,17 +1,18 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { CustomerUser } from '@/types';
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+import type { CustomerUser } from "@/types"
+import { useCartStore } from "./cart-store"
 
 interface CustomerAuthStore {
-  token: string | null;
-  customer: CustomerUser | null;
+  token: string | null
+  customer: CustomerUser | null
 
   // Actions
-  setAuth: (token: string, customer: CustomerUser) => void;
-  logout: () => void;
+  setAuth: (token: string, customer: CustomerUser) => void
+  logout: () => void
 
   // Computed
-  isAuthenticated: () => boolean;
+  isAuthenticated: () => boolean
 }
 
 export const useCustomerAuthStore = create<CustomerAuthStore>()(
@@ -22,15 +23,18 @@ export const useCustomerAuthStore = create<CustomerAuthStore>()(
 
       setAuth: (token, customer) => set({ token, customer }),
 
-      logout: () => set({ token: null, customer: null }),
+      logout: () => {
+        set({ token: null, customer: null })
+        useCartStore.getState().setItems([])
+      },
 
       isAuthenticated: () => {
-        const { token, customer } = get();
-        return !!token && !!customer;
+        const { token, customer } = get()
+        return !!token && !!customer
       },
     }),
     {
-      name: 'customer-auth-storage',
-    }
-  )
-);
+      name: "customer-auth-storage",
+    },
+  ),
+)

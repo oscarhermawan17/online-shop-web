@@ -1,56 +1,88 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { CartItem, CartSummary } from '@/components/public';
-import { EmptyState } from '@/components/shared';
-import { useCartStore, useCustomerAuthStore } from '@/stores';
-import { syncCartItemsWithServer } from '@/lib/cart';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CartItem, CartSummary } from "@/components/public"
+import { EmptyState } from "@/components/shared"
+import { useCartStore, useCustomerAuthStore } from "@/stores"
+import { syncCartItemsWithServer } from "@/lib/cart"
+import { cartApi } from "@/lib/cart-api"
+import { toast } from "sonner"
 
 export default function CartPage() {
-  const [mounted, setMounted] = useState(false);
-  const items = useCartStore((state) => state.items);
-  const setItems = useCartStore((state) => state.setItems);
-  const customerToken = useCustomerAuthStore((state) => state.token);
-  const customerType = useCustomerAuthStore((state) => state.customer?.type);
+  const [mounted, setMounted] = useState(false)
+  const items = useCartStore((state) => state.items)
+  const setItems = useCartStore((state) => state.setItems)
+  const customerToken = useCustomerAuthStore((state) => state.token)
+  const customerType = useCustomerAuthStore((state) => state.customer?.type)
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
-    if (!mounted || items.length === 0) {
-      return;
+    if (!mounted) {
+      return
     }
 
-    let isCancelled = false;
+    let isCancelled = false
 
     const syncCart = async () => {
-      const result = await syncCartItemsWithServer(items);
-      if (isCancelled || !result.changed) {
-        return;
+      // If logged in, load cart from server first
+      let itemsToSync = items
+      if (customerToken) {
+        try {
+          const serverItems = await cartApi.getCart()
+          if (serverItems.length > 0) {
+            itemsToSync = serverItems.map((si) => ({
+              productId: si.productId,
+              variantId: si.variantId,
+              name: "",
+              price: 0,
+              quantity: si.quantity,
+              stock: si.quantity,
+            }))
+          } else {
+            itemsToSync = []
+          }
+        } catch {
+          // Fall back to local cart
+        }
       }
 
-      setItems(result.items);
-      toast.info('Keranjang diperbarui dengan harga dan stok terbaru.');
-    };
+      if (itemsToSync.length === 0) {
+        if (items.length > 0) {
+          setItems([])
+        }
+        return
+      }
 
-    void syncCart();
+      const result = await syncCartItemsWithServer(itemsToSync)
+      if (isCancelled) return
+
+      if (result.changed || customerToken) {
+        setItems(result.items)
+        if (result.changed) {
+          toast.info("Keranjang diperbarui dengan harga dan stok terbaru.")
+        }
+      }
+    }
+
+    void syncCart()
 
     return () => {
-      isCancelled = true;
-    };
-  }, [mounted, customerToken, customerType, setItems]);
+      isCancelled = true
+    }
+  }, [mounted, customerToken, customerType, setItems])
 
   if (!mounted) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="h-96 animate-pulse rounded-lg bg-muted" />
       </div>
-    );
+    )
   }
 
   if (items.length === 0) {
@@ -64,7 +96,7 @@ export default function CartPage() {
           actionHref="/"
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -94,10 +126,7 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="space-y-4 lg:col-span-2">
           {items.map((item) => (
-            <CartItem
-              key={`${item.productId}-${item.variantId}`}
-              item={item}
-            />
+            <CartItem key={`${item.productId}-${item.variantId}`} item={item} />
           ))}
         </div>
 
@@ -105,10 +134,10 @@ export default function CartPage() {
         <div className="lg:sticky lg:top-24">
           <CartSummary
             showCheckoutButton
-            customerType={customerType ?? 'base'}
+            customerType={customerType ?? "base"}
           />
         </div>
       </div>
     </div>
-  );
+  )
 }

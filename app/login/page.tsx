@@ -1,26 +1,37 @@
-'use client';
+"use client"
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { loginSchema, type LoginFormData } from '@/lib/validations';
-import { useCustomerAuthStore } from '@/stores';
-import { toast } from 'sonner';
-import api from '@/lib/api';
-import type { CustomerLoginResponse } from '@/types';
+import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Eye, EyeOff, Loader2, User } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { loginSchema, type LoginFormData } from "@/lib/validations"
+import { useCustomerAuthStore } from "@/stores"
+import { useCartStore } from "@/stores"
+import { toast } from "sonner"
+import api from "@/lib/api"
+import { cartApi } from "@/lib/cart-api"
+import { syncCartItemsWithServer } from "@/lib/cart"
+import type { CustomerLoginResponse } from "@/types"
 
 export default function CustomerLoginPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const setAuth = useCustomerAuthStore((state) => state.setAuth);
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const setAuth = useCustomerAuthStore((state) => state.setAuth)
+  const cartItems = useCartStore((state) => state.items)
+  const setCartItems = useCartStore((state) => state.setItems)
 
   const {
     register,
@@ -28,29 +39,67 @@ export default function CustomerLoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-  });
+  })
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const response = await api.post<{ data: CustomerLoginResponse }>('/customer-auth/login', {
-        ...data,
-        storeId: process.env.NEXT_PUBLIC_STORE_ID,
-      });
-      const { token, customer } = response.data.data;
+      const response = await api.post<{ data: CustomerLoginResponse }>(
+        "/customer-auth/login",
+        {
+          ...data,
+          storeId: process.env.NEXT_PUBLIC_STORE_ID,
+        },
+      )
+      const { token, customer } = response.data.data
 
-      setAuth(token, customer);
-      toast.success('Login berhasil');
-      router.push('/dashboard');
+      setAuth(token, customer)
+
+      // Merge guest cart into server cart, then load server cart
+      try {
+        const guestItems = cartItems
+          .filter((item) => item.variantId)
+          .map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId!,
+            quantity: item.quantity,
+          }))
+
+        if (guestItems.length > 0) {
+          await cartApi.mergeCart(guestItems)
+        }
+
+        // Load server cart and enrich with product data
+        const serverItems = await cartApi.getCart()
+        if (serverItems.length > 0) {
+          const enrichedItems = serverItems.map((si) => ({
+            productId: si.productId,
+            variantId: si.variantId,
+            name: "",
+            price: 0,
+            quantity: si.quantity,
+            stock: si.quantity,
+          }))
+          const synced = await syncCartItemsWithServer(enrichedItems)
+          setCartItems(synced.items)
+        } else {
+          setCartItems([])
+        }
+      } catch {
+        // Cart sync failure should not block login
+      }
+
+      toast.success("Login berhasil")
+      router.push("/dashboard")
     } catch (error: unknown) {
-      console.error('Login error:', error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Login gagal');
+      console.error("Login error:", error)
+      const err = error as { response?: { data?: { message?: string } } }
+      toast.error(err.response?.data?.message || "Login gagal")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
@@ -71,7 +120,7 @@ export default function CustomerLoginPage() {
               <Input
                 id="identifier"
                 placeholder="email@example.com atau 628xx"
-                {...register('identifier')}
+                {...register("identifier")}
                 disabled={isLoading}
               />
               {errors.identifier && (
@@ -86,10 +135,10 @@ export default function CustomerLoginPage() {
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="pr-10"
-                  {...register('password')}
+                  {...register("password")}
                   disabled={isLoading}
                 />
                 <button
@@ -97,9 +146,15 @@ export default function CustomerLoginPage() {
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
                   disabled={isLoading}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  aria-label={
+                    showPassword ? "Sembunyikan password" : "Tampilkan password"
+                  }
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {errors.password && (
@@ -116,13 +171,16 @@ export default function CustomerLoginPage() {
                   Masuk...
                 </>
               ) : (
-                'Masuk'
+                "Masuk"
               )}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Belum punya akun?{' '}
-              <Link href="/register" className="font-medium text-primary hover:underline">
+              Belum punya akun?{" "}
+              <Link
+                href="/register"
+                className="font-medium text-primary hover:underline"
+              >
                 Daftar
               </Link>
             </p>
@@ -130,5 +188,5 @@ export default function CustomerLoginPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

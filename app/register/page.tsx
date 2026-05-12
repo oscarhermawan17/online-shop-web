@@ -1,26 +1,37 @@
-'use client';
+"use client"
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { registerSchema, type RegisterFormData } from '@/lib/validations';
-import { useCustomerAuthStore } from '@/stores';
-import { toast } from 'sonner';
-import api from '@/lib/api';
-import type { CustomerLoginResponse } from '@/types';
+import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { registerSchema, type RegisterFormData } from "@/lib/validations"
+import { useCustomerAuthStore } from "@/stores"
+import { useCartStore } from "@/stores"
+import { toast } from "sonner"
+import api from "@/lib/api"
+import { cartApi } from "@/lib/cart-api"
+import { syncCartItemsWithServer } from "@/lib/cart"
+import type { CustomerLoginResponse } from "@/types"
 
 export default function CustomerRegisterPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const setAuth = useCustomerAuthStore((state) => state.setAuth);
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const setAuth = useCustomerAuthStore((state) => state.setAuth)
+  const cartItems = useCartStore((state) => state.items)
+  const setCartItems = useCartStore((state) => state.setItems)
 
   const {
     register,
@@ -28,31 +39,68 @@ export default function CustomerRegisterPage() {
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-  });
+  })
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const response = await api.post<{ data: CustomerLoginResponse }>('/customer-auth/register', {
-        name: data.name,
-        phone: `62${data.phone}`,
-        email: data.email || undefined,
-        password: data.password,
-        storeId: process.env.NEXT_PUBLIC_STORE_ID,
-      });
-      const { token, customer } = response.data.data;
+      const response = await api.post<{ data: CustomerLoginResponse }>(
+        "/customer-auth/register",
+        {
+          name: data.name,
+          phone: `62${data.phone}`,
+          email: data.email || undefined,
+          password: data.password,
+          storeId: process.env.NEXT_PUBLIC_STORE_ID,
+        },
+      )
+      const { token, customer } = response.data.data
 
-      setAuth(token, customer);
-      toast.success('Pendaftaran berhasil');
-      router.push('/dashboard');
+      setAuth(token, customer)
+
+      // Merge guest cart into server cart
+      try {
+        const guestItems = cartItems
+          .filter((item) => item.variantId)
+          .map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId!,
+            quantity: item.quantity,
+          }))
+
+        if (guestItems.length > 0) {
+          await cartApi.mergeCart(guestItems)
+        }
+
+        const serverItems = await cartApi.getCart()
+        if (serverItems.length > 0) {
+          const enrichedItems = serverItems.map((si) => ({
+            productId: si.productId,
+            variantId: si.variantId,
+            name: "",
+            price: 0,
+            quantity: si.quantity,
+            stock: si.quantity,
+          }))
+          const synced = await syncCartItemsWithServer(enrichedItems)
+          setCartItems(synced.items)
+        } else {
+          setCartItems([])
+        }
+      } catch {
+        // Cart sync failure should not block registration
+      }
+
+      toast.success("Pendaftaran berhasil")
+      router.push("/dashboard")
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Pendaftaran gagal');
+      const err = error as { response?: { data?: { message?: string } } }
+      toast.error(err.response?.data?.message || "Pendaftaran gagal")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
@@ -63,7 +111,8 @@ export default function CustomerRegisterPage() {
           </div>
           <CardTitle>Daftar Akun Baru</CardTitle>
           <CardDescription>
-            Pendaftaran mandiri hanya untuk user base. Akun wholesale didaftarkan admin.
+            Pendaftaran mandiri hanya untuk user base. Akun wholesale
+            didaftarkan admin.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,28 +122,34 @@ export default function CustomerRegisterPage() {
               <Input
                 id="name"
                 placeholder="Nama lengkap"
-                {...register('name')}
+                {...register("name")}
                 disabled={isLoading}
               />
               {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">Nomor HP</Label>
               <div className="flex items-center rounded-md border bg-background">
-                <span className="border-r px-3 text-sm text-muted-foreground">+62</span>
+                <span className="border-r px-3 text-sm text-muted-foreground">
+                  +62
+                </span>
                 <Input
                   id="phone"
                   placeholder="81234567890"
                   className="border-0 shadow-none focus-visible:ring-0"
-                  {...register('phone')}
+                  {...register("phone")}
                   disabled={isLoading}
                 />
               </div>
               {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
@@ -104,11 +159,13 @@ export default function CustomerRegisterPage() {
                 id="email"
                 type="email"
                 placeholder="email@example.com"
-                {...register('email')}
+                {...register("email")}
                 disabled={isLoading}
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -117,10 +174,10 @@ export default function CustomerRegisterPage() {
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="Minimal 6 karakter"
                   className="pr-10"
-                  {...register('password')}
+                  {...register("password")}
                   disabled={isLoading}
                 />
                 <button
@@ -128,13 +185,21 @@ export default function CustomerRegisterPage() {
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
                   disabled={isLoading}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  aria-label={
+                    showPassword ? "Sembunyikan password" : "Tampilkan password"
+                  }
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -145,13 +210,16 @@ export default function CustomerRegisterPage() {
                   Mendaftar...
                 </>
               ) : (
-                'Daftar'
+                "Daftar"
               )}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Sudah punya akun?{' '}
-              <Link href="/login" className="font-medium text-primary hover:underline">
+              Sudah punya akun?{" "}
+              <Link
+                href="/login"
+                className="font-medium text-primary hover:underline"
+              >
                 Masuk
               </Link>
             </p>
@@ -159,5 +227,5 @@ export default function CustomerRegisterPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
