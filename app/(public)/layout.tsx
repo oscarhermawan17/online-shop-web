@@ -14,6 +14,10 @@ export default async function PublicLayout({
     address: storeAddress,
     bankAccounts,
     qrisImageUrl,
+    whatsappNumber,
+    instagramUrl,
+    tiktokUrl,
+    youtubeUrl,
   } = await getStoreInfo()
 
   return (
@@ -27,6 +31,10 @@ export default async function PublicLayout({
           storeAddress={storeAddress}
           bankAccounts={bankAccounts}
           qrisImageUrl={qrisImageUrl}
+          storePhone={whatsappNumber}
+          instagramUrl={instagramUrl}
+          tiktokUrl={tiktokUrl}
+          youtubeUrl={youtubeUrl}
         />
       </div>
       <BottomNav />

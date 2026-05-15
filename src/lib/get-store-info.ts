@@ -5,8 +5,12 @@ type StoreInfo = {
   description?: string
   address?: string
   logoUrl?: string
-  bankAccounts?: Store['bankAccounts']
+  bankAccounts?: Store["bankAccounts"]
   qrisImageUrl?: string
+  whatsappNumber?: string
+  instagramUrl?: string
+  tiktokUrl?: string
+  youtubeUrl?: string
 }
 
 const FALLBACK: StoreInfo = { name: "Toko Kami" }
@@ -29,6 +33,10 @@ export async function getStoreInfo(): Promise<StoreInfo> {
       logoUrl: data.logoUrl ?? undefined,
       bankAccounts: data.bankAccounts ?? [],
       qrisImageUrl: data.qrisImageUrl ?? undefined,
+      whatsappNumber: data.whatsappNumber ?? undefined,
+      instagramUrl: data.instagramUrl ?? undefined,
+      tiktokUrl: data.tiktokUrl ?? undefined,
+      youtubeUrl: data.youtubeUrl ?? undefined,
     }
   } catch {
     return FALLBACK

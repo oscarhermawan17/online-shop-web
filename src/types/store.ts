@@ -41,6 +41,10 @@ export interface Store {
   fonnteEnabled?: boolean
   fonnteToken?: string | null
   adminWhatsapp?: string | null
+  whatsappNumber?: string | null
+  instagramUrl?: string | null
+  tiktokUrl?: string | null
+  youtubeUrl?: string | null
   createdAt: string
   updatedAt: string
 }

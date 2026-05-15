@@ -103,6 +103,7 @@ export default function AdminStorePage() {
           fonnteEnabled: store.fonnteEnabled ?? false,
           fonnteToken: store.fonnteToken || "",
           adminWhatsapp: store.adminWhatsapp || "",
+          whatsappNumber: store.whatsappNumber || "",
         }
       : undefined,
   })
@@ -189,6 +190,7 @@ export default function AdminStorePage() {
         fonnteEnabled: data.fonnteEnabled ?? false,
         fonnteToken: data.fonnteToken || null,
         adminWhatsapp: data.adminWhatsapp || null,
+        whatsappNumber: data.whatsappNumber || null,
       })
       toast.success("Pengaturan toko berhasil disimpan")
       mutate()
@@ -290,22 +292,37 @@ export default function AdminStorePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Nama Toko <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Nama toko Anda"
-                    {...register("name")}
-                    disabled={isSubmitting}
-                    className="max-w-xl"
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-destructive">
-                      {errors.name.message}
-                    </p>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Nama Toko <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="Nama toko Anda"
+                      {...register("name")}
+                      disabled={isSubmitting}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-destructive">
+                        {errors.name.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsappNumber">Nomor Telepon</Label>
+                    <Input
+                      id="whatsappNumber"
+                      placeholder="Contoh: 0812-3456-7890"
+                      {...register("whatsappNumber")}
+                      disabled={isSubmitting}
+                    />
+                    {errors.whatsappNumber && (
+                      <p className="text-sm text-destructive">
+                        {errors.whatsappNumber.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Deskripsi</Label>

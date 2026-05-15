@@ -73,7 +73,31 @@ export const storeSchema = z.object({
     .max(20, "Nomor WhatsApp terlalu panjang")
     .optional()
     .or(z.literal("")),
+  whatsappNumber: z
+    .string()
+    .max(50, "Nomor telepon terlalu panjang")
+    .optional()
+    .or(z.literal("")),
+})
+
+export const mediaSosialSchema = z.object({
+  instagramUrl: z
+    .string()
+    .url("URL Instagram tidak valid")
+    .optional()
+    .or(z.literal("")),
+  tiktokUrl: z
+    .string()
+    .url("URL TikTok tidak valid")
+    .optional()
+    .or(z.literal("")),
+  youtubeUrl: z
+    .string()
+    .url("URL YouTube tidak valid")
+    .optional()
+    .or(z.literal("")),
 })
 
 export type BankAccountFormData = z.infer<typeof bankAccountSchema>
 export type StoreFormData = z.infer<typeof storeSchema>
+export type MediaSosialFormData = z.infer<typeof mediaSosialSchema>

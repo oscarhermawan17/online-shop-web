@@ -20,6 +20,7 @@ import {
   Menu,
   ChevronLeft,
   Bell,
+  Share2,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -117,6 +118,12 @@ const navGroups = [
         href: "/admin/store",
         label: "Pengaturan Toko",
         icon: Store,
+        exact: false,
+      },
+      {
+        href: "/admin/media-sosial",
+        label: "Media Sosial",
+        icon: Share2,
         exact: false,
       },
     ],
