@@ -19,10 +19,12 @@ import {
   Scale,
   Menu,
   ChevronLeft,
+  Bell,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/stores"
+import { useUnreadCount } from "@/hooks/use-notifications"
 
 const navGroups = [
   {
@@ -33,6 +35,12 @@ const navGroups = [
         label: "Dashboard",
         icon: LayoutDashboard,
         exact: true,
+      },
+      {
+        href: "/admin/notifications",
+        label: "Notifikasi",
+        icon: Bell,
+        exact: false,
       },
     ],
   },
@@ -120,6 +128,7 @@ export function AdminSidebar() {
   const router = useRouter()
   const logout = useAuthStore((state) => state.logout)
   const [collapsed, setCollapsed] = useState(false)
+  const unreadCount = useUnreadCount("admin")
 
   const handleLogout = () => {
     logout()
@@ -189,7 +198,12 @@ export function AdminSidebar() {
                       : "text-[#475569] font-normal hover:bg-[#f1f5f9] hover:text-[#2d3432]",
                   )}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <div className="relative shrink-0">
+                    <Icon className="w-4 h-4" />
+                    {label === "Notifikasi" && unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#dc2626]" />
+                    )}
+                  </div>
                   {!collapsed && label}
                 </Link>
               )

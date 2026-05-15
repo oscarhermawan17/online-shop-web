@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation"
 import { Home, Tag, Bell, User, LayoutGrid } from "lucide-react"
 import { useCustomerAuthStore } from "@/stores"
 import { useState, useEffect } from "react"
+import { useUnreadCount } from "@/hooks/use-notifications"
 
 const baseNavItems = [
   { href: "/", label: "Beranda", icon: Home, exact: true },
   { href: "/catalog", label: "Katalog", icon: LayoutGrid, exact: false },
   { href: "/promo", label: "Deals", icon: Tag, exact: false },
-  { href: "/notifications", label: "Notifikasi", icon: Bell, exact: false },
+  { href: "/dashboard/notifications", label: "Notifikasi", icon: Bell, exact: false },
   { href: "/dashboard", label: "Akun", icon: User, exact: false },
 ]
 
@@ -22,6 +23,10 @@ export function BottomNav() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const unreadCount = useUnreadCount(
+    mounted && isAuthenticated() ? "customer" : null,
+  )
 
   // Always render all 5 items until mounted to match SSR, then filter based on auth
   const navItems =
@@ -54,9 +59,9 @@ export function BottomNav() {
                 className={`relative ${isActive ? "text-[#166534]" : "text-[#64748b]"}`}
               >
                 <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-                {label === "Notifikasi" && (
+                {label === "Notifikasi" && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#dc2626] text-white text-[10px] font-bold rounded-full min-w-4 h-4 flex items-center justify-center border-2 border-white">
-                    38
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </div>
